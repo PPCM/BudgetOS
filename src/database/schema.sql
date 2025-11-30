@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS planned_transactions (
     day_of_week INTEGER CHECK (day_of_week BETWEEN 0 AND 6),
     -- Options
     auto_create INTEGER DEFAULT 0,
+    execute_before_holiday INTEGER DEFAULT 0,
     days_before_create INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     last_created_at TEXT,

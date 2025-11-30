@@ -13,14 +13,14 @@ export class PlannedTransaction {
       INSERT INTO planned_transactions (
         id, user_id, account_id, category_id, credit_card_id, to_account_id,
         amount, description, notes, type, frequency, start_date, end_date,
-        next_occurrence, day_of_month, day_of_week, auto_create, days_before_create,
+        next_occurrence, auto_create, execute_before_holiday, days_before_create,
         max_occurrences, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id, userId, data.accountId, data.categoryId || null, data.creditCardId || null,
       data.toAccountId || null, data.amount, data.description, data.notes || null,
       data.type, data.frequency, data.startDate, data.endDate || null, nextOccurrence,
-      data.dayOfMonth || null, data.dayOfWeek ?? null, data.autoCreate ? 1 : 0,
+      1, data.executeBeforeHoliday ? 1 : 0,
       data.daysBeforeCreate || 0, data.maxOccurrences || null,
       data.tags ? JSON.stringify(data.tags) : null
     ]);
@@ -30,6 +30,7 @@ export class PlannedTransaction {
   static calculateNextOccurrence(data) {
     const start = new Date(data.startDate);
     const today = new Date();
+    const endDate = data.endDate ? new Date(data.endDate) : null;
     let next = start;
 
     if (start <= today) {
@@ -48,12 +49,18 @@ export class PlannedTransaction {
         }
       }
     }
+    
+    // Vérifier si la prochaine occurrence dépasse la date de fin
+    if (endDate && next > endDate) {
+      return null;
+    }
+    
     return formatDateISO(next);
   }
 
   static findById(id, userId) {
     const pt = query.get(`
-      SELECT pt.*, c.name as category_name, a.name as account_name
+      SELECT pt.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name
       FROM planned_transactions pt
       LEFT JOIN categories c ON pt.category_id = c.id
       LEFT JOIN accounts a ON pt.account_id = a.id
@@ -70,7 +77,7 @@ export class PlannedTransaction {
 
   static findByUser(userId, options = {}) {
     const { accountId, type, frequency, isActive = true, page = 1, limit = 50 } = options;
-    let sql = `SELECT pt.*, c.name as category_name, a.name as account_name
+    let sql = `SELECT pt.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name
       FROM planned_transactions pt
       LEFT JOIN categories c ON pt.category_id = c.id
       LEFT JOIN accounts a ON pt.account_id = a.id WHERE pt.user_id = ?`;
@@ -123,8 +130,8 @@ export class PlannedTransaction {
   static update(id, userId, data) {
     PlannedTransaction.findByIdOrFail(id, userId);
     const fields = ['account_id', 'category_id', 'credit_card_id', 'to_account_id', 'amount',
-      'description', 'notes', 'type', 'frequency', 'start_date', 'end_date', 'day_of_month',
-      'day_of_week', 'auto_create', 'days_before_create', 'is_active', 'max_occurrences', 'tags'];
+      'description', 'notes', 'type', 'frequency', 'start_date', 'end_date',
+      'execute_before_holiday', 'days_before_create', 'is_active', 'max_occurrences', 'tags'];
     const updates = [], values = [];
     
     Object.entries(data).forEach(([key, value]) => {
@@ -151,11 +158,11 @@ export class PlannedTransaction {
   static format(pt) {
     return {
       id: pt.id, userId: pt.user_id, accountId: pt.account_id, accountName: pt.account_name,
-      categoryId: pt.category_id, categoryName: pt.category_name, creditCardId: pt.credit_card_id,
+      categoryId: pt.category_id, categoryName: pt.category_name, categoryIcon: pt.category_icon, categoryColor: pt.category_color, creditCardId: pt.credit_card_id,
       toAccountId: pt.to_account_id, amount: pt.amount, description: pt.description,
       notes: pt.notes, type: pt.type, frequency: pt.frequency, startDate: pt.start_date,
-      endDate: pt.end_date, nextOccurrence: pt.next_occurrence, dayOfMonth: pt.day_of_month,
-      dayOfWeek: pt.day_of_week, autoCreate: Boolean(pt.auto_create),
+      endDate: pt.end_date, nextOccurrence: pt.next_occurrence,
+      autoCreate: Boolean(pt.auto_create), executeBeforeHoliday: Boolean(pt.execute_before_holiday),
       daysBeforeCreate: pt.days_before_create, isActive: Boolean(pt.is_active),
       lastCreatedAt: pt.last_created_at, occurrencesCreated: pt.occurrences_created,
       maxOccurrences: pt.max_occurrences, tags: pt.tags ? JSON.parse(pt.tags) : [],

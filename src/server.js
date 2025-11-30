@@ -13,6 +13,7 @@ import { csrfProtection, csrfTokenProvider } from './middleware/csrf.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeInput } from './middleware/validation.js';
 import apiRoutes from './routes/index.js';
+import schedulerService from './services/schedulerService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,6 +110,9 @@ const startServer = async () => {
 
     // Créer l'application
     const app = createApp();
+
+    // Démarrer le scheduler pour les transactions planifiées
+    schedulerService.start();
 
     // Démarrer le serveur HTTP
     const server = app.listen(config.server.port, config.server.host, () => {

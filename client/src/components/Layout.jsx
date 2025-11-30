@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { 
   LayoutDashboard, Wallet, ArrowLeftRight, CreditCard, 
-  Tags, BarChart3, LogOut, Menu, X, Upload, Calendar,
+  Tags, BarChart3, LogOut, Menu, X, Upload, Repeat,
   Wand2, Settings
 } from 'lucide-react'
 import { useState } from 'react'
@@ -12,7 +12,7 @@ const navigation = [
   { name: 'Tableau de bord', href: '/', icon: LayoutDashboard },
   { name: 'Comptes', href: '/accounts', icon: Wallet },
   { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
-  { name: 'Planifiées', href: '/planned', icon: Calendar },
+  { name: 'Récurrentes', href: '/planned', icon: Repeat },
   { name: 'Cartes de crédit', href: '/credit-cards', icon: CreditCard },
   { name: 'Catégories', href: '/categories', icon: Tags },
   { name: 'Import', href: '/import', icon: Upload },

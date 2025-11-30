@@ -2,11 +2,19 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, categoriesApi } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/utils'
+import * as LucideIcons from 'lucide-react'
 import { 
-  Plus, Calendar, Clock, Repeat, Trash2, X, 
+  Plus, Calendar, Clock, Repeat, Trash2, X, Pencil, Tag,
   TrendingUp, TrendingDown, ArrowLeftRight, Play 
 } from 'lucide-react'
 import axios from 'axios'
+
+// Fonction pour obtenir le composant icône par nom
+const getIconComponent = (iconName) => {
+  if (!iconName) return Tag
+  const formattedName = iconName.charAt(0).toUpperCase() + iconName.slice(1)
+  return LucideIcons[formattedName] || Tag
+}
 
 const frequencies = [
   { value: 'once', label: 'Une fois' },
@@ -29,15 +37,24 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
     type: 'expense',
     frequency: 'monthly',
     startDate: new Date().toISOString().split('T')[0],
-    dayOfMonth: new Date().getDate(),
-    autoCreate: false,
+    endDate: '',
+    executeBeforeHoliday: false,
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    const amount = parseFloat(formData.amount)
+    // Filtrer les données pour n'envoyer que les champs nécessaires
     onSave({
-      ...formData,
-      amount: formData.type === 'expense' ? -Math.abs(formData.amount) : Math.abs(formData.amount),
+      accountId: formData.accountId,
+      categoryId: formData.categoryId || null,
+      amount: formData.type === 'expense' ? -Math.abs(amount) : Math.abs(amount),
+      description: formData.description,
+      type: formData.type,
+      frequency: formData.frequency,
+      startDate: formData.startDate,
+      endDate: formData.endDate || null,
+      executeBeforeHoliday: formData.executeBeforeHoliday || false,
     })
   }
 
@@ -46,7 +63,7 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
       <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
           <h2 className="text-lg font-semibold">
-            {planned ? 'Modifier' : 'Nouvelle transaction planifiée'}
+            {planned ? 'Modifier' : 'Nouvelle transaction récurrente'}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -114,23 +131,6 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-              <select
-                value={formData.categoryId || ''}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value || null })}
-                className="input"
-              >
-                <option value="">Non catégorisé</option>
-                {categories?.filter(c => c.type === formData.type)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
               <select
                 value={formData.frequency}
@@ -142,6 +142,9 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
               <input
@@ -152,32 +155,44 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
                 required
               />
             </div>
-          </div>
-
-          {['monthly', 'bimonthly', 'quarterly', 'semiannual', 'annual'].includes(formData.frequency) && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jour du mois</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin (optionnel)</label>
               <input
-                type="number"
-                min="1"
-                max="31"
-                value={formData.dayOfMonth || ''}
-                onChange={(e) => setFormData({ ...formData, dayOfMonth: parseInt(e.target.value) })}
+                type="date"
+                value={formData.endDate || ''}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value || null })}
                 className="input"
+                min={formData.startDate}
               />
             </div>
-          )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+            <select
+              value={formData.categoryId || ''}
+              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value || null })}
+              className="input"
+            >
+              <option value="">Non catégorisé</option>
+              {categories?.filter(c => c.type === formData.type)
+                .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+                .map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+            </select>
+          </div>
 
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
-              id="autoCreate"
-              checked={formData.autoCreate}
-              onChange={(e) => setFormData({ ...formData, autoCreate: e.target.checked })}
+              id="executeBeforeHoliday"
+              checked={formData.executeBeforeHoliday}
+              onChange={(e) => setFormData({ ...formData, executeBeforeHoliday: e.target.checked })}
               className="rounded border-gray-300"
             />
-            <label htmlFor="autoCreate" className="text-sm text-gray-700">
-              Créer automatiquement les transactions
+            <label htmlFor="executeBeforeHoliday" className="text-sm text-gray-700">
+              Exécution le dernier jour ouvré avant échéance
             </label>
           </div>
 
@@ -197,9 +212,10 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
 
 export default function PlannedTransactions() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingPlanned, setEditingPlanned] = useState(null)
   const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['planned-transactions'],
     queryFn: async () => {
       const { data } = await axios.get('/api/v1/planned-transactions', { withCredentials: true })
@@ -211,7 +227,7 @@ export default function PlannedTransactions() {
     queryKey: ['upcoming-transactions'],
     queryFn: async () => {
       const { data } = await axios.get('/api/v1/planned-transactions/upcoming?days=30', { withCredentials: true })
-      return data.data.upcoming
+      return data.data?.upcoming || []
     },
   })
 
@@ -238,6 +254,28 @@ export default function PlannedTransactions() {
       queryClient.invalidateQueries(['upcoming-transactions'])
       setModalOpen(false)
     },
+    onError: (err) => {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
+      return axios.put(`/api/v1/planned-transactions/${id}`, data, {
+        withCredentials: true,
+        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['planned-transactions'])
+      queryClient.invalidateQueries(['upcoming-transactions'])
+      setModalOpen(false)
+      setEditingPlanned(null)
+    },
+    onError: (err) => {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -254,9 +292,33 @@ export default function PlannedTransactions() {
     },
   })
 
+  const handleEdit = (tx) => {
+    setEditingPlanned({
+      ...tx,
+      amount: Math.abs(tx.amount),
+      startDate: tx.startDate?.split('T')[0] || tx.startDate,
+      endDate: tx.endDate?.split('T')[0] || tx.endDate || '',
+    })
+    setModalOpen(true)
+  }
+
+  const handleSave = (formData) => {
+    if (editingPlanned) {
+      updateMutation.mutate({ id: editingPlanned.id, data: formData })
+    } else {
+      createMutation.mutate(formData)
+    }
+  }
+
   if (isLoading) {
     return <div className="flex justify-center py-12">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    </div>
+  }
+
+  if (error) {
+    return <div className="text-center py-12 text-red-600">
+      Erreur: {error.message}
     </div>
   }
 
@@ -264,8 +326,8 @@ export default function PlannedTransactions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transactions planifiées</h1>
-          <p className="text-gray-600">Gérez vos opérations récurrentes</p>
+          <h1 className="text-2xl font-bold text-gray-900">Transactions récurrentes</h1>
+          <p className="text-gray-600">Gérez vos opérations automatiques</p>
         </div>
         <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" />
@@ -293,7 +355,7 @@ export default function PlannedTransactions() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{tx.description}</p>
-                    <p className="text-xs text-gray-500">{formatDate(tx.nextDate)}</p>
+                    <p className="text-xs text-gray-500">{tx.nextOccurrence ? formatDate(tx.nextOccurrence) : '-'}</p>
                   </div>
                   <span className={`font-semibold text-sm ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(Math.abs(tx.amount))}
@@ -310,12 +372,12 @@ export default function PlannedTransactions() {
         <div className="lg:col-span-2 card">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Repeat className="w-5 h-5 text-primary-600" />
-            Transactions récurrentes
+            Liste des transactions récurrentes
           </h2>
           {data?.data?.length > 0 ? (
             <div className="space-y-3">
               {data.data.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-4 p-4 border rounded-xl hover:shadow-sm transition-shadow">
+                <div key={tx.id} className="flex items-center gap-4 p-4 border rounded-xl hover:shadow-sm transition-shadow group">
                   <div className={`p-3 rounded-xl ${tx.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
                     {tx.type === 'income' ? (
                       <TrendingUp className="w-5 h-5 text-green-600" />
@@ -325,35 +387,69 @@ export default function PlannedTransactions() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900">{tx.description}</p>
-                    <p className="text-sm text-gray-500">
-                      {frequencies.find(f => f.value === tx.frequency)?.label || tx.frequency}
-                      {tx.nextOccurrence && ` • Prochaine: ${formatDate(tx.nextOccurrence)}`}
-                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <span>{frequencies.find(f => f.value === tx.frequency)?.label || tx.frequency}</span>
+                      {tx.categoryName && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            {(() => {
+                              const IconComp = getIconComponent(tx.categoryIcon)
+                              return (
+                                <span style={{ color: tx.categoryColor || '#6B7280' }}>
+                                  <IconComp className="w-3.5 h-3.5" />
+                                </span>
+                              )
+                            })()}
+                            {tx.categoryName}
+                          </span>
+                        </>
+                      )}
+                      {tx.nextOccurrence && (
+                        <>
+                          <span>•</span>
+                          <span>Prochaine: {formatDate(tx.nextOccurrence)}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <span className={`text-lg font-bold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(Math.abs(tx.amount))}
                   </span>
-                  <button
-                    onClick={() => deleteMutation.mutate(tx.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEdit(tx)}
+                      className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Supprimer "${tx.description}" ?`)) {
+                          deleteMutation.mutate(tx.id)
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">Aucune transaction planifiée</p>
+            <p className="text-gray-500 text-center py-8">Aucune transaction récurrente</p>
           )}
         </div>
       </div>
 
       {modalOpen && (
         <PlannedModal
+          planned={editingPlanned}
           accounts={accounts}
           categories={categories}
-          onClose={() => setModalOpen(false)}
-          onSave={(data) => createMutation.mutate(data)}
+          onClose={() => { setModalOpen(false); setEditingPlanned(null); }}
+          onSave={handleSave}
         />
       )}
     </div>

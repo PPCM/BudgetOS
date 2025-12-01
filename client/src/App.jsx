@@ -13,6 +13,7 @@ import Import from './pages/Import'
 import PlannedTransactions from './pages/PlannedTransactions'
 import Rules from './pages/Rules'
 import Settings from './pages/Settings'
+import Payees from './pages/Payees'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -43,6 +44,7 @@ function App() {
         <Route path="import" element={<Import />} />
         <Route path="planned" element={<PlannedTransactions />} />
         <Route path="rules" element={<Rules />} />
+        <Route path="payees" element={<Payees />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

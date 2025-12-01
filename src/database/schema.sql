@@ -139,6 +139,25 @@ CREATE INDEX idx_categories_parent_id ON categories(parent_id);
 CREATE INDEX idx_categories_type ON categories(type);
 
 -- ============================================
+-- PAYEES (Tiers)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS payees (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    image_url TEXT,
+    notes TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_payees_user_id ON payees(user_id);
+CREATE INDEX idx_payees_name ON payees(name);
+
+-- ============================================
 -- TRANSACTIONS
 -- ============================================
 
@@ -147,6 +166,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     user_id TEXT NOT NULL,
     account_id TEXT NOT NULL,
     category_id TEXT,
+    payee_id TEXT,
     credit_card_id TEXT,
     credit_card_cycle_id TEXT,
     -- Montant et description
@@ -184,6 +204,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (payee_id) REFERENCES payees(id) ON DELETE SET NULL,
     FOREIGN KEY (credit_card_id) REFERENCES credit_cards(id) ON DELETE SET NULL,
     FOREIGN KEY (credit_card_cycle_id) REFERENCES credit_card_cycles(id) ON DELETE SET NULL,
     FOREIGN KEY (recurring_id) REFERENCES planned_transactions(id) ON DELETE SET NULL,
@@ -193,6 +214,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_account_id ON transactions(account_id);
+CREATE INDEX idx_transactions_payee_id ON transactions(payee_id);
 CREATE INDEX idx_transactions_category_id ON transactions(category_id);
 CREATE INDEX idx_transactions_date ON transactions(date);
 CREATE INDEX idx_transactions_status ON transactions(status);

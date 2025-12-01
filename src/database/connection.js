@@ -10,6 +10,31 @@ let dbPath = null;
 let inTransaction = false;
 
 /**
+ * Vérifie si une colonne existe dans une table
+ */
+const columnExists = (tableName, columnName) => {
+  const result = db.exec(`PRAGMA table_info(${tableName})`);
+  if (result.length === 0) return false;
+  const columns = result[0].values.map(row => row[1]);
+  return columns.includes(columnName);
+};
+
+/**
+ * Exécute les migrations nécessaires
+ */
+const runMigrations = () => {
+  // Migration: Ajouter image_url à payees
+  if (!columnExists('payees', 'image_url')) {
+    try {
+      db.run('ALTER TABLE payees ADD COLUMN image_url TEXT');
+      logger.info('Migration: Added image_url column to payees table');
+    } catch (e) {
+      // Table n'existe peut-être pas encore, ignorer
+    }
+  }
+};
+
+/**
  * Initialise la connexion à la base de données SQLite
  */
 export const initDatabase = async () => {
@@ -36,6 +61,10 @@ export const initDatabase = async () => {
     }
 
     db.run('PRAGMA foreign_keys = ON');
+    
+    // Migrations automatiques
+    runMigrations();
+    
     return db;
   } catch (error) {
     logger.error('Failed to connect to database', { error: error.message });

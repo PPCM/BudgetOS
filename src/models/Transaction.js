@@ -25,13 +25,13 @@ export class Transaction {
     dbTransaction(() => {
       query.run(`
         INSERT INTO transactions (
-          id, user_id, account_id, category_id, credit_card_id,
+          id, user_id, account_id, category_id, payee_id, credit_card_id,
           amount, description, notes, date, value_date, purchase_date,
           status, type, is_recurring, recurring_id, tags
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
-        id, userId, data.accountId, data.categoryId || null, data.creditCardId || null,
+        id, userId, data.accountId, data.categoryId || null, data.payeeId || null, data.creditCardId || null,
         amount, data.description, data.notes || null, data.date,
         data.valueDate || null, data.purchaseDate || null,
         data.status || 'pending', data.type, data.isRecurring ? 1 : 0,
@@ -100,10 +100,11 @@ export class Transaction {
     } = options;
     
     let sql = `
-      SELECT t.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name
+      SELECT t.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name, p.name as payee_name, p.image_url as payee_image_url
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id
       LEFT JOIN accounts a ON t.account_id = a.id
+      LEFT JOIN payees p ON t.payee_id = p.id
       WHERE t.user_id = ?
     `;
     const params = [userId];
@@ -190,7 +191,7 @@ export class Transaction {
     const oldAccountId = tx.accountId;
     
     const allowedFields = [
-      'account_id', 'category_id', 'credit_card_id', 'amount', 'description',
+      'account_id', 'category_id', 'payee_id', 'credit_card_id', 'amount', 'description',
       'notes', 'date', 'value_date', 'purchase_date', 'status', 'type', 'tags'
     ];
     
@@ -353,6 +354,9 @@ export class Transaction {
       categoryName: tx.category_name,
       categoryIcon: tx.category_icon,
       categoryColor: tx.category_color,
+      payeeId: tx.payee_id,
+      payeeName: tx.payee_name,
+      payeeImageUrl: tx.payee_image_url,
       creditCardId: tx.credit_card_id,
       creditCardCycleId: tx.credit_card_cycle_id,
       amount: tx.amount,

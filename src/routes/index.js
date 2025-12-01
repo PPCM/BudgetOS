@@ -8,6 +8,8 @@ import plannedTransactionRoutes from './plannedTransactions.js';
 import importRoutes from './import.js';
 import reportRoutes from './reports.js';
 import ruleRoutes from './rules.js';
+import payeeRoutes from './payees.js';
+import uploadRoutes from './uploads.js';
 import { csrfTokenRoute } from '../middleware/csrf.js';
 
 const router = Router();
@@ -25,6 +27,8 @@ router.use('/planned-transactions', plannedTransactionRoutes);
 router.use('/import', importRoutes);
 router.use('/reports', reportRoutes);
 router.use('/rules', ruleRoutes);
+router.use('/payees', payeeRoutes);
+router.use('/uploads', uploadRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

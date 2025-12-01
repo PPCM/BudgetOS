@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { 
   LayoutDashboard, Wallet, ArrowLeftRight, CreditCard, 
   Tags, BarChart3, LogOut, Menu, X, Upload, Repeat,
-  Wand2, Settings
+  Wand2, Settings, Users
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../lib/utils'
@@ -15,6 +15,7 @@ const navigation = [
   { name: 'Récurrentes', href: '/planned', icon: Repeat },
   { name: 'Cartes de crédit', href: '/credit-cards', icon: CreditCard },
   { name: 'Catégories', href: '/categories', icon: Tags },
+  { name: 'Tiers', href: '/payees', icon: Users },
   { name: 'Import', href: '/import', icon: Upload },
   { name: 'Règles', href: '/rules', icon: Wand2 },
   { name: 'Rapports', href: '/reports', icon: BarChart3 },

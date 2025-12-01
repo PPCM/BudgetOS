@@ -114,4 +114,25 @@ export const reportsApi = {
   getForecast: (params) => api.get('/reports/forecast', { params }),
 }
 
+export const payeesApi = {
+  getAll: (params) => api.get('/payees', { params: cleanParams(params || {}) }),
+  getOne: (id) => api.get(`/payees/${id}`),
+  create: (data) => api.post('/payees', data),
+  update: (id, data) => api.put(`/payees/${id}`, data),
+  delete: (id) => api.delete(`/payees/${id}`),
+  getTransactionCount: (id) => api.get(`/payees/${id}/transactions/count`),
+  reassignTransactions: (id, toPayeeId) => api.post(`/payees/${id}/transactions/reassign`, { toPayeeId }),
+}
+
+export const uploadsApi = {
+  uploadPayeeImage: (file) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return api.post('/uploads/payee-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  deletePayeeImage: (imageUrl) => api.delete('/uploads/payee-image', { data: { imageUrl } }),
+}
+
 export default api

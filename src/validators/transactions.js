@@ -16,6 +16,7 @@ export const transactionStatuses = ['pending', 'cleared', 'reconciled', 'void'];
 const baseTransactionSchema = {
   accountId: z.string().uuid('ID de compte invalide'),
   categoryId: z.string().uuid('ID de catégorie invalide').nullable().optional(),
+  payeeId: z.string().uuid('ID de tiers invalide').nullable().optional(),
   creditCardId: z.string().uuid('ID de carte invalide').nullable().optional(),
   amount: z
     .number()

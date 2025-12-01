@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { transactionsApi, accountsApi, categoriesApi } from '../lib/api'
+import { transactionsApi, accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/utils'
 import * as LucideIcons from 'lucide-react'
 import { 
   Plus, Search, Filter, TrendingUp, TrendingDown, 
-  ArrowLeftRight, X, ChevronLeft, ChevronRight, Pencil, Trash2, Tag
+  ArrowLeftRight, X, ChevronLeft, ChevronRight, Pencil, Trash2, Tag, Users
 } from 'lucide-react'
+import SearchableSelect from '../components/SearchableSelect'
+import { findKnownLogo } from '../lib/knownLogos'
 
 // Fonction pour obtenir le composant icône par nom
 const getIconComponent = (iconName) => {
@@ -15,10 +17,11 @@ const getIconComponent = (iconName) => {
   return LucideIcons[formattedName] || Tag
 }
 
-function TransactionModal({ transaction, accounts, categories, onClose, onSave }) {
+function TransactionModal({ transaction, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
   const [formData, setFormData] = useState(transaction || {
     accountId: accounts?.[0]?.id || '',
     categoryId: '',
+    payeeId: '',
     amount: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
@@ -29,6 +32,12 @@ function TransactionModal({ transaction, accounts, categories, onClose, onSave }
     e.preventDefault()
     onSave(formData)
   }
+
+  // Filtrer les catégories par type
+  const filteredCategories = categories?.filter(c => c.type === formData.type || c.type === 'transfer')
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
+
+  const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -118,18 +127,47 @@ function TransactionModal({ transaction, accounts, categories, onClose, onSave }
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-            <select
-              value={formData.categoryId || ''}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value || null })}
-              className="input"
-            >
-              <option value="">Non catégorisé</option>
-              {categories?.filter(c => c.type === formData.type || c.type === 'transfer')
-                .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-                .map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-            </select>
+            <SearchableSelect
+              value={formData.categoryId}
+              onChange={(id) => setFormData({ ...formData, categoryId: id })}
+              options={filteredCategories}
+              placeholder="Tapez pour rechercher..."
+              emptyMessage="Aucune catégorie trouvée"
+              allowCreate={!!onCreateCategory}
+              createLabel="Créer la catégorie"
+              onCreate={(name) => onCreateCategory(name, formData.type)}
+              renderOption={(cat) => {
+                const IconComp = getIconComponent(cat.icon)
+                return (
+                  <span className="flex items-center gap-2">
+                    <span style={{ color: cat.color || '#6B7280' }}>
+                      <IconComp className="w-4 h-4" />
+                    </span>
+                    {cat.name}
+                  </span>
+                )
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tiers (optionnel)</label>
+            <SearchableSelect
+              value={formData.payeeId}
+              onChange={(id) => setFormData({ ...formData, payeeId: id })}
+              options={sortedPayees}
+              placeholder="Tapez pour rechercher..."
+              emptyMessage="Aucun tiers trouvé"
+              allowCreate={!!onCreatePayee}
+              createLabel="Créer le tiers"
+              onCreate={onCreatePayee}
+              renderOption={(p) => (
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gray-400" />
+                  {p.name}
+                </span>
+              )}
+            />
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -166,6 +204,52 @@ export default function Transactions() {
     queryKey: ['categories', { flat: true }],
     queryFn: () => categoriesApi.getAll({ flat: 'true' }).then(r => r.data.data.categories),
   })
+
+  const { data: payeesData } = useQuery({
+    queryKey: ['payees'],
+    queryFn: () => payeesApi.getAll().then(r => r.data.data),
+  })
+
+  const createPayeeMutation = useMutation({
+    mutationFn: payeesApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payees'] })
+    },
+  })
+
+  const handleCreatePayee = async (name) => {
+    try {
+      // Rechercher un logo connu pour cette entreprise
+      const imageUrl = findKnownLogo(name)
+      const result = await createPayeeMutation.mutateAsync({ name, imageUrl })
+      return result.data.data
+    } catch (err) {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      return null
+    }
+  }
+
+  const createCategoryMutation = useMutation({
+    mutationFn: categoriesApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+    },
+  })
+
+  const handleCreateCategory = async (name, type) => {
+    try {
+      const result = await createCategoryMutation.mutateAsync({ 
+        name, 
+        type: type || 'expense',
+        icon: 'tag',
+        color: '#6B7280'
+      })
+      return result.data.data.category
+    } catch (err) {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      return null
+    }
+  }
 
   const createMutation = useMutation({
     mutationFn: transactionsApi.create,
@@ -205,6 +289,7 @@ export default function Transactions() {
     const cleanData = {
       accountId: formData.accountId,
       categoryId: formData.categoryId || null,
+      payeeId: formData.payeeId || null,
       amount: parseFloat(formData.amount),
       description: formData.description,
       date: formData.date,
@@ -320,6 +405,7 @@ export default function Transactions() {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiers</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
@@ -332,6 +418,24 @@ export default function Transactions() {
                       <td className="px-4 py-3 text-sm text-gray-600">{formatDate(tx.date)}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{tx.description}</p>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {tx.payeeName ? (
+                          <div className="flex items-center gap-2">
+                            {tx.payeeImageUrl ? (
+                              <img 
+                                src={tx.payeeImageUrl} 
+                                alt={tx.payeeName}
+                                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <Users className="w-3 h-3 text-gray-400" />
+                              </div>
+                            )}
+                            <span>{tx.payeeName}</span>
+                          </div>
+                        ) : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {tx.categoryName ? (
@@ -413,8 +517,11 @@ export default function Transactions() {
           transaction={editingTx}
           accounts={accountsData?.data}
           categories={categoriesData}
+          payees={payeesData}
           onClose={() => { setModalOpen(false); setEditingTx(null); }}
           onSave={handleSave}
+          onCreatePayee={handleCreatePayee}
+          onCreateCategory={handleCreateCategory}
         />
       )}
     </div>

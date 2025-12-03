@@ -171,8 +171,8 @@ export class Transaction {
       params.push(`%${search}%`, `%${search}%`);
     }
     
-    // Compte total
-    const countSql = sql.replace('SELECT t.*, c.name as category_name, a.name as account_name', 'SELECT COUNT(*) as count');
+    // Compte total - utiliser une regex pour remplacer tout le SELECT jusqu'à FROM
+    const countSql = sql.replace(/SELECT[\s\S]*?FROM transactions/i, 'SELECT COUNT(*) as count FROM transactions');
     const total = query.get(countSql, params)?.count || 0;
     
     // Tri et pagination

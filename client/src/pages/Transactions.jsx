@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/utils'
 import * as LucideIcons from 'lucide-react'
 import { 
   Plus, Search, Filter, TrendingUp, TrendingDown, 
-  ArrowLeftRight, X, ChevronLeft, ChevronRight, Pencil, Trash2, Tag, Users
+  ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
@@ -238,13 +238,56 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
 export default function Transactions() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
-  const [filters, setFilters] = useState({ page: 1, search: '', accountId: '', categoryId: '', type: '' })
-  const queryClient = useQueryClient()
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['transactions', filters],
-    queryFn: () => transactionsApi.getAll(filters).then(r => r.data),
+  const [filters, setFilters] = useState({ 
+    search: '', 
+    accountId: '', 
+    categoryId: '', 
+    type: '',
+    startDate: '',
+    endDate: ''
   })
+  const queryClient = useQueryClient()
+  const loadMoreRef = useRef(null)
+
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['transactions', filters],
+    queryFn: ({ pageParam = 1 }) => 
+      transactionsApi.getAll({ ...filters, page: pageParam, limit: 30 }).then(r => r.data),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1
+      }
+      return undefined
+    },
+  })
+
+  // Scroll infini avec IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  // Aplatir les pages de transactions
+  const transactions = data?.pages?.flatMap(page => page.data) || []
+  const totalCount = data?.pages?.[0]?.pagination?.total || 0
 
   const { data: accountsData } = useQuery({
     queryKey: ['accounts'],
@@ -305,8 +348,8 @@ export default function Transactions() {
   const createMutation = useMutation({
     mutationFn: transactionsApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setModalOpen(false)
     },
     onError: (err) => {
@@ -317,8 +360,8 @@ export default function Transactions() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => transactionsApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setModalOpen(false)
       setEditingTx(null)
     },
@@ -330,8 +373,8 @@ export default function Transactions() {
   const deleteMutation = useMutation({
     mutationFn: transactionsApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
     },
   })
 
@@ -388,7 +431,9 @@ export default function Transactions() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-          <p className="text-gray-600">Historique de vos opérations</p>
+          <p className="text-gray-600">
+            {totalCount > 0 ? `${totalCount} opération${totalCount > 1 ? 's' : ''}` : 'Historique de vos opérations'}
+          </p>
         </div>
         <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" />
@@ -406,7 +451,7 @@ export default function Transactions() {
                 type="text"
                 placeholder="Rechercher..."
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 className="input pl-10"
               />
             </div>
@@ -414,7 +459,7 @@ export default function Transactions() {
           <div className="w-48">
             <select
               value={filters.accountId}
-              onChange={(e) => setFilters({ ...filters, accountId: e.target.value, page: 1 })}
+              onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}
               className="input"
             >
               <option value="">Tous les comptes</option>
@@ -426,7 +471,7 @@ export default function Transactions() {
           <div className="w-48">
             <select
               value={filters.categoryId}
-              onChange={(e) => setFilters({ ...filters, categoryId: e.target.value, page: 1 })}
+              onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}
               className="input"
             >
               <option value="">Toutes catégories</option>
@@ -438,7 +483,7 @@ export default function Transactions() {
           <div className="w-36">
             <select
               value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value, page: 1 })}
+              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
               className="input"
             >
               <option value="">Tous types</option>
@@ -447,6 +492,41 @@ export default function Transactions() {
               <option value="transfer">Virements</option>
             </select>
           </div>
+        </div>
+        
+        {/* Filtres de date */}
+        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-600">Période :</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              className="input w-40 text-sm"
+              placeholder="Du"
+            />
+            <span className="text-gray-400">→</span>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              className="input w-40 text-sm"
+              min={filters.startDate}
+              placeholder="Au"
+            />
+          </div>
+          {(filters.startDate || filters.endDate) && (
+            <button
+              onClick={() => setFilters({ ...filters, startDate: '', endDate: '' })}
+              className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+            >
+              <X className="w-4 h-4" />
+              Effacer dates
+            </button>
+          )}
         </div>
       </div>
 
@@ -472,7 +552,7 @@ export default function Transactions() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {data?.data?.map((tx) => (
+                  {transactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-gray-50 group">
                       <td className="px-4 py-3 text-sm text-gray-600">{formatDate(tx.date)}</td>
                       <td className="px-4 py-3">
@@ -548,31 +628,13 @@ export default function Transactions() {
               </table>
             </div>
 
-            {/* Pagination */}
-            {data?.pagination && (
-              <div className="flex items-center justify-between px-4 py-3 border-t">
-                <p className="text-sm text-gray-600">
-                  {data.pagination.total} transactions
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
-                    disabled={filters.page === 1}
-                    className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <span className="px-3 py-2 text-sm">
-                    {filters.page} / {data.pagination.totalPages}
-                  </span>
-                  <button
-                    onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
-                    disabled={filters.page >= data.pagination.totalPages}
-                    className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
+            {/* Élément de déclenchement du scroll infini */}
+            <div ref={loadMoreRef} className="h-1" />
+
+            {/* Loader de chargement */}
+            {isFetchingNextPage && (
+              <div className="flex justify-center py-4 border-t">
+                <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
               </div>
             )}
           </>

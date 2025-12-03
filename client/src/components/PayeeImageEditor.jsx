@@ -1,8 +1,35 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Upload, X, User, Loader2 } from 'lucide-react'
 import { uploadsApi } from '../lib/api'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+
+// Modal spécial pour l'éditeur d'image (z-index élevé pour s'afficher au-dessus des autres modals)
+function ImageEditModal({ children, onClose }) {
+  const overlayRef = useRef(null)
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
+  const handleOverlayClick = (e) => {
+    if (e.target === overlayRef.current) onClose()
+  }
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={handleOverlayClick}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4"
+    >
+      {children}
+    </div>
+  )
+}
 
 export default function PayeeImageEditor({ 
   imageUrl, 
@@ -89,7 +116,7 @@ export default function PayeeImageEditor({
 
       {/* Modal d'édition */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
+        <ImageEditModal onClose={() => setIsOpen(false)}>
           <div className="bg-white rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
@@ -174,7 +201,7 @@ export default function PayeeImageEditor({
               </button>
             </div>
           </div>
-        </div>
+        </ImageEditModal>
       )}
     </div>
   )

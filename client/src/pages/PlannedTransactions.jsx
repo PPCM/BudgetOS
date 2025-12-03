@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { accountsApi, categoriesApi } from '../lib/api'
+import { accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/utils'
 import * as LucideIcons from 'lucide-react'
 import { 
   Plus, Calendar, Clock, Repeat, Trash2, X, Pencil, Tag,
-  TrendingUp, TrendingDown, ArrowLeftRight, Play 
+  TrendingUp, TrendingDown, ArrowLeftRight, Play, Users 
 } from 'lucide-react'
 import axios from 'axios'
+import SearchableSelect from '../components/SearchableSelect'
+import Modal from '../components/Modal'
 
 // Fonction pour obtenir le composant icône par nom
 const getIconComponent = (iconName) => {
@@ -28,10 +30,12 @@ const frequencies = [
   { value: 'annual', label: 'Annuel' },
 ]
 
-function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
+function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
   const [formData, setFormData] = useState(planned || {
     accountId: accounts?.[0]?.id || '',
+    toAccountId: '',
     categoryId: '',
+    payeeId: '',
     amount: '',
     description: '',
     type: 'expense',
@@ -40,26 +44,35 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
     endDate: '',
     executeBeforeHoliday: false,
   })
+  
+  const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
 
   const handleSubmit = (e) => {
     e.preventDefault()
     const amount = parseFloat(formData.amount)
     // Filtrer les données pour n'envoyer que les champs nécessaires
-    onSave({
+    const data = {
       accountId: formData.accountId,
       categoryId: formData.categoryId || null,
-      amount: formData.type === 'expense' ? -Math.abs(amount) : Math.abs(amount),
+      payeeId: formData.payeeId || null,
+      amount: (formData.type === 'expense' || formData.type === 'transfer') ? -Math.abs(amount) : Math.abs(amount),
       description: formData.description,
       type: formData.type,
       frequency: formData.frequency,
       startDate: formData.startDate,
       endDate: formData.endDate || null,
       executeBeforeHoliday: formData.executeBeforeHoliday || false,
-    })
+    }
+    // Pour les virements, ajouter le compte destination (exclusif avec tiers)
+    if (formData.type === 'transfer' && formData.toAccountId) {
+      data.toAccountId = formData.toAccountId
+      data.payeeId = null // Pas de tiers si compte destination
+    }
+    onSave(data)
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
           <h2 className="text-lg font-semibold">
@@ -73,18 +86,21 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
           {/* Type */}
           <div className="flex gap-2">
             {[
-              { value: 'expense', label: 'Dépense', icon: TrendingDown },
-              { value: 'income', label: 'Revenu', icon: TrendingUp },
-            ].map(({ value, label, icon: Icon }) => (
+              { value: 'expense', label: 'Dépense', icon: TrendingDown, color: 'red' },
+              { value: 'income', label: 'Revenu', icon: TrendingUp, color: 'green' },
+              { value: 'transfer', label: 'Virement', icon: ArrowLeftRight, color: 'blue' },
+            ].map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setFormData({ ...formData, type: value })}
                 className={`flex-1 p-3 rounded-lg border-2 transition-colors flex flex-col items-center gap-1 ${
-                  formData.type === value ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+                  formData.type === value 
+                    ? `border-${color}-500 bg-${color}-50` 
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className={`w-5 h-5 ${formData.type === value ? `text-${color}-600` : 'text-gray-400'}`} />
                 <span className="text-sm">{label}</span>
               </button>
             ))}
@@ -115,21 +131,81 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Compte</label>
-              <select
-                value={formData.accountId}
-                onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-                className="input"
-                required
-              >
-                <option value="">Sélectionner</option>
-                {accounts?.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+          {/* Comptes - affichage différent pour les virements */}
+          {formData.type === 'transfer' ? (
+            <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Compte source (débit)</label>
+                <select
+                  value={formData.accountId}
+                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  className="input"
+                  required
+                >
+                  <option value="">Sélectionner le compte source</option>
+                  {accounts?.map((a) => (
+                    <option key={a.id} value={a.id} disabled={a.id === formData.toAccountId}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-center">
+                <ArrowLeftRight className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Compte destination (crédit) - optionnel
+                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">(désactivé car tiers sélectionné)</span>}
+                </label>
+                <select
+                  value={formData.toAccountId}
+                  onChange={(e) => setFormData({ ...formData, toAccountId: e.target.value })}
+                  className="input"
+                  disabled={!!formData.payeeId}
+                >
+                  <option value="">Aucun (virement externe)</option>
+                  {accounts?.map((a) => (
+                    <option key={a.id} value={a.id} disabled={a.id === formData.accountId}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Compte</label>
+                <select
+                  value={formData.accountId}
+                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  className="input"
+                  required
+                >
+                  <option value="">Sélectionner</option>
+                  {accounts?.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
+                <select
+                  value={formData.frequency}
+                  onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+                  className="input"
+                >
+                  {frequencies.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Fréquence (pour les virements, affiché séparément) */}
+          {formData.type === 'transfer' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
               <select
@@ -142,7 +218,7 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
                 ))}
               </select>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -169,18 +245,54 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-            <select
-              value={formData.categoryId || ''}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value || null })}
-              className="input"
-            >
-              <option value="">Non catégorisé</option>
-              {categories?.filter(c => c.type === formData.type)
-                .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-                .map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-            </select>
+            <SearchableSelect
+              value={formData.categoryId}
+              onChange={(id) => setFormData({ ...formData, categoryId: id })}
+              options={categories?.filter(c => c.type === formData.type || c.type === 'transfer')
+                .sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []}
+              placeholder="Tapez pour rechercher..."
+              emptyMessage="Aucune catégorie trouvée"
+              allowCreate={!!onCreateCategory}
+              createLabel="Créer la catégorie"
+              onCreate={(name) => onCreateCategory(name, formData.type)}
+              renderOption={(cat) => {
+                const IconComp = getIconComponent(cat.icon)
+                return (
+                  <span className="flex items-center gap-2">
+                    <span style={{ color: cat.color || '#6B7280' }}>
+                      <IconComp className="w-4 h-4" />
+                    </span>
+                    {cat.name}
+                  </span>
+                )
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tiers (optionnel)
+              {formData.type === 'transfer' && formData.toAccountId && (
+                <span className="text-xs text-amber-600 ml-2">(désactivé car compte destination sélectionné)</span>
+              )}
+            </label>
+            <SearchableSelect
+              value={formData.payeeId}
+              onChange={(id) => setFormData({ ...formData, payeeId: id })}
+              options={sortedPayees}
+              placeholder="Tapez pour rechercher..."
+              emptyMessage="Aucun tiers trouvé"
+              allowCreate={!!onCreatePayee}
+              createLabel="Créer le tiers"
+              onCreate={onCreatePayee}
+              disabled={formData.type === 'transfer' && !!formData.toAccountId}
+              renderOption={(p) => (
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gray-400" />
+                  {p.name}
+                </span>
+              )}
+            />
           </div>
 
           <div className="flex items-center gap-2">
@@ -206,7 +318,7 @@ function PlannedModal({ planned, accounts, categories, onClose, onSave }) {
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -231,15 +343,65 @@ export default function PlannedTransactions() {
     },
   })
 
-  const { data: accounts } = useQuery({
+  const { data: accountsData, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: () => accountsApi.getAll().then(r => r.data.data),
+    queryFn: () => accountsApi.getAll().then(r => r.data),
   })
 
-  const { data: categories } = useQuery({
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories', { flat: true }],
     queryFn: () => categoriesApi.getAll({ flat: 'true' }).then(r => r.data.data.categories),
   })
+
+  const { data: payeesData } = useQuery({
+    queryKey: ['payees'],
+    queryFn: () => payeesApi.getAll().then(r => r.data.data),
+  })
+  
+  const accounts = accountsData?.data
+  const categories = categoriesData
+  const payees = payeesData
+  const dataReady = !accountsLoading && !categoriesLoading && accounts?.length > 0
+
+  // Mutations pour créer tiers et catégories à la volée
+  const createPayeeMutation = useMutation({
+    mutationFn: payeesApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payees'] })
+    },
+  })
+
+  const createCategoryMutation = useMutation({
+    mutationFn: categoriesApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+    },
+  })
+
+  const handleCreatePayee = async (name) => {
+    try {
+      const result = await createPayeeMutation.mutateAsync({ name })
+      return result.data.data
+    } catch (err) {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      return null
+    }
+  }
+
+  const handleCreateCategory = async (name, type) => {
+    try {
+      const result = await createCategoryMutation.mutateAsync({ 
+        name, 
+        type: type || 'expense',
+        icon: 'tag',
+        color: '#6B7280'
+      })
+      return result.data.data.category
+    } catch (err) {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      return null
+    }
+  }
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -329,7 +491,10 @@ export default function PlannedTransactions() {
           <h1 className="text-2xl font-bold text-gray-900">Transactions récurrentes</h1>
           <p className="text-gray-600">Gérez vos opérations automatiques</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
+        <button 
+          onClick={() => setModalOpen(true)} 
+          className="btn btn-primary flex items-center gap-2"
+        >
           <Plus className="w-5 h-5" />
           Nouvelle
         </button>
@@ -346,18 +511,42 @@ export default function PlannedTransactions() {
             <div className="space-y-3">
               {upcoming.slice(0, 10).map((tx, i) => (
                 <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                  <div className={`p-2 rounded-full ${tx.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                  <div className={`p-2 rounded-full ${
+                    tx.type === 'income' ? 'bg-green-100' : 
+                    tx.type === 'transfer' ? 'bg-blue-100' : 'bg-red-100'
+                  }`}>
                     {tx.type === 'income' ? (
                       <TrendingUp className="w-4 h-4 text-green-600" />
+                    ) : tx.type === 'transfer' ? (
+                      <ArrowLeftRight className="w-4 h-4 text-blue-600" />
                     ) : (
                       <TrendingDown className="w-4 h-4 text-red-600" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{tx.description}</p>
-                    <p className="text-xs text-gray-500">{tx.nextOccurrence ? formatDate(tx.nextOccurrence) : '-'}</p>
+                    <p className="text-xs text-gray-500">
+                      {tx.nextOccurrence ? formatDate(tx.nextOccurrence) : '-'}
+                      {tx.payeeName && (
+                        <span className="ml-1 inline-flex items-center gap-1">
+                          • 
+                          {tx.payeeImageUrl ? (
+                            <img src={tx.payeeImageUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover inline" />
+                          ) : (
+                            <Users className="w-3 h-3 text-gray-400 inline" />
+                          )}
+                          {tx.payeeName}
+                        </span>
+                      )}
+                      {tx.type === 'transfer' && tx.toAccountName && (
+                        <span className="ml-1">• {tx.accountName} → {tx.toAccountName}</span>
+                      )}
+                    </p>
                   </div>
-                  <span className={`font-semibold text-sm ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`font-semibold text-sm ${
+                    tx.type === 'income' ? 'text-green-600' : 
+                    tx.type === 'transfer' ? 'text-blue-600' : 'text-red-600'
+                  }`}>
                     {formatCurrency(Math.abs(tx.amount))}
                   </span>
                 </div>
@@ -378,9 +567,14 @@ export default function PlannedTransactions() {
             <div className="space-y-3">
               {data.data.map((tx) => (
                 <div key={tx.id} className="flex items-center gap-4 p-4 border rounded-xl hover:shadow-sm transition-shadow group">
-                  <div className={`p-3 rounded-xl ${tx.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                  <div className={`p-3 rounded-xl ${
+                    tx.type === 'income' ? 'bg-green-100' : 
+                    tx.type === 'transfer' ? 'bg-blue-100' : 'bg-red-100'
+                  }`}>
                     {tx.type === 'income' ? (
                       <TrendingUp className="w-5 h-5 text-green-600" />
+                    ) : tx.type === 'transfer' ? (
+                      <ArrowLeftRight className="w-5 h-5 text-blue-600" />
                     ) : (
                       <TrendingDown className="w-5 h-5 text-red-600" />
                     )}
@@ -389,6 +583,33 @@ export default function PlannedTransactions() {
                     <p className="font-semibold text-gray-900">{tx.description}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <span>{frequencies.find(f => f.value === tx.frequency)?.label || tx.frequency}</span>
+                      {tx.type === 'transfer' && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            {tx.accountName}
+                            {tx.toAccountName && (
+                              <>
+                                <ArrowLeftRight className="w-3 h-3 text-blue-500" />
+                                {tx.toAccountName}
+                              </>
+                            )}
+                          </span>
+                        </>
+                      )}
+                      {tx.payeeName && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            {tx.payeeImageUrl ? (
+                              <img src={tx.payeeImageUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
+                            ) : (
+                              <Users className="w-3.5 h-3.5 text-gray-400" />
+                            )}
+                            {tx.payeeName}
+                          </span>
+                        </>
+                      )}
                       {tx.categoryName && (
                         <>
                           <span>•</span>
@@ -413,7 +634,10 @@ export default function PlannedTransactions() {
                       )}
                     </div>
                   </div>
-                  <span className={`text-lg font-bold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`text-lg font-bold ${
+                    tx.type === 'income' ? 'text-green-600' : 
+                    tx.type === 'transfer' ? 'text-blue-600' : 'text-red-600'
+                  }`}>
                     {formatCurrency(Math.abs(tx.amount))}
                   </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -444,13 +668,32 @@ export default function PlannedTransactions() {
       </div>
 
       {modalOpen && (
-        <PlannedModal
-          planned={editingPlanned}
-          accounts={accounts}
-          categories={categories}
-          onClose={() => { setModalOpen(false); setEditingPlanned(null); }}
-          onSave={handleSave}
-        />
+        dataReady ? (
+          <PlannedModal
+            key={editingPlanned?.id || 'new'}
+            planned={editingPlanned}
+            accounts={accounts}
+            categories={categories}
+            payees={payees}
+            onClose={() => { setModalOpen(false); setEditingPlanned(null); }}
+            onSave={handleSave}
+            onCreatePayee={handleCreatePayee}
+            onCreateCategory={handleCreateCategory}
+          />
+        ) : (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Chargement des données...</p>
+              <button 
+                onClick={() => setModalOpen(false)} 
+                className="btn btn-secondary mt-4"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )
       )}
     </div>
   )

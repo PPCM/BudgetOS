@@ -32,6 +32,26 @@ const runMigrations = () => {
       // Table n'existe peut-être pas encore, ignorer
     }
   }
+  
+  // Migration: Ajouter linked_transaction_id à transactions (pour les virements)
+  if (!columnExists('transactions', 'linked_transaction_id')) {
+    try {
+      db.run('ALTER TABLE transactions ADD COLUMN linked_transaction_id TEXT REFERENCES transactions(id) ON DELETE SET NULL');
+      logger.info('Migration: Added linked_transaction_id column to transactions table');
+    } catch (e) {
+      // Table n'existe peut-être pas encore, ignorer
+    }
+  }
+  
+  // Migration: Ajouter payee_id à planned_transactions
+  if (!columnExists('planned_transactions', 'payee_id')) {
+    try {
+      db.run('ALTER TABLE planned_transactions ADD COLUMN payee_id TEXT REFERENCES payees(id) ON DELETE SET NULL');
+      logger.info('Migration: Added payee_id column to planned_transactions table');
+    } catch (e) {
+      // Table n'existe peut-être pas encore, ignorer
+    }
+  }
 };
 
 /**

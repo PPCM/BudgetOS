@@ -6,6 +6,7 @@ import {
   ToggleLeft, ToggleRight, GripVertical 
 } from 'lucide-react'
 import axios from 'axios'
+import Modal from '../components/Modal'
 
 const operators = [
   { value: 'contains', label: 'Contient' },
@@ -59,7 +60,7 @@ function RuleModal({ rule, categories, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
           <h2 className="text-lg font-semibold">
@@ -185,7 +186,7 @@ function RuleModal({ rule, categories, onClose, onSave }) {
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 

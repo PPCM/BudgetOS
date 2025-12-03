@@ -6,6 +6,7 @@ import {
   Tag, TrendingUp, TrendingDown, ArrowLeftRight, Plus, 
   Pencil, Trash2, X, Download, Upload, Check
 } from 'lucide-react'
+import Modal from '../components/Modal'
 
 const typeConfig = {
   income: { label: 'Revenus', icon: TrendingUp, color: 'green', bg: 'bg-green-100', text: 'text-green-600' },
@@ -54,7 +55,7 @@ function CategoryModal({ category, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">
@@ -151,7 +152,7 @@ function CategoryModal({ category, onClose, onSave }) {
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 

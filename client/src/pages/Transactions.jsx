@@ -8,6 +8,7 @@ import {
   ArrowLeftRight, X, ChevronLeft, ChevronRight, Pencil, Trash2, Tag, Users
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
+import Modal from '../components/Modal'
 import { findKnownLogo } from '../lib/knownLogos'
 
 // Fonction pour obtenir le composant icône par nom
@@ -20,6 +21,7 @@ const getIconComponent = (iconName) => {
 function TransactionModal({ transaction, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
   const [formData, setFormData] = useState(transaction || {
     accountId: accounts?.[0]?.id || '',
+    toAccountId: '',
     categoryId: '',
     payeeId: '',
     amount: '',
@@ -40,7 +42,7 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
   const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
           <h2 className="text-lg font-semibold">
@@ -98,17 +100,60 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="input"
-                required
-              />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              className="input"
+              required
+            />
+          </div>
+
+          {/* Comptes - affichage différent pour les virements */}
+          {formData.type === 'transfer' ? (
+            <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Compte source (débit)</label>
+                <select
+                  value={formData.accountId}
+                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  className="input"
+                  required
+                >
+                  <option value="">Sélectionner le compte source</option>
+                  {accounts?.map((a) => (
+                    <option key={a.id} value={a.id} disabled={a.id === formData.toAccountId}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-center">
+                <ArrowLeftRight className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Compte destination (crédit) - optionnel
+                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">(désactivé car tiers sélectionné)</span>}
+                </label>
+                <select
+                  value={formData.toAccountId}
+                  onChange={(e) => setFormData({ ...formData, toAccountId: e.target.value })}
+                  className="input"
+                  disabled={!!formData.payeeId}
+                >
+                  <option value="">Aucun (virement externe)</option>
+                  {accounts?.map((a) => (
+                    <option key={a.id} value={a.id} disabled={a.id === formData.accountId}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+          ) : (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Compte</label>
               <select
@@ -123,7 +168,7 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
                 ))}
               </select>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
@@ -151,7 +196,12 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tiers (optionnel)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tiers (optionnel)
+              {formData.type === 'transfer' && formData.toAccountId && (
+                <span className="text-xs text-amber-600 ml-2">(désactivé car compte destination sélectionné)</span>
+              )}
+            </label>
             <SearchableSelect
               value={formData.payeeId}
               onChange={(id) => setFormData({ ...formData, payeeId: id })}
@@ -161,6 +211,7 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
               allowCreate={!!onCreatePayee}
               createLabel="Créer le tiers"
               onCreate={onCreatePayee}
+              disabled={formData.type === 'transfer' && !!formData.toAccountId}
               renderOption={(p) => (
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-400" />
@@ -180,7 +231,7 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -295,8 +346,14 @@ export default function Transactions() {
       date: formData.date,
       type: formData.type,
     }
+    
+    // Pour les virements, ajouter le compte destination s'il est défini
+    if (formData.type === 'transfer' && formData.toAccountId) {
+      cleanData.toAccountId = formData.toAccountId
+    }
+    
     // Ajuster le montant selon le type
-    if (cleanData.type === 'expense') {
+    if (cleanData.type === 'expense' || cleanData.type === 'transfer') {
       cleanData.amount = -Math.abs(cleanData.amount)
     } else {
       cleanData.amount = Math.abs(cleanData.amount)
@@ -314,6 +371,8 @@ export default function Transactions() {
       ...tx,
       amount: Math.abs(tx.amount),
       date: tx.date.split('T')[0],
+      // Pour les virements, récupérer le compte destination depuis la transaction liée
+      toAccountId: tx.linkedAccountId || '',
     })
     setModalOpen(true)
   }
@@ -455,7 +514,15 @@ export default function Transactions() {
                           </div>
                         ) : '-'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{tx.accountName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {tx.type === 'transfer' && tx.linkedAccountName ? (
+                          <div className="flex items-center gap-1">
+                            <span>{tx.accountName}</span>
+                            <ArrowLeftRight className="w-3 h-3 text-blue-500" />
+                            <span>{tx.linkedAccountName}</span>
+                          </div>
+                        ) : tx.accountName}
+                      </td>
                       <td className={`px-4 py-3 text-right font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
                       </td>

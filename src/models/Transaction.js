@@ -18,8 +18,8 @@ export class Transaction {
     
     // Ajuster le signe du montant selon le type
     let amount = Math.abs(data.amount);
-    if (data.type === 'expense') {
-      amount = -amount;
+    if (data.type === 'expense' || data.type === 'transfer') {
+      amount = -amount; // Débit pour dépenses et virements (compte source)
     }
     
     dbTransaction(() => {
@@ -41,20 +41,25 @@ export class Transaction {
       // Mettre à jour le solde du compte
       Account.updateBalance(data.accountId, userId);
       
-      // Gérer les virements
+      // Gérer les virements avec compte destination
       if (data.type === 'transfer' && data.toAccountId) {
+        // Récupérer le nom du compte source pour la description
+        const sourceAccount = Account.findById(data.accountId, userId);
         const transferId = generateId();
         query.run(`
           INSERT INTO transactions (
-            id, user_id, account_id, category_id, amount, description,
-            date, status, type, parent_transaction_id
+            id, user_id, account_id, category_id, payee_id, amount, description,
+            date, status, type, linked_transaction_id
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-          transferId, userId, data.toAccountId, data.categoryId || null,
-          Math.abs(amount), `Virement depuis ${data.description}`,
+          transferId, userId, data.toAccountId, data.categoryId || null, data.payeeId || null,
+          Math.abs(amount), data.description,
           data.date, data.status || 'pending', 'transfer', id
         ]);
+        
+        // Mettre à jour la transaction source avec le lien vers la transaction destination
+        query.run('UPDATE transactions SET linked_transaction_id = ? WHERE id = ?', [transferId, id]);
         
         Account.updateBalance(data.toAccountId, userId);
       }
@@ -100,11 +105,18 @@ export class Transaction {
     } = options;
     
     let sql = `
-      SELECT t.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name, p.name as payee_name, p.image_url as payee_image_url
+      SELECT t.*, 
+        c.name as category_name, c.icon as category_icon, c.color as category_color, 
+        a.name as account_name, 
+        p.name as payee_name, p.image_url as payee_image_url,
+        linked_tx.account_id as linked_account_id,
+        linked_a.name as linked_account_name
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id
       LEFT JOIN accounts a ON t.account_id = a.id
       LEFT JOIN payees p ON t.payee_id = p.id
+      LEFT JOIN transactions linked_tx ON t.linked_transaction_id = linked_tx.id
+      LEFT JOIN accounts linked_a ON linked_tx.account_id = linked_a.id
       WHERE t.user_id = ?
     `;
     const params = [userId];
@@ -239,12 +251,23 @@ export class Transaction {
   static delete(id, userId) {
     const tx = Transaction.findByIdOrFail(id, userId);
     
+    // Récupérer la transaction liée si c'est un virement
+    const linkedTx = tx.linked_transaction_id 
+      ? query.get('SELECT * FROM transactions WHERE id = ?', [tx.linked_transaction_id])
+      : null;
+    
     dbTransaction(() => {
       // Supprimer les splits associés
       query.run('DELETE FROM transaction_splits WHERE transaction_id = ?', [id]);
       
-      // Supprimer les transactions liées (virements)
+      // Supprimer les transactions liées (ancienne méthode avec parent)
       query.run('DELETE FROM transactions WHERE parent_transaction_id = ?', [id]);
+      
+      // Supprimer la transaction liée (virements)
+      if (linkedTx) {
+        query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
+        Account.updateBalance(linkedTx.account_id, userId);
+      }
       
       // Supprimer la transaction
       query.run('DELETE FROM transactions WHERE id = ? AND user_id = ?', [id, userId]);
@@ -377,6 +400,9 @@ export class Transaction {
       reconciledAt: tx.reconciled_at,
       isSplit: Boolean(tx.is_split),
       parentTransactionId: tx.parent_transaction_id,
+      linkedTransactionId: tx.linked_transaction_id,
+      linkedAccountId: tx.linked_account_id,
+      linkedAccountName: tx.linked_account_name,
       hasAttachments: Boolean(tx.has_attachments),
       tags: tx.tags ? JSON.parse(tx.tags) : [],
       createdAt: tx.created_at,

@@ -26,10 +26,11 @@ export default function Import() {
   const fileInputRef = useRef()
   const queryClient = useQueryClient()
 
-  const { data: accounts } = useQuery({
+  const { data: accountsData } = useQuery({
     queryKey: ['accounts'],
-    queryFn: () => accountsApi.getAll().then(r => r.data.data),
+    queryFn: () => accountsApi.getAll().then(r => r.data),
   })
+  const accounts = accountsData?.data
 
   const handleFileChange = (e) => {
     const f = e.target.files[0]

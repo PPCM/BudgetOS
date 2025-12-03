@@ -11,16 +11,16 @@ export class PlannedTransaction {
     
     query.run(`
       INSERT INTO planned_transactions (
-        id, user_id, account_id, category_id, credit_card_id, to_account_id,
+        id, user_id, account_id, category_id, payee_id, credit_card_id, to_account_id,
         amount, description, notes, type, frequency, start_date, end_date,
         next_occurrence, auto_create, execute_before_holiday, days_before_create,
         max_occurrences, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      id, userId, data.accountId, data.categoryId || null, data.creditCardId || null,
-      data.toAccountId || null, data.amount, data.description, data.notes || null,
-      data.type, data.frequency, data.startDate, data.endDate || null, nextOccurrence,
-      1, data.executeBeforeHoliday ? 1 : 0,
+      id, userId, data.accountId, data.categoryId || null, data.payeeId || null,
+      data.creditCardId || null, data.toAccountId || null, data.amount, data.description,
+      data.notes || null, data.type, data.frequency, data.startDate, data.endDate || null,
+      nextOccurrence, 1, data.executeBeforeHoliday ? 1 : 0,
       data.daysBeforeCreate || 0, data.maxOccurrences || null,
       data.tags ? JSON.stringify(data.tags) : null
     ]);
@@ -60,10 +60,13 @@ export class PlannedTransaction {
 
   static findById(id, userId) {
     const pt = query.get(`
-      SELECT pt.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name
+      SELECT pt.*, c.name as category_name, c.icon as category_icon, c.color as category_color, 
+        a.name as account_name, ta.name as to_account_name, p.name as payee_name, p.image_url as payee_image_url
       FROM planned_transactions pt
       LEFT JOIN categories c ON pt.category_id = c.id
       LEFT JOIN accounts a ON pt.account_id = a.id
+      LEFT JOIN accounts ta ON pt.to_account_id = ta.id
+      LEFT JOIN payees p ON pt.payee_id = p.id
       WHERE pt.id = ? AND pt.user_id = ?
     `, [id, userId]);
     return pt ? PlannedTransaction.format(pt) : null;
@@ -77,10 +80,14 @@ export class PlannedTransaction {
 
   static findByUser(userId, options = {}) {
     const { accountId, type, frequency, isActive = true, page = 1, limit = 50 } = options;
-    let sql = `SELECT pt.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name
+    let sql = `SELECT pt.*, c.name as category_name, c.icon as category_icon, c.color as category_color, 
+      a.name as account_name, ta.name as to_account_name, p.name as payee_name, p.image_url as payee_image_url
       FROM planned_transactions pt
       LEFT JOIN categories c ON pt.category_id = c.id
-      LEFT JOIN accounts a ON pt.account_id = a.id WHERE pt.user_id = ?`;
+      LEFT JOIN accounts a ON pt.account_id = a.id
+      LEFT JOIN accounts ta ON pt.to_account_id = ta.id
+      LEFT JOIN payees p ON pt.payee_id = p.id
+      WHERE pt.user_id = ?`;
     const params = [userId];
     
     if (accountId) { sql += ' AND pt.account_id = ?'; params.push(accountId); }
@@ -100,10 +107,13 @@ export class PlannedTransaction {
 
   static getUpcoming(userId, days = 30) {
     const planned = query.all(`
-      SELECT pt.*, c.name as category_name, a.name as account_name
+      SELECT pt.*, c.name as category_name, a.name as account_name, ta.name as to_account_name,
+        p.name as payee_name, p.image_url as payee_image_url
       FROM planned_transactions pt
       LEFT JOIN categories c ON pt.category_id = c.id
       LEFT JOIN accounts a ON pt.account_id = a.id
+      LEFT JOIN accounts ta ON pt.to_account_id = ta.id
+      LEFT JOIN payees p ON pt.payee_id = p.id
       WHERE pt.user_id = ? AND pt.is_active = 1
         AND pt.next_occurrence <= date('now', '+' || ? || ' days')
       ORDER BY pt.next_occurrence ASC
@@ -114,9 +124,9 @@ export class PlannedTransaction {
   static createOccurrence(id, userId, date, amount = null) {
     const pt = PlannedTransaction.findByIdOrFail(id, userId);
     const tx = Transaction.create(userId, {
-      accountId: pt.accountId, categoryId: pt.categoryId, creditCardId: pt.creditCardId,
-      amount: amount || pt.amount, description: pt.description, notes: pt.notes,
-      date, type: pt.type, isRecurring: true, recurringId: id, toAccountId: pt.toAccountId
+      accountId: pt.accountId, categoryId: pt.categoryId, payeeId: pt.payeeId,
+      creditCardId: pt.creditCardId, amount: amount || pt.amount, description: pt.description,
+      notes: pt.notes, date, type: pt.type, isRecurring: true, recurringId: id, toAccountId: pt.toAccountId
     });
     
     query.run(`UPDATE planned_transactions SET 
@@ -128,8 +138,8 @@ export class PlannedTransaction {
   }
 
   static update(id, userId, data) {
-    PlannedTransaction.findByIdOrFail(id, userId);
-    const fields = ['account_id', 'category_id', 'credit_card_id', 'to_account_id', 'amount',
+    const existing = PlannedTransaction.findByIdOrFail(id, userId);
+    const fields = ['account_id', 'category_id', 'payee_id', 'credit_card_id', 'to_account_id', 'amount',
       'description', 'notes', 'type', 'frequency', 'start_date', 'end_date',
       'execute_before_holiday', 'days_before_create', 'is_active', 'max_occurrences', 'tags'];
     const updates = [], values = [];
@@ -141,6 +151,18 @@ export class PlannedTransaction {
         values.push(dbKey === 'tags' ? JSON.stringify(value) : (typeof value === 'boolean' ? (value ? 1 : 0) : value));
       }
     });
+    
+    // Recalculer next_occurrence si startDate, endDate ou frequency ont changé
+    if (data.startDate || data.endDate !== undefined || data.frequency) {
+      const updatedData = {
+        startDate: data.startDate || existing.startDate,
+        endDate: data.endDate !== undefined ? data.endDate : existing.endDate,
+        frequency: data.frequency || existing.frequency,
+      };
+      const newNextOccurrence = PlannedTransaction.calculateNextOccurrence(updatedData);
+      updates.push('next_occurrence = ?');
+      values.push(newNextOccurrence);
+    }
     
     if (updates.length) {
       values.push(id, userId);
@@ -158,10 +180,11 @@ export class PlannedTransaction {
   static format(pt) {
     return {
       id: pt.id, userId: pt.user_id, accountId: pt.account_id, accountName: pt.account_name,
-      categoryId: pt.category_id, categoryName: pt.category_name, categoryIcon: pt.category_icon, categoryColor: pt.category_color, creditCardId: pt.credit_card_id,
-      toAccountId: pt.to_account_id, amount: pt.amount, description: pt.description,
-      notes: pt.notes, type: pt.type, frequency: pt.frequency, startDate: pt.start_date,
-      endDate: pt.end_date, nextOccurrence: pt.next_occurrence,
+      categoryId: pt.category_id, categoryName: pt.category_name, categoryIcon: pt.category_icon, categoryColor: pt.category_color,
+      payeeId: pt.payee_id, payeeName: pt.payee_name, payeeImageUrl: pt.payee_image_url,
+      creditCardId: pt.credit_card_id, toAccountId: pt.to_account_id, toAccountName: pt.to_account_name,
+      amount: pt.amount, description: pt.description, notes: pt.notes, type: pt.type,
+      frequency: pt.frequency, startDate: pt.start_date, endDate: pt.end_date, nextOccurrence: pt.next_occurrence,
       autoCreate: Boolean(pt.auto_create), executeBeforeHoliday: Boolean(pt.execute_before_holiday),
       daysBeforeCreate: pt.days_before_create, isActive: Boolean(pt.is_active),
       lastCreatedAt: pt.last_created_at, occurrencesCreated: pt.occurrences_created,

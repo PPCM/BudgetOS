@@ -14,6 +14,7 @@ export default function SearchableSelect({
   displayValue,
   renderOption,
   className = '',
+  disabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
@@ -180,13 +181,14 @@ export default function SearchableSelect({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => !disabled && setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="input w-full pr-16"
+          disabled={disabled}
+          className={`input w-full pr-16 ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {value && (
+          {value && !disabled && (
             <button
               type="button"
               onClick={handleClear}
@@ -197,8 +199,9 @@ export default function SearchableSelect({
           )}
           <button
             type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="p-1 hover:bg-gray-200 rounded"
+            onClick={() => !disabled && setIsOpen(!isOpen)}
+            disabled={disabled}
+            className={`p-1 hover:bg-gray-200 rounded ${disabled ? 'cursor-not-allowed' : ''}`}
           >
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -206,7 +209,7 @@ export default function SearchableSelect({
       </div>
 
       {/* Portal pour sortir de la modal */}
-      {createPortal(dropdownContent, document.body)}
+      {!disabled && createPortal(dropdownContent, document.body)}
     </div>
   )
 }

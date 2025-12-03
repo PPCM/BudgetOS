@@ -4,6 +4,7 @@ import { payeesApi } from '../lib/api'
 import { Plus, Search, Pencil, Trash2, X, User, Users, AlertTriangle } from 'lucide-react'
 import PayeeImageEditor from '../components/PayeeImageEditor'
 import SearchableSelect from '../components/SearchableSelect'
+import Modal from '../components/Modal'
 import { findKnownLogo } from '../lib/knownLogos'
 
 // Modal de confirmation de suppression avec gestion des transactions
@@ -19,7 +20,7 @@ function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm,
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center gap-3 p-4 border-b bg-amber-50">
           <div className="p-2 rounded-full bg-amber-100">
@@ -106,7 +107,7 @@ function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm,
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -157,7 +158,7 @@ function PayeeModal({ payee, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">
@@ -213,7 +214,7 @@ function PayeeModal({ payee, onClose, onSave }) {
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 

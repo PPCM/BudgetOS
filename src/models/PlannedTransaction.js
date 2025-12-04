@@ -13,14 +13,14 @@ export class PlannedTransaction {
       INSERT INTO planned_transactions (
         id, user_id, account_id, category_id, payee_id, credit_card_id, to_account_id,
         amount, description, notes, type, frequency, start_date, end_date,
-        next_occurrence, auto_create, execute_before_holiday, days_before_create,
+        next_occurrence, auto_create, execute_before_holiday, delete_on_end, days_before_create,
         max_occurrences, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id, userId, data.accountId, data.categoryId || null, data.payeeId || null,
       data.creditCardId || null, data.toAccountId || null, data.amount, data.description,
       data.notes || null, data.type, data.frequency, data.startDate, data.endDate || null,
-      nextOccurrence, 1, data.executeBeforeHoliday ? 1 : 0,
+      nextOccurrence, 1, data.executeBeforeHoliday ? 1 : 0, data.deleteOnEnd ? 1 : 0,
       data.daysBeforeCreate || 0, data.maxOccurrences || null,
       data.tags ? JSON.stringify(data.tags) : null
     ]);
@@ -141,7 +141,7 @@ export class PlannedTransaction {
     const existing = PlannedTransaction.findByIdOrFail(id, userId);
     const fields = ['account_id', 'category_id', 'payee_id', 'credit_card_id', 'to_account_id', 'amount',
       'description', 'notes', 'type', 'frequency', 'start_date', 'end_date',
-      'execute_before_holiday', 'days_before_create', 'is_active', 'max_occurrences', 'tags'];
+      'execute_before_holiday', 'delete_on_end', 'days_before_create', 'is_active', 'max_occurrences', 'tags'];
     const updates = [], values = [];
     
     Object.entries(data).forEach(([key, value]) => {
@@ -186,7 +186,7 @@ export class PlannedTransaction {
       amount: pt.amount, description: pt.description, notes: pt.notes, type: pt.type,
       frequency: pt.frequency, startDate: pt.start_date, endDate: pt.end_date, nextOccurrence: pt.next_occurrence,
       autoCreate: Boolean(pt.auto_create), executeBeforeHoliday: Boolean(pt.execute_before_holiday),
-      daysBeforeCreate: pt.days_before_create, isActive: Boolean(pt.is_active),
+      deleteOnEnd: Boolean(pt.delete_on_end), daysBeforeCreate: pt.days_before_create, isActive: Boolean(pt.is_active),
       lastCreatedAt: pt.last_created_at, occurrencesCreated: pt.occurrences_created,
       maxOccurrences: pt.max_occurrences, tags: pt.tags ? JSON.parse(pt.tags) : [],
       createdAt: pt.created_at, updatedAt: pt.updated_at,

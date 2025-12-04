@@ -71,12 +71,19 @@ class SchedulerService {
           
           logger.info(`Created transaction for planned ${pt.id}: ${pt.description}`);
 
-          // Vérifier si la transaction planifiée doit être désactivée (date de fin atteinte)
+          // Vérifier si la transaction planifiée doit être désactivée ou supprimée (date de fin atteinte)
           if (pt.end_date) {
-            const updatedPt = query.get('SELECT next_occurrence FROM planned_transactions WHERE id = ?', [pt.id]);
+            const updatedPt = query.get('SELECT next_occurrence, delete_on_end FROM planned_transactions WHERE id = ?', [pt.id]);
             if (updatedPt && updatedPt.next_occurrence && updatedPt.next_occurrence > pt.end_date) {
-              query.run('UPDATE planned_transactions SET is_active = 0 WHERE id = ?', [pt.id]);
-              logger.info(`Deactivated planned ${pt.id}: end date reached`);
+              if (updatedPt.delete_on_end) {
+                // Supprimer la transaction récurrente si delete_on_end est activé
+                query.run('DELETE FROM planned_transactions WHERE id = ?', [pt.id]);
+                logger.info(`Deleted planned ${pt.id}: end date reached (delete_on_end enabled)`);
+              } else {
+                // Sinon, juste désactiver
+                query.run('UPDATE planned_transactions SET is_active = 0 WHERE id = ?', [pt.id]);
+                logger.info(`Deactivated planned ${pt.id}: end date reached`);
+              }
             }
           }
         } catch (error) {

@@ -3,27 +3,44 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi } from '../lib/api'
 import { formatCurrency } from '../lib/utils'
 import { 
-  Plus, Wallet, PiggyBank, Landmark, CreditCard, 
-  MoreVertical, Pencil, Trash2, X 
+  Plus, Wallet, PiggyBank, Landmark, 
+  Pencil, Trash2, X, HandCoins 
 } from 'lucide-react'
 import Modal from '../components/Modal'
 
 const accountTypes = {
   checking: { label: 'Compte courant', icon: Wallet },
   savings: { label: 'Épargne', icon: PiggyBank },
-  cash: { label: 'Espèces', icon: Wallet },
+  cash: { label: 'Espèces', icon: HandCoins },
   investment: { label: 'Investissement', icon: Landmark },
-  credit_card: { label: 'Carte de crédit', icon: CreditCard },
 }
 
 function AccountModal({ account, onClose, onSave }) {
-  const [formData, setFormData] = useState(account || {
-    name: '', type: 'checking', institution: '', initialBalance: 0, color: '#3b82f6'
+  const [formData, setFormData] = useState({
+    name: account?.name || '',
+    type: account?.type || 'checking',
+    institution: account?.institution || '',
+    initialBalance: account?.initialBalance || 0,
+    color: account?.color || '#3b82f6'
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSave(formData)
+    // N'envoyer que les champs nécessaires
+    const data = {
+      name: formData.name,
+      type: formData.type,
+      color: formData.color
+    }
+    // Champs optionnels - ne pas envoyer si vides
+    if (formData.institution?.trim()) {
+      data.institution = formData.institution.trim()
+    }
+    // Solde initial uniquement pour les nouveaux comptes
+    if (!account) {
+      data.initialBalance = parseFloat(formData.initialBalance) || 0
+    }
+    onSave(data)
   }
 
   return (
@@ -69,16 +86,19 @@ function AccountModal({ account, onClose, onSave }) {
               className="input"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Solde initial</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.initialBalance}
-              onChange={(e) => setFormData({ ...formData, initialBalance: parseFloat(e.target.value) || 0 })}
-              className="input"
-            />
-          </div>
+          {/* Solde initial uniquement pour les nouveaux comptes */}
+          {!account && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Solde initial</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.initialBalance}
+                onChange={(e) => setFormData({ ...formData, initialBalance: parseFloat(e.target.value) || 0 })}
+                className="input"
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
             <input
@@ -118,6 +138,9 @@ export default function Accounts() {
       queryClient.invalidateQueries(['accounts'])
       setModalOpen(false)
     },
+    onError: (err) => {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+    },
   })
 
   const updateMutation = useMutation({
@@ -126,11 +149,17 @@ export default function Accounts() {
       queryClient.invalidateQueries(['accounts'])
       setEditingAccount(null)
     },
+    onError: (err) => {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: accountsApi.delete,
     onSuccess: () => queryClient.invalidateQueries(['accounts']),
+    onError: (err) => {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+    },
   })
 
   const handleSave = (formData) => {
@@ -183,7 +212,29 @@ export default function Accounts() {
         {data?.data?.map((account) => {
           const TypeIcon = accountTypes[account.type]?.icon || Wallet
           return (
-            <div key={account.id} className="card hover:shadow-md transition-shadow">
+            <div key={account.id} className="card hover:shadow-md transition-shadow relative group">
+              {/* Actions au survol */}
+              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => setEditingAccount(account)}
+                  className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                  title="Modifier"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Supprimer le compte "${account.name}" ?\n\nAttention : toutes les transactions associées seront également supprimées.`)) {
+                      deleteMutation.mutate(account.id)
+                    }
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Supprimer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
               <div className="flex items-start gap-4">
                 <div 
                   className="w-12 h-12 rounded-xl flex items-center justify-center"
@@ -191,31 +242,12 @@ export default function Accounts() {
                 >
                   <TypeIcon className="w-6 h-6" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-16">
                   <h3 className="font-semibold text-gray-900 truncate">{account.name}</h3>
                   <p className="text-sm text-gray-500">{accountTypes[account.type]?.label}</p>
                   {account.institution && (
                     <p className="text-xs text-gray-400">{account.institution}</p>
                   )}
-                </div>
-                <div className="relative group">
-                  <button className="p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical className="w-5 h-5 text-gray-400" />
-                  </button>
-                  <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                    <button
-                      onClick={() => setEditingAccount(account)}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <Pencil className="w-4 h-4" /> Modifier
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(account.id)}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" /> Supprimer
-                    </button>
-                  </div>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t">

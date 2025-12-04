@@ -103,6 +103,9 @@ export const categoriesApi = {
 export const creditCardsApi = {
   getAll: () => api.get('/credit-cards'),
   getOne: (id) => api.get(`/credit-cards/${id}`),
+  create: (data) => api.post('/credit-cards', data),
+  update: (id, data) => api.put(`/credit-cards/${id}`, data),
+  delete: (id) => api.delete(`/credit-cards/${id}`),
   getCycles: (id) => api.get(`/credit-cards/${id}/cycles`),
   getCurrentCycle: (id) => api.get(`/credit-cards/${id}/cycles/current`),
 }

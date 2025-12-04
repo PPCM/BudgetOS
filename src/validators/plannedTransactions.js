@@ -32,6 +32,7 @@ const plannedTransactionBaseSchema = z.object({
   frequency: z.enum(frequencies, { errorMap: () => ({ message: 'Fréquence invalide' }) }),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide (YYYY-MM-DD)'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  deleteOnEnd: z.boolean().default(false),
   executeBeforeHoliday: z.boolean().default(false),
   daysBeforeCreate: z.number().int().min(0).max(30).default(0),
   maxOccurrences: z.number().int().positive().nullable().optional(),

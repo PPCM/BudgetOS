@@ -52,6 +52,26 @@ const runMigrations = () => {
       // Table n'existe peut-être pas encore, ignorer
     }
   }
+  
+  // Migration: Ajouter delete_on_end à planned_transactions (suppression auto à la date de fin)
+  if (!columnExists('planned_transactions', 'delete_on_end')) {
+    try {
+      db.run('ALTER TABLE planned_transactions ADD COLUMN delete_on_end INTEGER DEFAULT 0');
+      logger.info('Migration: Added delete_on_end column to planned_transactions table');
+    } catch (e) {
+      // Table n'existe peut-être pas encore, ignorer
+    }
+  }
+  
+  // Migration: Ajouter expiration_date à credit_cards
+  if (!columnExists('credit_cards', 'expiration_date')) {
+    try {
+      db.run('ALTER TABLE credit_cards ADD COLUMN expiration_date TEXT');
+      logger.info('Migration: Added expiration_date column to credit_cards table');
+    } catch (e) {
+      // Table n'existe peut-être pas encore, ignorer
+    }
+  }
 };
 
 /**

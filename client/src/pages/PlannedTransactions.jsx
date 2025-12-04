@@ -43,6 +43,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     executeBeforeHoliday: false,
+    deleteOnEnd: false,
   })
   
   const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
@@ -62,6 +63,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
       startDate: formData.startDate,
       endDate: formData.endDate || null,
       executeBeforeHoliday: formData.executeBeforeHoliday || false,
+      deleteOnEnd: formData.deleteOnEnd || false,
     }
     // Pour les virements, ajouter le compte destination (exclusif avec tiers)
     if (formData.type === 'transfer' && formData.toAccountId) {
@@ -307,6 +309,22 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
               Exécution le dernier jour ouvré avant échéance
             </label>
           </div>
+
+          {/* Option de suppression à la date de fin */}
+          {formData.endDate && (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <input
+                type="checkbox"
+                id="deleteOnEnd"
+                checked={formData.deleteOnEnd}
+                onChange={(e) => setFormData({ ...formData, deleteOnEnd: e.target.checked })}
+                className="rounded border-amber-400"
+              />
+              <label htmlFor="deleteOnEnd" className="text-sm text-amber-800">
+                Supprimer automatiquement cette récurrence à la date de fin
+              </label>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
@@ -565,23 +583,34 @@ export default function PlannedTransactions() {
           </h2>
           {data?.data?.length > 0 ? (
             <div className="space-y-3">
-              {data.data.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-4 p-4 border rounded-xl hover:shadow-sm transition-shadow group">
+              {data.data.map((tx) => {
+                // Considérer comme terminée si isActive=false OU si la date de fin est dans le passé
+                const isEnded = !tx.isActive || (tx.endDate && new Date(tx.endDate) < new Date(new Date().toDateString()))
+                return (
+                <div key={tx.id} className={`flex items-center gap-4 p-4 border rounded-xl hover:shadow-sm transition-shadow group ${
+                  isEnded ? 'bg-gray-200' : ''
+                }`}>
                   <div className={`p-3 rounded-xl ${
+                    isEnded ? 'bg-gray-300' :
                     tx.type === 'income' ? 'bg-green-100' : 
                     tx.type === 'transfer' ? 'bg-blue-100' : 'bg-red-100'
                   }`}>
                     {tx.type === 'income' ? (
-                      <TrendingUp className="w-5 h-5 text-green-600" />
+                      <TrendingUp className={`w-5 h-5 ${isEnded ? 'text-gray-400' : 'text-green-600'}`} />
                     ) : tx.type === 'transfer' ? (
-                      <ArrowLeftRight className="w-5 h-5 text-blue-600" />
+                      <ArrowLeftRight className={`w-5 h-5 ${isEnded ? 'text-gray-400' : 'text-blue-600'}`} />
                     ) : (
-                      <TrendingDown className="w-5 h-5 text-red-600" />
+                      <TrendingDown className={`w-5 h-5 ${isEnded ? 'text-gray-400' : 'text-red-600'}`} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900">{tx.description}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <p className={`font-semibold flex items-center gap-2 ${isEnded ? 'text-gray-400' : 'text-gray-900'}`}>
+                      {tx.description}
+                      {isEnded && (
+                        <span className="text-xs px-2 py-0.5 bg-gray-400 text-gray-100 rounded-full">Terminée</span>
+                      )}
+                    </p>
+                    <div className={`flex items-center gap-2 text-sm ${isEnded ? 'text-gray-400' : 'text-gray-500'}`}>
                       <span>{frequencies.find(f => f.value === tx.frequency)?.label || tx.frequency}</span>
                       {tx.type === 'transfer' && (
                         <>
@@ -635,6 +664,7 @@ export default function PlannedTransactions() {
                     </div>
                   </div>
                   <span className={`text-lg font-bold ${
+                    isEnded ? 'text-gray-400' :
                     tx.type === 'income' ? 'text-green-600' : 
                     tx.type === 'transfer' ? 'text-blue-600' : 'text-red-600'
                   }`}>
@@ -659,7 +689,7 @@ export default function PlannedTransactions() {
                     </button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">Aucune transaction récurrente</p>

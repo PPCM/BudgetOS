@@ -1,10 +1,23 @@
+/**
+ * @fileoverview Credit Cards management page
+ * Provides CRUD operations for credit cards with filtering and sorting
+ */
+
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { creditCardsApi, accountsApi } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/utils'
-import { CreditCard, Calendar, Clock, Plus, Pencil, Trash2, X } from 'lucide-react'
+import { CreditCard, Calendar, Clock, Plus, Pencil, Trash2, X, Filter, ArrowUpDown } from 'lucide-react'
 import Modal from '../components/Modal'
 
+/**
+ * Modal form for creating or editing a credit card
+ * @param {Object} props - Component props
+ * @param {Object|null} props.card - Existing card data for editing, null for creation
+ * @param {Array} props.accounts - Available bank accounts for linking
+ * @param {Function} props.onClose - Callback when modal is closed
+ * @param {Function} props.onSave - Callback with form data when saved
+ */
 function CreditCardModal({ card, accounts, onClose, onSave }) {
   const checkingAccounts = accounts?.filter(a => a.type === 'checking') || []
   
@@ -26,13 +39,13 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
     const data = {
       name: formData.name,
       accountId: formData.accountId,
+      expirationDate: formData.expirationDate,
       debitType: formData.debitType,
       cycleStartDay: parseInt(formData.cycleStartDay),
       color: formData.color,
     }
     if (formData.linkedAccountId) data.linkedAccountId = formData.linkedAccountId
     if (formData.cardNumberLast4) data.cardNumberLast4 = formData.cardNumberLast4
-    if (formData.expirationDate) data.expirationDate = formData.expirationDate
     if (formData.debitType === 'deferred') data.debitDay = parseInt(formData.debitDay)
     if (formData.creditLimit) data.creditLimit = parseFloat(formData.creditLimit)
     onSave(data)
@@ -91,7 +104,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expiration</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Expiration *</label>
               <input
                 type="text"
                 value={formData.expirationDate}
@@ -103,6 +116,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
                 className="input"
                 placeholder="MM/AA"
                 maxLength={5}
+                required
               />
             </div>
             <div>
@@ -198,15 +212,31 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
   )
 }
 
+/**
+ * Credit Cards page component
+ * Displays all credit cards with filtering by status (active/expired)
+ * and sorting by name or expiration date
+ * @returns {JSX.Element} The credit cards page
+ */
 export default function CreditCards() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
+  /** @type {''|'active'|'expired'} Filter by card status */
+  const [statusFilter, setStatusFilter] = useState('')
+  /** @type {'name'|'expiration_date'} Sort field */
+  const [sortBy, setSortBy] = useState('name')
+  /** @type {'asc'|'desc'} Sort direction */
+  const [sortOrder, setSortOrder] = useState('asc')
   const queryClient = useQueryClient()
 
   const { data: cards, isLoading } = useQuery({
-    queryKey: ['credit-cards'],
-    queryFn: () => creditCardsApi.getAll().then(r => r.data.data.creditCards),
+    queryKey: ['credit-cards', statusFilter, sortBy, sortOrder],
+    queryFn: () => creditCardsApi.getAll({ status: statusFilter, sortBy, sortOrder }).then(r => r.data.data.creditCards),
   })
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+  }
 
   const { data: accountsData } = useQuery({
     queryKey: ['accounts'],
@@ -272,13 +302,84 @@ export default function CreditCards() {
         </button>
       </div>
 
+      {/* Filtres et tri */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-500" />
+          <span className="text-sm text-gray-600">Statut :</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setStatusFilter('')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                statusFilter === ''
+                  ? 'bg-primary-100 text-primary-700 font-medium'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Toutes
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                statusFilter === 'active'
+                  ? 'bg-green-100 text-green-700 font-medium'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Actives
+            </button>
+            <button
+              onClick={() => setStatusFilter('expired')}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                statusFilter === 'expired'
+                  ? 'bg-red-100 text-red-700 font-medium'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Expirées
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <ArrowUpDown className="w-4 h-4 text-gray-500" />
+          <span className="text-sm text-gray-600">Trier par :</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="name">Nom</option>
+            <option value="expiration_date">Date d'expiration</option>
+          </select>
+          <button
+            onClick={toggleSortOrder}
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title={sortOrder === 'asc' ? 'Croissant' : 'Décroissant'}
+          >
+            <ArrowUpDown className={`w-4 h-4 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+      </div>
+
       {cards?.length === 0 ? (
         <div className="card text-center py-12">
           <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">Aucune carte de crédit configurée</p>
-          <button onClick={() => setModalOpen(true)} className="btn btn-primary mt-4">
-            Ajouter une carte
-          </button>
+          <p className="text-gray-500">
+            {statusFilter === 'active' && 'Aucune carte active'}
+            {statusFilter === 'expired' && 'Aucune carte expirée'}
+            {statusFilter === '' && 'Aucune carte de crédit configurée'}
+          </p>
+          {statusFilter === '' && (
+            <button onClick={() => setModalOpen(true)} className="btn btn-primary mt-4">
+              Ajouter une carte
+            </button>
+          )}
+          {statusFilter !== '' && (
+            <button onClick={() => setStatusFilter('')} className="btn btn-secondary mt-4">
+              Voir toutes les cartes
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -305,7 +406,16 @@ export default function CreditCards() {
   )
 }
 
+/**
+ * Displays detailed information about a single credit card
+ * Shows billing cycle info for deferred debit cards
+ * @param {Object} props - Component props
+ * @param {Object} props.card - Credit card data
+ * @param {Function} props.onEdit - Callback when edit button is clicked
+ * @param {Function} props.onDelete - Callback when delete button is clicked
+ */
 function CardDetail({ card, onEdit, onDelete }) {
+  // Fetch current billing cycle for deferred debit cards
   const { data: cycleData } = useQuery({
     queryKey: ['credit-card-cycle', card.id],
     queryFn: () => creditCardsApi.getCurrentCycle(card.id).then(r => r.data.data),
@@ -313,8 +423,11 @@ function CardDetail({ card, onEdit, onDelete }) {
   })
 
   const cycle = cycleData?.cycle
-  
-  // Vérifier si la carte est expirée (MM/AA)
+
+  /**
+   * Checks if the card is expired based on MM/YY format
+   * @returns {boolean} True if card is expired
+   */
   const isExpired = (() => {
     if (!card.expirationDate) return false
     const [month, year] = card.expirationDate.split('/')

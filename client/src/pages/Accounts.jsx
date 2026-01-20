@@ -1,13 +1,22 @@
+/**
+ * @fileoverview Accounts management page
+ * Provides CRUD operations for bank accounts with balance tracking
+ */
+
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi } from '../lib/api'
 import { formatCurrency } from '../lib/utils'
-import { 
-  Plus, Wallet, PiggyBank, Landmark, 
-  Pencil, Trash2, X, HandCoins 
+import {
+  Plus, Wallet, PiggyBank, Landmark,
+  Pencil, Trash2, X, HandCoins
 } from 'lucide-react'
 import Modal from '../components/Modal'
 
+/**
+ * Account type definitions with labels and icons
+ * @type {Object.<string, {label: string, icon: React.Component}>}
+ */
 const accountTypes = {
   checking: { label: 'Compte courant', icon: Wallet },
   savings: { label: 'Épargne', icon: PiggyBank },
@@ -15,6 +24,13 @@ const accountTypes = {
   investment: { label: 'Investissement', icon: Landmark },
 }
 
+/**
+ * Modal form for creating or editing a bank account
+ * @param {Object} props - Component props
+ * @param {Object|null} props.account - Existing account for editing, null for creation
+ * @param {Function} props.onClose - Callback when modal is closed
+ * @param {Function} props.onSave - Callback with form data when saved
+ */
 function AccountModal({ account, onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: account?.name || '',
@@ -122,6 +138,12 @@ function AccountModal({ account, onClose, onSave }) {
   )
 }
 
+/**
+ * Accounts page component
+ * Displays all bank accounts with their current balances
+ * Supports creating, editing, and deleting accounts
+ * @returns {JSX.Element} The accounts page
+ */
 export default function Accounts() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)

@@ -13,7 +13,7 @@ const creditCardBaseSchema = z.object({
   linkedAccountId: z.string().uuid('ID de compte lié invalide').nullable().optional(),
   name: z.string().min(1, 'Nom requis').max(100, 'Nom trop long').trim(),
   cardNumberLast4: z.string().length(4).regex(/^\d{4}$/, 'Format invalide').optional(),
-  expirationDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Format invalide (MM/AA)').nullable().optional(),
+  expirationDate: z.string().min(1, 'Date d\'expiration requise').regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Format invalide (MM/AA)'),
   debitType: z.enum(debitTypes, { errorMap: () => ({ message: 'Type de débit invalide' }) }),
   cycleStartDay: z.number().int().min(1).max(28).default(1),
   debitDay: z.number().int().min(1).max(28).nullable().optional(),

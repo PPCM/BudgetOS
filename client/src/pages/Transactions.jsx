@@ -1,23 +1,45 @@
+/**
+ * @fileoverview Transactions management page
+ * Provides CRUD operations with filtering, search, and infinite scroll
+ */
+
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/utils'
 import * as LucideIcons from 'lucide-react'
-import { 
-  Plus, Search, Filter, TrendingUp, TrendingDown, 
+import {
+  Plus, Search, Filter, TrendingUp, TrendingDown,
   ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
 import { findKnownLogo } from '../lib/knownLogos'
 
-// Fonction pour obtenir le composant icône par nom
+/**
+ * Retrieves a Lucide icon component by name
+ * @param {string} iconName - Name of the icon (e.g., 'wallet', 'car')
+ * @returns {React.Component} The icon component or Tag as fallback
+ */
 const getIconComponent = (iconName) => {
   if (!iconName) return Tag
   const formattedName = iconName.charAt(0).toUpperCase() + iconName.slice(1)
   return LucideIcons[formattedName] || Tag
 }
 
+/**
+ * Modal form for creating or editing a transaction
+ * Supports income, expense, and transfer types
+ * @param {Object} props - Component props
+ * @param {Object|null} props.transaction - Existing transaction for editing, null for creation
+ * @param {Array} props.accounts - Available bank accounts
+ * @param {Array} props.categories - Available categories
+ * @param {Array} props.payees - Available payees
+ * @param {Function} props.onClose - Callback when modal is closed
+ * @param {Function} props.onSave - Callback with form data when saved
+ * @param {Function} props.onCreatePayee - Callback to create a new payee inline
+ * @param {Function} props.onCreateCategory - Callback to create a new category inline
+ */
 function TransactionModal({ transaction, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
   const [formData, setFormData] = useState(transaction || {
     accountId: accounts?.[0]?.id || '',
@@ -235,18 +257,26 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
   )
 }
 
+/**
+ * Transactions page component
+ * Displays all transactions with filtering, search, and infinite scroll
+ * Supports creating, editing, and deleting transactions
+ * @returns {JSX.Element} The transactions page
+ */
 export default function Transactions() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
-  const [filters, setFilters] = useState({ 
-    search: '', 
-    accountId: '', 
-    categoryId: '', 
+  /** @type {Object} Filter state for search, account, category, type, and date range */
+  const [filters, setFilters] = useState({
+    search: '',
+    accountId: '',
+    categoryId: '',
     type: '',
     startDate: '',
     endDate: ''
   })
   const queryClient = useQueryClient()
+  /** @type {React.RefObject} Reference for infinite scroll trigger element */
   const loadMoreRef = useRef(null)
 
   const {

@@ -1,113 +1,113 @@
 # BudgetOS
 
-Application Web de gestion financière personnelle inspirée de Microsoft Money.
+Personal finance management web application.
 
-## Fonctionnalités
+## Features
 
-- **Multi-utilisateurs** : Authentification sécurisée avec sessions
-- **Comptes bancaires** : Comptes courants, livrets, épargne
-- **Cartes de crédit** : Débit immédiat et différé avec cycles personnalisables
-- **Import bancaire** : CSV, Excel, QIF, QFX avec rapprochement automatique
-- **Prévisions** : Trésorerie à 30/60/90 jours
-- **Rapports** : Tableaux de bord et graphiques
+- **Multi-user**: Secure authentication with sessions
+- **Bank accounts**: Checking, savings, investment accounts
+- **Credit cards**: Immediate and deferred debit with customizable billing cycles
+- **Bank import**: CSV, Excel, QIF, QFX with automatic reconciliation
+- **Forecasting**: Cash flow projections at 30/60/90 days
+- **Reports**: Dashboards and charts
 
-## Prérequis
+## Requirements
 
 - Node.js >= 18.0.0
 - npm >= 9.0.0
 
-## Installation (Développement)
+## Installation (Development)
 
 ```bash
-# Cloner le projet
+# Clone the project
 git clone <repo-url>
 cd budgetos
 
-# Installer les dépendances
+# Install dependencies
 npm install
 
-# Copier la configuration
+# Copy configuration
 cp .env.example .env
 
-# Créer la base de données
+# Create the database
 npm run db:migrate
 
-# (Optionnel) Insérer des données de test
+# (Optional) Insert test data
 npm run db:seed
 
-# Démarrer le serveur
+# Start the server
 npm run dev
 ```
 
-## Structure du projet
+## Project Structure
 
 ```
 budgetos/
 ├── src/
 │   ├── config/           # Configuration
-│   ├── controllers/      # Contrôleurs API
-│   ├── database/         # Migrations et seeds
-│   ├── middleware/       # Middlewares Express
-│   ├── models/           # Modèles de données
-│   ├── routes/           # Routes API
-│   ├── services/         # Logique métier
-│   ├── utils/            # Utilitaires
-│   ├── validators/       # Schémas de validation Zod
-│   └── server.js         # Point d'entrée
-├── client/               # Frontend React
-├── data/                 # Base SQLite (dev)
-├── uploads/              # Fichiers uploadés
+│   ├── controllers/      # API controllers
+│   ├── database/         # Migrations and seeds
+│   ├── middleware/       # Express middleware
+│   ├── models/           # Data models
+│   ├── routes/           # API routes
+│   ├── services/         # Business logic
+│   ├── utils/            # Utilities
+│   ├── validators/       # Zod validation schemas
+│   └── server.js         # Entry point
+├── client/               # React frontend
+├── data/                 # SQLite database (dev)
+├── uploads/              # Uploaded files
 └── tests/                # Tests
 ```
 
 ## API
 
-L'API REST est disponible sous `/api/v1/`.
+The REST API is available at `/api/v1/`.
 
-### Authentification
+### Authentication
 
-- `POST /api/v1/auth/register` - Inscription
-- `POST /api/v1/auth/login` - Connexion
-- `POST /api/v1/auth/logout` - Déconnexion
-- `GET /api/v1/auth/me` - Profil utilisateur
+- `POST /api/v1/auth/register` - Register
+- `POST /api/v1/auth/login` - Login
+- `POST /api/v1/auth/logout` - Logout
+- `GET /api/v1/auth/me` - User profile
 
-### Comptes
+### Accounts
 
-- `GET /api/v1/accounts` - Liste des comptes
-- `POST /api/v1/accounts` - Créer un compte
-- `GET /api/v1/accounts/:id` - Détail d'un compte
-- `PUT /api/v1/accounts/:id` - Modifier un compte
-- `DELETE /api/v1/accounts/:id` - Supprimer un compte
+- `GET /api/v1/accounts` - List accounts
+- `POST /api/v1/accounts` - Create account
+- `GET /api/v1/accounts/:id` - Account details
+- `PUT /api/v1/accounts/:id` - Update account
+- `DELETE /api/v1/accounts/:id` - Delete account
 
 ### Transactions
 
-- `GET /api/v1/transactions` - Liste des transactions
-- `POST /api/v1/transactions` - Créer une transaction
-- `PUT /api/v1/transactions/:id` - Modifier une transaction
-- `DELETE /api/v1/transactions/:id` - Supprimer une transaction
+- `GET /api/v1/transactions` - List transactions
+- `POST /api/v1/transactions` - Create transaction
+- `PUT /api/v1/transactions/:id` - Update transaction
+- `DELETE /api/v1/transactions/:id` - Delete transaction
 
-### Cartes de crédit
+### Credit Cards
 
-- `GET /api/v1/credit-cards` - Liste des cartes
-- `POST /api/v1/credit-cards` - Créer une carte
-- `GET /api/v1/credit-cards/:id/cycles` - Cycles de facturation
+- `GET /api/v1/credit-cards` - List cards
+- `POST /api/v1/credit-cards` - Create card
+- `GET /api/v1/credit-cards/:id/cycles` - Billing cycles
 
 ### Import
 
-- `POST /api/v1/import/upload` - Uploader un fichier
-- `POST /api/v1/import/process` - Traiter l'import
-- `GET /api/v1/import/reconcile` - Interface de rapprochement
+- `POST /api/v1/import/upload` - Upload file
+- `POST /api/v1/import/process` - Process import
+- `GET /api/v1/import/reconcile` - Reconciliation interface
 
-## Sécurité
+## Security
 
-- Sessions HTTP avec cookies sécurisés
-- Protection CSRF
+- HTTP sessions with secure cookies
+- CSRF protection
 - Rate limiting
-- Helmet (headers de sécurité)
-- Validation stricte des entrées (Zod)
-- Hachage bcrypt des mots de passe
-- Isolation des données par utilisateur
+- Helmet (security headers)
+- Strict input validation (Zod)
+- bcrypt password hashing
+- User data isolation
 
-## Licence
+## License
 
-MIT
+[Polyform Noncommercial 1.0.0](LICENSE)

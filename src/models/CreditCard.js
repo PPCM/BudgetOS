@@ -67,8 +67,8 @@ export class CreditCard {
    * Liste les cartes d'un utilisateur
    */
   static findByUser(userId, options = {}) {
-    const { isActive = true, includeBalances = true } = options;
-    
+    const { isActive = true, includeBalances = true, status, sortBy = 'name', sortOrder = 'asc' } = options;
+
     let sql = `
       SELECT cc.*, a.name as account_name, la.name as linked_account_name
       FROM credit_cards cc
@@ -77,14 +77,38 @@ export class CreditCard {
       WHERE cc.user_id = ?
     `;
     const params = [userId];
-    
+
     if (isActive !== undefined) {
       sql += ' AND cc.is_active = ?';
       params.push(isActive ? 1 : 0);
     }
-    
-    sql += ' ORDER BY cc.name ASC';
-    
+
+    // Filtre par statut d'expiration
+    if (status === 'active') {
+      // Cartes non expirées ou sans date d'expiration
+      sql += ` AND (cc.expiration_date IS NULL OR cc.expiration_date = '' OR
+        (CAST(SUBSTR(cc.expiration_date, 4, 2) AS INTEGER) + 2000) * 100 + CAST(SUBSTR(cc.expiration_date, 1, 2) AS INTEGER) >=
+        CAST(strftime('%Y', 'now') AS INTEGER) * 100 + CAST(strftime('%m', 'now') AS INTEGER))`;
+    } else if (status === 'expired') {
+      // Cartes expirées (avec date d'expiration passée)
+      sql += ` AND cc.expiration_date IS NOT NULL AND cc.expiration_date != '' AND
+        (CAST(SUBSTR(cc.expiration_date, 4, 2) AS INTEGER) + 2000) * 100 + CAST(SUBSTR(cc.expiration_date, 1, 2) AS INTEGER) <
+        CAST(strftime('%Y', 'now') AS INTEGER) * 100 + CAST(strftime('%m', 'now') AS INTEGER)`;
+    }
+
+    // Tri
+    const validSortFields = ['name', 'expiration_date', 'created_at'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'name';
+    const order = sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    // Pour le tri par date d'expiration, mettre les NULL à la fin
+    if (sortField === 'expiration_date') {
+      sql += ` ORDER BY CASE WHEN cc.expiration_date IS NULL OR cc.expiration_date = '' THEN 1 ELSE 0 END,
+        (CAST(SUBSTR(cc.expiration_date, 4, 2) AS INTEGER) + 2000) * 100 + CAST(SUBSTR(cc.expiration_date, 1, 2) AS INTEGER) ${order}`;
+    } else {
+      sql += ` ORDER BY cc.${sortField} ${order}`;
+    }
+
     const cards = query.all(sql, params);
     
     // Ajouter les soldes des cycles en cours si demandé

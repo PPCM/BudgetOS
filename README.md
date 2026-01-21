@@ -7,7 +7,9 @@ Personal finance management web application.
 - **Multi-user**: Secure authentication with sessions
 - **Bank accounts**: Checking, savings, investment accounts
 - **Credit cards**: Immediate and deferred debit with customizable billing cycles
+- **Transactions**: Sortable columns, quick date filters, infinite scroll
 - **Bank import**: CSV, Excel, QIF, QFX with automatic reconciliation
+- **Manual reconciliation**: Dedicated mode for reconciling transactions with bank statements
 - **Forecasting**: Cash flow projections at 30/60/90 days
 - **Reports**: Dashboards and charts
 
@@ -85,6 +87,7 @@ The REST API is available at `/api/v1/`.
 - `POST /api/v1/transactions` - Create transaction
 - `PUT /api/v1/transactions/:id` - Update transaction
 - `DELETE /api/v1/transactions/:id` - Delete transaction
+- `PATCH /api/v1/transactions/:id/reconcile` - Toggle reconciliation status
 
 ### Credit Cards
 

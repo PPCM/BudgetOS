@@ -17,6 +17,7 @@ router.post('/reconcile', validate({ body: reconcileTransactionsSchema }), async
 router.get('/match', asyncHandler(transactionController.findMatchingTransactions));
 router.get('/:id', validate({ params: transactionIdParamSchema }), asyncHandler(transactionController.getTransaction));
 router.put('/:id', validate({ params: transactionIdParamSchema, body: updateTransactionSchema }), asyncHandler(transactionController.updateTransaction));
+router.patch('/:id/reconcile', validate({ params: transactionIdParamSchema }), asyncHandler(transactionController.toggleReconcile));
 router.delete('/:id', validate({ params: transactionIdParamSchema }), asyncHandler(transactionController.deleteTransaction));
 
 export default router;

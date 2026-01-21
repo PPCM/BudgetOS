@@ -46,3 +46,8 @@ export const findMatchingTransactions = async (req, res) => {
   });
   res.json({ success: true, data: { matches } });
 };
+
+export const toggleReconcile = async (req, res) => {
+  const transaction = Transaction.toggleReconcile(req.user.id, req.params.id);
+  res.json({ success: true, data: { transaction } });
+};

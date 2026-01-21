@@ -99,7 +99,7 @@ export class Transaction {
    */
   static findByUser(userId, options = {}) {
     const {
-      accountId, categoryId, creditCardId, type, status,
+      accountId, categoryId, creditCardId, type, status, isReconciled,
       startDate, endDate, minAmount, maxAmount, search,
       page = 1, limit = 50, sortBy = 'date', sortOrder = 'desc'
     } = options;
@@ -145,7 +145,12 @@ export class Transaction {
       sql += ' AND t.status = ?';
       params.push(status);
     }
-    
+
+    if (isReconciled !== undefined) {
+      sql += ' AND t.is_reconciled = ?';
+      params.push(isReconciled === 'true' ? 1 : 0);
+    }
+
     if (startDate) {
       sql += ' AND t.date >= ?';
       params.push(startDate);
@@ -176,9 +181,19 @@ export class Transaction {
     const total = query.get(countSql, params)?.count || 0;
     
     // Tri et pagination
-    const allowedSortFields = { date: 't.date', amount: 't.amount', description: 't.description', created_at: 't.created_at' };
+    const allowedSortFields = {
+      date: 't.date',
+      amount: 't.amount',
+      description: 't.description',
+      created_at: 't.created_at',
+      payee: 'p.name',
+      category: 'c.name',
+      account: 'a.name'
+    };
     const sortField = allowedSortFields[sortBy] || 't.date';
-    sql += ` ORDER BY ${sortField} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+    // NULLS LAST for text fields to keep empty values at the end
+    const nullsLast = ['payee', 'category', 'account'].includes(sortBy) ? ` NULLS LAST` : '';
+    sql += ` ORDER BY ${sortField} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}${nullsLast}`;
     sql += ' LIMIT ? OFFSET ?';
     params.push(limit, (page - 1) * limit);
     
@@ -295,7 +310,37 @@ export class Transaction {
     
     return { reconciled: transactionIds.length };
   }
-  
+
+  /**
+   * Toggle reconciliation status of a single transaction
+   * @param {string} userId - User ID
+   * @param {string} transactionId - Transaction ID
+   * @returns {Object} Updated transaction with new reconciliation status
+   */
+  static toggleReconcile(userId, transactionId) {
+    const tx = Transaction.findByIdOrFail(transactionId, userId);
+    const isCurrentlyReconciled = tx.isReconciled;
+    const now = new Date().toISOString();
+
+    if (isCurrentlyReconciled) {
+      // Unreconcile: set status back to 'cleared' and remove reconciliation
+      query.run(`
+        UPDATE transactions
+        SET status = 'cleared', is_reconciled = 0, reconciled_at = NULL
+        WHERE id = ? AND user_id = ?
+      `, [transactionId, userId]);
+    } else {
+      // Reconcile: set status to 'reconciled'
+      query.run(`
+        UPDATE transactions
+        SET status = 'reconciled', is_reconciled = 1, reconciled_at = ?
+        WHERE id = ? AND user_id = ?
+      `, [now, transactionId, userId]);
+    }
+
+    return Transaction.findById(transactionId, userId);
+  }
+
   /**
    * Recherche de transactions pour rapprochement
    */

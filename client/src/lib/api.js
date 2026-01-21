@@ -89,6 +89,9 @@ export const authApi = {
   register: (data) => api.post('/auth/register', data),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
+  getSettings: () => api.get('/auth/settings'),
+  /** @param {Object} data - Settings data (weekStartDay, dateFormat, etc.) */
+  updateSettings: (data) => api.put('/auth/settings', data),
 }
 
 /**
@@ -137,6 +140,8 @@ export const transactionsApi = {
   update: (id, data) => api.put(`/transactions/${id}`, data),
   /** @param {string} id - Transaction UUID */
   delete: (id) => api.delete(`/transactions/${id}`),
+  /** @param {string} id - Transaction UUID - Toggle reconciliation status */
+  toggleReconcile: (id) => api.patch(`/transactions/${id}/reconcile`),
 }
 
 /**

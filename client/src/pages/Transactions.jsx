@@ -10,11 +10,13 @@ import { formatCurrency, formatDate } from '../lib/utils'
 import * as LucideIcons from 'lucide-react'
 import {
   Plus, Search, Filter, TrendingUp, TrendingDown,
-  ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2
+  ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2,
+  CheckCircle2, Scale, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
 import { findKnownLogo } from '../lib/knownLogos'
+import { useAuth } from '../contexts/AuthContext'
 
 /**
  * Retrieves a Lucide icon component by name
@@ -264,17 +266,25 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
  * @returns {JSX.Element} The transactions page
  */
 export default function Transactions() {
+  const { userSettings } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
-  /** @type {Object} Filter state for search, account, category, type, and date range */
+  /** @type {boolean} Whether reconciliation mode is active */
+  const [reconcileMode, setReconcileMode] = useState(false)
+  /** @type {Object} Filter state for search, account, category, type, reconciliation status, and date range */
   const [filters, setFilters] = useState({
     search: '',
     accountId: '',
     categoryId: '',
     type: '',
+    isReconciled: '',
     startDate: '',
     endDate: ''
   })
+  /** @type {Object} Sort state for column sorting */
+  const [sort, setSort] = useState({ sortBy: 'date', sortOrder: 'desc' })
+  /** @type {string} Quick period filter selection */
+  const [quickPeriod, setQuickPeriod] = useState('')
   const queryClient = useQueryClient()
   /** @type {React.RefObject} Reference for infinite scroll trigger element */
   const loadMoreRef = useRef(null)
@@ -286,9 +296,9 @@ export default function Transactions() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['transactions', filters],
-    queryFn: ({ pageParam = 1 }) => 
-      transactionsApi.getAll({ ...filters, page: pageParam, limit: 30 }).then(r => r.data),
+    queryKey: ['transactions', filters, sort],
+    queryFn: ({ pageParam = 1 }) =>
+      transactionsApi.getAll({ ...filters, ...sort, page: pageParam, limit: 10 }).then(r => r.data),
     getNextPageParam: (lastPage) => {
       if (lastPage.pagination.page < lastPage.pagination.totalPages) {
         return lastPage.pagination.page + 1
@@ -296,6 +306,40 @@ export default function Transactions() {
       return undefined
     },
   })
+
+  /**
+   * Handles column header click for sorting
+   * Cycle: desc -> asc -> neutral (default: date desc)
+   * @param {string} column - The column to sort by
+   */
+  const handleSort = (column) => {
+    setSort(prev => {
+      if (prev.sortBy !== column) {
+        // New column: start with desc
+        return { sortBy: column, sortOrder: 'desc' }
+      }
+      if (prev.sortOrder === 'desc') {
+        // Same column, was desc: switch to asc
+        return { sortBy: column, sortOrder: 'asc' }
+      }
+      // Same column, was asc: reset to default (date desc)
+      return { sortBy: 'date', sortOrder: 'desc' }
+    })
+  }
+
+  /**
+   * Renders sort icon for a column header
+   * @param {string} column - The column name
+   * @returns {JSX.Element} Sort icon component
+   */
+  const SortIcon = ({ column }) => {
+    if (sort.sortBy !== column) {
+      return <ArrowUpDown className="w-3 h-3 text-gray-400" />
+    }
+    return sort.sortOrder === 'asc'
+      ? <ArrowUp className="w-3 h-3 text-primary-600" />
+      : <ArrowDown className="w-3 h-3 text-primary-600" />
+  }
 
   // Scroll infini avec IntersectionObserver
   useEffect(() => {
@@ -408,6 +452,27 @@ export default function Transactions() {
     },
   })
 
+  /**
+   * Mutation for toggling transaction reconciliation status
+   */
+  const toggleReconcileMutation = useMutation({
+    mutationFn: transactionsApi.toggleReconcile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    },
+    onError: (err) => {
+      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+    },
+  })
+
+  /**
+   * Handles toggling reconciliation status for a transaction
+   * @param {Object} tx - The transaction to toggle
+   */
+  const handleToggleReconcile = (tx) => {
+    toggleReconcileMutation.mutate(tx.id)
+  }
+
   const handleSave = (formData) => {
     // Filtrer les données pour n'envoyer que les champs nécessaires
     const cleanData = {
@@ -465,10 +530,26 @@ export default function Transactions() {
             {totalCount > 0 ? `${totalCount} opération${totalCount > 1 ? 's' : ''}` : 'Historique de vos opérations'}
           </p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
-          <Plus className="w-5 h-5" />
-          Nouvelle
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setReconcileMode(!reconcileMode)}
+            className={`btn flex items-center gap-2 ${
+              reconcileMode
+                ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'
+                : 'btn-secondary'
+            }`}
+            title="Mode rapprochement bancaire"
+          >
+            <Scale className="w-5 h-5" />
+            {reconcileMode ? 'Quitter rapprochement' : 'Rapprochement'}
+          </button>
+          {!reconcileMode && (
+            <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Nouvelle
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -522,10 +603,21 @@ export default function Transactions() {
               <option value="transfer">Virements</option>
             </select>
           </div>
+          <div className="w-40">
+            <select
+              value={filters.isReconciled}
+              onChange={(e) => setFilters({ ...filters, isReconciled: e.target.value })}
+              className="input"
+            >
+              <option value="">Tous statuts</option>
+              <option value="true">Rapprochées</option>
+              <option value="false">Non rapprochées</option>
+            </select>
+          </div>
         </div>
         
         {/* Filtres de date */}
-        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t">
+        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t items-center">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
             <span className="text-sm text-gray-600">Période :</span>
@@ -534,27 +626,112 @@ export default function Transactions() {
             <input
               type="date"
               value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-              className="input w-40 text-sm"
+              onChange={(e) => {
+                setFilters({ ...filters, startDate: e.target.value })
+                setQuickPeriod('')
+              }}
+              className="input w-36 text-sm"
               placeholder="Du"
             />
             <span className="text-gray-400">→</span>
             <input
               type="date"
               value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-              className="input w-40 text-sm"
+              onChange={(e) => {
+                setFilters({ ...filters, endDate: e.target.value })
+                setQuickPeriod('')
+              }}
+              className="input w-36 text-sm"
               min={filters.startDate}
               placeholder="Au"
             />
           </div>
+          <select
+            className="input w-40 text-sm"
+            value={quickPeriod}
+            onChange={(e) => {
+              const value = e.target.value
+              setQuickPeriod(value)
+              if (!value) {
+                setFilters({ ...filters, startDate: '', endDate: '' })
+                return
+              }
+              // Format date as YYYY-MM-DD in local timezone
+              const formatLocalDate = (date) => {
+                const year = date.getFullYear()
+                const month = String(date.getMonth() + 1).padStart(2, '0')
+                const day = String(date.getDate()).padStart(2, '0')
+                return `${year}-${month}-${day}`
+              }
+              const now = new Date()
+              let startDate, endDate = formatLocalDate(now)
+
+              switch (value) {
+                case 'week': {
+                  const day = now.getDay()
+                  // weekStartDay: 0 = Sunday, 1 = Monday (default)
+                  const weekStart = userSettings?.weekStartDay ?? 1
+                  let diff
+                  if (weekStart === 0) {
+                    diff = day
+                  } else {
+                    diff = day === 0 ? 6 : day - 1
+                  }
+                  const firstDayOfWeek = new Date(now)
+                  firstDayOfWeek.setDate(now.getDate() - diff)
+                  startDate = formatLocalDate(firstDayOfWeek)
+                  break
+                }
+                case '7days': {
+                  const past = new Date(now)
+                  past.setDate(now.getDate() - 6)
+                  startDate = formatLocalDate(past)
+                  break
+                }
+                case 'month': {
+                  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+                  startDate = formatLocalDate(firstDay)
+                  break
+                }
+                case '30days': {
+                  const past = new Date(now)
+                  past.setDate(now.getDate() - 29)
+                  startDate = formatLocalDate(past)
+                  break
+                }
+                case 'year': {
+                  const firstDay = new Date(now.getFullYear(), 0, 1)
+                  startDate = formatLocalDate(firstDay)
+                  break
+                }
+                case '365days': {
+                  const past = new Date(now)
+                  past.setDate(now.getDate() - 364)
+                  startDate = formatLocalDate(past)
+                  break
+                }
+              }
+              setFilters({ ...filters, startDate, endDate })
+            }}
+          >
+            <option value="">Toutes les dates</option>
+            <option value="week">Semaine en cours</option>
+            <option value="7days">7 derniers jours</option>
+            <option value="month">Mois en cours</option>
+            <option value="30days">30 derniers jours</option>
+            <option value="year">Année en cours</option>
+            <option value="365days">365 derniers jours</option>
+          </select>
           {(filters.startDate || filters.endDate) && (
             <button
-              onClick={() => setFilters({ ...filters, startDate: '', endDate: '' })}
+              onClick={() => {
+                setFilters({ ...filters, startDate: '', endDate: '' })
+                setQuickPeriod('')
+              }}
               className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
             >
               <X className="w-4 h-4" />
-              Effacer dates
+              Effacer
             </button>
           )}
         </div>
@@ -569,21 +746,76 @@ export default function Transactions() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiers</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('date')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Date
+                        <SortIcon column="date" />
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('description')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Description
+                        <SortIcon column="description" />
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('payee')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Tiers
+                        <SortIcon column="payee" />
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('category')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Catégorie
+                        <SortIcon column="category" />
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-36 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('account')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Compte
+                        <SortIcon column="account" />
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28 cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('amount')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Montant
+                        <SortIcon column="amount" />
+                      </div>
+                    </th>
                     <th className="px-4 py-3 w-20"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {transactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-gray-50 group">
+                    <tr
+                      key={tx.id}
+                      className={`group transition-colors ${
+                        tx.isReconciled
+                          ? 'bg-green-50 hover:bg-green-100'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
                       <td className="px-4 py-3 text-sm text-gray-600">{formatDate(tx.date)}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{tx.description}</p>
@@ -637,19 +869,35 @@ export default function Transactions() {
                         {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleEdit(tx)}
-                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(tx)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div className="flex justify-center gap-1 h-7 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          {reconcileMode ? (
+                            <button
+                              onClick={() => handleToggleReconcile(tx)}
+                              className={`p-1.5 rounded transition-colors ${
+                                tx.isReconciled
+                                  ? 'text-green-600 hover:text-red-600 hover:bg-red-50'
+                                  : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                              }`}
+                              title={tx.isReconciled ? 'Annuler le rapprochement' : 'Marquer comme rapproché'}
+                            >
+                              <CheckCircle2 className={`w-4 h-4 ${tx.isReconciled ? 'fill-green-100' : ''}`} />
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEdit(tx)}
+                                className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(tx)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

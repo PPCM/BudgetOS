@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useMutation } from '@tanstack/react-query'
 import { 
@@ -215,12 +215,16 @@ function SecuritySettings({ onSuccess, onError }) {
 }
 
 function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
+  const { userSettings, updateSettings } = useAuth()
   const [formData, setFormData] = useState({
     locale: user?.locale || 'fr',
     currency: user?.currency || 'EUR',
   })
+  const [settingsData, setSettingsData] = useState({
+    weekStartDay: userSettings?.weekStartDay ?? 1,
+  })
 
-  const mutation = useMutation({
+  const profileMutation = useMutation({
     mutationFn: async (data) => {
       const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
       return axios.put('/api/v1/auth/profile', data, {
@@ -229,16 +233,31 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
       })
     },
     onSuccess: () => {
-      onSuccess('Préférences mises à jour')
       checkAuth()
     },
     onError: (err) => onError(err.response?.data?.error?.message || 'Erreur'),
   })
 
+  const settingsMutation = useMutation({
+    mutationFn: async (data) => updateSettings(data),
+    onError: (err) => onError(err.response?.data?.error?.message || 'Erreur'),
+  })
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await profileMutation.mutateAsync(formData)
+      await settingsMutation.mutateAsync(settingsData)
+      onSuccess('Préférences mises à jour')
+    } catch {
+      // Error handled by mutation
+    }
+  }
+
   return (
     <div className="card">
       <h2 className="text-lg font-semibold mb-6">Préférences</h2>
-      <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(formData); }} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Langue</label>
           <select
@@ -263,7 +282,19 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
             <option value="CHF">Franc Suisse (CHF)</option>
           </select>
         </div>
-        <button type="submit" disabled={mutation.isPending} className="btn btn-primary flex items-center gap-2">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Premier jour de la semaine</label>
+          <select
+            value={settingsData.weekStartDay}
+            onChange={(e) => setSettingsData({ ...settingsData, weekStartDay: parseInt(e.target.value) })}
+            className="input"
+          >
+            <option value={1}>Lundi</option>
+            <option value={0}>Dimanche</option>
+            <option value={6}>Samedi</option>
+          </select>
+        </div>
+        <button type="submit" disabled={profileMutation.isPending || settingsMutation.isPending} className="btn btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" />
           Enregistrer
         </button>

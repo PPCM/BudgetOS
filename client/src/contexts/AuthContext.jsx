@@ -5,6 +5,7 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [userSettings, setUserSettings] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -15,32 +16,61 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await authApi.getMe()
       setUser(data.data.user)
+      // Load user settings
+      try {
+        const settingsRes = await authApi.getSettings()
+        setUserSettings(settingsRes.data.data.settings)
+      } catch {
+        setUserSettings(null)
+      }
     } catch (error) {
       setUser(null)
+      setUserSettings(null)
     } finally {
       setLoading(false)
     }
   }
 
+  const updateSettings = async (newSettings) => {
+    const { data } = await authApi.updateSettings(newSettings)
+    setUserSettings(data.data.settings)
+    return data
+  }
+
   const login = async (email, password) => {
     const { data } = await authApi.login({ email, password })
     setUser(data.data.user)
+    // Load settings after login
+    try {
+      const settingsRes = await authApi.getSettings()
+      setUserSettings(settingsRes.data.data.settings)
+    } catch {
+      setUserSettings(null)
+    }
     return data
   }
 
   const register = async (userData) => {
     const { data } = await authApi.register(userData)
     setUser(data.data.user)
+    // Load settings after register
+    try {
+      const settingsRes = await authApi.getSettings()
+      setUserSettings(settingsRes.data.data.settings)
+    } catch {
+      setUserSettings(null)
+    }
     return data
   }
 
   const logout = async () => {
     await authApi.logout()
     setUser(null)
+    setUserSettings(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, userSettings, loading, login, register, logout, checkAuth, updateSettings }}>
       {children}
     </AuthContext.Provider>
   )

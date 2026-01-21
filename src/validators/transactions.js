@@ -104,6 +104,7 @@ export const listTransactionsQuerySchema = z.object({
   creditCardId: z.string().uuid().optional(),
   type: z.enum(transactionTypes).optional(),
   status: z.enum(transactionStatuses).optional(),
+  isReconciled: z.enum(['true', 'false']).optional(),
   startDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -117,7 +118,7 @@ export const listTransactionsQuerySchema = z.object({
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
-  sortBy: z.enum(['date', 'amount', 'description', 'created_at']).default('date'),
+  sortBy: z.enum(['date', 'amount', 'description', 'created_at', 'payee', 'category', 'account']).default('date'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

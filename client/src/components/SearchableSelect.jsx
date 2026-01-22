@@ -31,11 +31,18 @@ export default function SearchableSelect({
   const selectedOption = options.find((opt) => getId(opt) === value)
 
   // Mettre à jour l'input quand la sélection change
+  // Don't reset inputValue if value is set but option not found (newly created item)
   useEffect(() => {
     if (!isOpen) {
-      setInputValue(selectedOption ? getLabel(selectedOption) : '')
+      if (selectedOption) {
+        setInputValue(getLabel(selectedOption))
+      } else if (!value) {
+        setInputValue('')
+      }
+      // If value is set but selectedOption not found, keep current inputValue
+      // This happens when a new item was just created and query hasn't refreshed yet
     }
-  }, [selectedOption, isOpen])
+  }, [selectedOption, isOpen, value])
 
   // Calculer la position du dropdown
   useEffect(() => {
@@ -58,13 +65,14 @@ export default function SearchableSelect({
         const dropdown = document.getElementById('searchable-dropdown')
         if (dropdown && !dropdown.contains(e.target)) {
           setIsOpen(false)
-          setInputValue(selectedOption ? getLabel(selectedOption) : '')
+          // Don't reset inputValue - let the other useEffect handle it
+          // This prevents clearing newly created items before query refresh
         }
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [selectedOption])
+  }, [])
 
   // Filtrer les options
   const filteredOptions = options.filter((opt) => {
@@ -104,7 +112,7 @@ export default function SearchableSelect({
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false)
-      setInputValue(selectedOption ? getLabel(selectedOption) : '')
+      // Let the useEffect handle inputValue reset to preserve newly created items
     } else if (e.key === 'Tab' && firstMatch && inputValue) {
       // Auto-complétion avec Tab
       e.preventDefault()

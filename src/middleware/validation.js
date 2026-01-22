@@ -60,23 +60,27 @@ export const validate = (schemas) => {
 
 /**
  * Middleware pour nettoyer les entrées HTML
+ *
+ * Note: Only escapes < and > to prevent HTML tag injection.
+ * Other characters (&, ", ') are NOT escaped because:
+ * - React automatically escapes content on render (XSS protection)
+ * - Parameterized queries prevent SQL injection
+ * - Encoding at input corrupts legitimate data (e.g., "C'est" becomes "C&#x27;est")
  */
 export const sanitizeInput = (req, res, next) => {
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
-      // Échapper les caractères HTML dangereux
+      // Only escape HTML tags to prevent tag injection
+      // Do NOT escape &, ", ' as they are common in legitimate text
       return obj
-        .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;');
+        .replace(/>/g, '&gt;');
     }
-    
+
     if (Array.isArray(obj)) {
       return obj.map(sanitize);
     }
-    
+
     if (obj && typeof obj === 'object') {
       const sanitized = {};
       for (const [key, value] of Object.entries(obj)) {
@@ -84,13 +88,13 @@ export const sanitizeInput = (req, res, next) => {
       }
       return sanitized;
     }
-    
+
     return obj;
   };
-  
-  // Ne pas sanitizer les champs qui nécessitent des caractères spéciaux
+
+  // Don't sanitize password fields
   const excludeFields = ['password', 'passwordConfirm', 'oldPassword', 'newPassword'];
-  
+
   if (req.body) {
     const sanitizedBody = {};
     for (const [key, value] of Object.entries(req.body)) {
@@ -102,6 +106,6 @@ export const sanitizeInput = (req, res, next) => {
     }
     req.body = sanitizedBody;
   }
-  
+
   next();
 };

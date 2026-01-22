@@ -3,13 +3,13 @@
  * Provides CRUD operations with filtering, search, and infinite scroll
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue } from 'react'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi } from '../lib/api'
-import { formatCurrency, formatDate } from '../lib/utils'
-import * as LucideIcons from 'lucide-react'
+import { formatCurrency, formatDate, getDatePeriod } from '../lib/utils'
+import { getIconComponent } from '../lib/iconMap'
 import {
-  Plus, Search, Filter, TrendingUp, TrendingDown,
+  Plus, Search, TrendingUp, TrendingDown,
   ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2,
   CheckCircle2, Scale, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
@@ -19,14 +19,37 @@ import { findKnownLogo } from '../lib/knownLogos'
 import { useAuth } from '../contexts/AuthContext'
 
 /**
- * Retrieves a Lucide icon component by name
- * @param {string} iconName - Name of the icon (e.g., 'wallet', 'car')
- * @returns {React.Component} The icon component or Tag as fallback
+ * Sort icon component for table headers
+ * Extracted outside component to prevent recreation on each render
+ * @param {Object} props - Component props
+ * @param {string} props.column - Column name
+ * @param {Object} props.sort - Current sort state { sortBy, sortOrder }
  */
-const getIconComponent = (iconName) => {
-  if (!iconName) return Tag
-  const formattedName = iconName.charAt(0).toUpperCase() + iconName.slice(1)
-  return LucideIcons[formattedName] || Tag
+const SortIcon = ({ column, sort }) => {
+  if (sort.sortBy !== column) {
+    return <ArrowUpDown className="w-3 h-3 text-gray-400" />
+  }
+  return sort.sortOrder === 'asc'
+    ? <ArrowUp className="w-3 h-3 text-primary-600" />
+    : <ArrowDown className="w-3 h-3 text-primary-600" />
+}
+
+/**
+ * Category icon component with background
+ * @param {Object} props - Component props
+ * @param {string} props.icon - Icon name
+ * @param {string} props.color - Icon color
+ */
+const CategoryIcon = ({ icon, color }) => {
+  const IconComp = getIconComponent(icon)
+  return (
+    <div
+      className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+      style={{ backgroundColor: (color || '#6B7280') + '20', color: color || '#6B7280' }}
+    >
+      <IconComp className="w-3 h-3" />
+    </div>
+  )
 }
 
 /**
@@ -271,9 +294,12 @@ export default function Transactions() {
   const [editingTx, setEditingTx] = useState(null)
   /** @type {boolean} Whether reconciliation mode is active */
   const [reconcileMode, setReconcileMode] = useState(false)
-  /** @type {Object} Filter state for search, account, category, type, reconciliation status, and date range */
+  /** @type {string} Search input value (immediate) */
+  const [searchInput, setSearchInput] = useState('')
+  /** @type {string} Deferred search value (debounced) */
+  const deferredSearch = useDeferredValue(searchInput)
+  /** @type {Object} Filter state for account, category, type, reconciliation status, and date range */
   const [filters, setFilters] = useState({
-    search: '',
     accountId: '',
     categoryId: '',
     type: '',
@@ -289,6 +315,12 @@ export default function Transactions() {
   /** @type {React.RefObject} Reference for infinite scroll trigger element */
   const loadMoreRef = useRef(null)
 
+  // Combine filters with deferred search for API call
+  const queryFilters = useMemo(() => ({
+    ...filters,
+    search: deferredSearch
+  }), [filters, deferredSearch])
+
   const {
     data,
     isLoading,
@@ -296,9 +328,9 @@ export default function Transactions() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['transactions', filters, sort],
+    queryKey: ['transactions', queryFilters, sort],
     queryFn: ({ pageParam = 1 }) =>
-      transactionsApi.getAll({ ...filters, ...sort, page: pageParam, limit: 10 }).then(r => r.data),
+      transactionsApi.getAll({ ...queryFilters, ...sort, page: pageParam, limit: 10 }).then(r => r.data),
     getNextPageParam: (lastPage) => {
       if (lastPage.pagination.page < lastPage.pagination.totalPages) {
         return lastPage.pagination.page + 1
@@ -310,36 +342,31 @@ export default function Transactions() {
   /**
    * Handles column header click for sorting
    * Cycle: desc -> asc -> neutral (default: date desc)
-   * @param {string} column - The column to sort by
    */
-  const handleSort = (column) => {
+  const handleSort = useCallback((column) => {
     setSort(prev => {
       if (prev.sortBy !== column) {
-        // New column: start with desc
         return { sortBy: column, sortOrder: 'desc' }
       }
       if (prev.sortOrder === 'desc') {
-        // Same column, was desc: switch to asc
         return { sortBy: column, sortOrder: 'asc' }
       }
-      // Same column, was asc: reset to default (date desc)
       return { sortBy: 'date', sortOrder: 'desc' }
     })
-  }
+  }, [])
 
   /**
-   * Renders sort icon for a column header
-   * @param {string} column - The column name
-   * @returns {JSX.Element} Sort icon component
+   * Handles quick period selection
    */
-  const SortIcon = ({ column }) => {
-    if (sort.sortBy !== column) {
-      return <ArrowUpDown className="w-3 h-3 text-gray-400" />
+  const handleQuickPeriod = useCallback((value) => {
+    setQuickPeriod(value)
+    if (!value) {
+      setFilters(prev => ({ ...prev, startDate: '', endDate: '' }))
+      return
     }
-    return sort.sortOrder === 'asc'
-      ? <ArrowUp className="w-3 h-3 text-primary-600" />
-      : <ArrowDown className="w-3 h-3 text-primary-600" />
-  }
+    const { startDate, endDate } = getDatePeriod(value, userSettings?.weekStartDay ?? 1)
+    setFilters(prev => ({ ...prev, startDate, endDate }))
+  }, [userSettings?.weekStartDay])
 
   // Scroll infini avec IntersectionObserver
   useEffect(() => {
@@ -454,24 +481,53 @@ export default function Transactions() {
 
   /**
    * Mutation for toggling transaction reconciliation status
+   * Uses optimistic update for better UX
    */
   const toggleReconcileMutation = useMutation({
     mutationFn: transactionsApi.toggleReconcile,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    onMutate: async (txId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['transactions'] })
+
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData(['transactions', queryFilters, sort])
+
+      // Optimistically update
+      queryClient.setQueryData(['transactions', queryFilters, sort], (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            data: page.data.map(tx =>
+              tx.id === txId
+                ? { ...tx, isReconciled: !tx.isReconciled }
+                : tx
+            )
+          }))
+        }
+      })
+
+      return { previousData }
     },
-    onError: (err) => {
+    onError: (err, txId, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['transactions', queryFilters, sort], context.previousData)
+      }
       alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
     },
   })
 
   /**
    * Handles toggling reconciliation status for a transaction
-   * @param {Object} tx - The transaction to toggle
    */
-  const handleToggleReconcile = (tx) => {
+  const handleToggleReconcile = useCallback((tx) => {
     toggleReconcileMutation.mutate(tx.id)
-  }
+  }, [toggleReconcileMutation])
 
   const handleSave = (formData) => {
     // Filtrer les données pour n'envoyer que les champs nécessaires
@@ -484,19 +540,26 @@ export default function Transactions() {
       date: formData.date,
       type: formData.type,
     }
-    
-    // Pour les virements, ajouter le compte destination s'il est défini
-    if (formData.type === 'transfer' && formData.toAccountId) {
-      cleanData.toAccountId = formData.toAccountId
+
+    // Pour les virements, gérer le compte destination
+    if (formData.type === 'transfer') {
+      if (formData.toAccountId) {
+        // Destination account selected
+        cleanData.toAccountId = formData.toAccountId
+      } else if (editingTx) {
+        // Editing a transfer with no destination = external transfer
+        // Send null to remove linked transaction
+        cleanData.toAccountId = null
+      }
     }
-    
+
     // Ajuster le montant selon le type
     if (cleanData.type === 'expense' || cleanData.type === 'transfer') {
       cleanData.amount = -Math.abs(cleanData.amount)
     } else {
       cleanData.amount = Math.abs(cleanData.amount)
     }
-    
+
     if (editingTx) {
       updateMutation.mutate({ id: editingTx.id, data: cleanData })
     } else {
@@ -504,7 +567,7 @@ export default function Transactions() {
     }
   }
 
-  const handleEdit = (tx) => {
+  const handleEdit = useCallback((tx) => {
     setEditingTx({
       ...tx,
       amount: Math.abs(tx.amount),
@@ -513,13 +576,13 @@ export default function Transactions() {
       toAccountId: tx.linkedAccountId || '',
     })
     setModalOpen(true)
-  }
+  }, [])
 
-  const handleDelete = (tx) => {
+  const handleDelete = useCallback((tx) => {
     if (confirm(`Supprimer la transaction "${tx.description}" ?`)) {
       deleteMutation.mutate(tx.id)
     }
-  }
+  }, [deleteMutation])
 
   return (
     <div className="space-y-6">
@@ -561,8 +624,8 @@ export default function Transactions() {
               <input
                 type="text"
                 placeholder="Rechercher..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="input pl-10"
               />
             </div>
@@ -649,70 +712,7 @@ export default function Transactions() {
           <select
             className="input w-40 text-sm"
             value={quickPeriod}
-            onChange={(e) => {
-              const value = e.target.value
-              setQuickPeriod(value)
-              if (!value) {
-                setFilters({ ...filters, startDate: '', endDate: '' })
-                return
-              }
-              // Format date as YYYY-MM-DD in local timezone
-              const formatLocalDate = (date) => {
-                const year = date.getFullYear()
-                const month = String(date.getMonth() + 1).padStart(2, '0')
-                const day = String(date.getDate()).padStart(2, '0')
-                return `${year}-${month}-${day}`
-              }
-              const now = new Date()
-              let startDate, endDate = formatLocalDate(now)
-
-              switch (value) {
-                case 'week': {
-                  const day = now.getDay()
-                  // weekStartDay: 0 = Sunday, 1 = Monday (default)
-                  const weekStart = userSettings?.weekStartDay ?? 1
-                  let diff
-                  if (weekStart === 0) {
-                    diff = day
-                  } else {
-                    diff = day === 0 ? 6 : day - 1
-                  }
-                  const firstDayOfWeek = new Date(now)
-                  firstDayOfWeek.setDate(now.getDate() - diff)
-                  startDate = formatLocalDate(firstDayOfWeek)
-                  break
-                }
-                case '7days': {
-                  const past = new Date(now)
-                  past.setDate(now.getDate() - 6)
-                  startDate = formatLocalDate(past)
-                  break
-                }
-                case 'month': {
-                  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-                  startDate = formatLocalDate(firstDay)
-                  break
-                }
-                case '30days': {
-                  const past = new Date(now)
-                  past.setDate(now.getDate() - 29)
-                  startDate = formatLocalDate(past)
-                  break
-                }
-                case 'year': {
-                  const firstDay = new Date(now.getFullYear(), 0, 1)
-                  startDate = formatLocalDate(firstDay)
-                  break
-                }
-                case '365days': {
-                  const past = new Date(now)
-                  past.setDate(now.getDate() - 364)
-                  startDate = formatLocalDate(past)
-                  break
-                }
-              }
-              setFilters({ ...filters, startDate, endDate })
-            }}
+            onChange={(e) => handleQuickPeriod(e.target.value)}
           >
             <option value="">Toutes les dates</option>
             <option value="week">Semaine en cours</option>
@@ -755,7 +755,7 @@ export default function Transactions() {
                     >
                       <div className="flex items-center gap-1">
                         Date
-                        <SortIcon column="date" />
+                        <SortIcon column="date" sort={sort} />
                       </div>
                     </th>
                     <th
@@ -764,7 +764,7 @@ export default function Transactions() {
                     >
                       <div className="flex items-center gap-1">
                         Description
-                        <SortIcon column="description" />
+                        <SortIcon column="description" sort={sort} />
                       </div>
                     </th>
                     <th
@@ -773,7 +773,7 @@ export default function Transactions() {
                     >
                       <div className="flex items-center gap-1">
                         Tiers
-                        <SortIcon column="payee" />
+                        <SortIcon column="payee" sort={sort} />
                       </div>
                     </th>
                     <th
@@ -782,7 +782,7 @@ export default function Transactions() {
                     >
                       <div className="flex items-center gap-1">
                         Catégorie
-                        <SortIcon column="category" />
+                        <SortIcon column="category" sort={sort} />
                       </div>
                     </th>
                     <th
@@ -791,7 +791,7 @@ export default function Transactions() {
                     >
                       <div className="flex items-center gap-1">
                         Compte
-                        <SortIcon column="account" />
+                        <SortIcon column="account" sort={sort} />
                       </div>
                     </th>
                     <th
@@ -800,7 +800,7 @@ export default function Transactions() {
                     >
                       <div className="flex items-center justify-end gap-1">
                         Montant
-                        <SortIcon column="amount" />
+                        <SortIcon column="amount" sort={sort} />
                       </div>
                     </th>
                     <th className="px-4 py-3 w-20"></th>
@@ -841,29 +841,13 @@ export default function Transactions() {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {tx.categoryName ? (
                           <div className="flex items-center gap-2">
-                            {(() => {
-                              const IconComp = getIconComponent(tx.categoryIcon)
-                              return (
-                                <div 
-                                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                                  style={{ backgroundColor: (tx.categoryColor || '#6B7280') + '20', color: tx.categoryColor || '#6B7280' }}
-                                >
-                                  <IconComp className="w-3 h-3" />
-                                </div>
-                              )
-                            })()}
+                            <CategoryIcon icon={tx.categoryIcon} color={tx.categoryColor} />
                             <span>{tx.categoryName}</span>
                           </div>
                         ) : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        {tx.type === 'transfer' && tx.linkedAccountName ? (
-                          <div className="flex items-center gap-1">
-                            <span>{tx.accountName}</span>
-                            <ArrowLeftRight className="w-3 h-3 text-blue-500" />
-                            <span>{tx.linkedAccountName}</span>
-                          </div>
-                        ) : tx.accountName}
+                        {tx.accountName}
                       </td>
                       <td className={`px-4 py-3 text-right font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}

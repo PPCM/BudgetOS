@@ -70,6 +70,8 @@ export const updateTransactionSchema = z.object({
     .optional(),
   date: baseTransactionSchema.date.optional(),
   type: z.enum(transactionTypes).optional(),
+  // For transfers: destination account (can be added, changed, or removed)
+  toAccountId: z.string().uuid('ID de compte destination invalide').nullable().optional(),
 }).partial();
 
 /**

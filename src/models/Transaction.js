@@ -191,9 +191,13 @@ export class Transaction {
       account: 'a.name'
     };
     const sortField = allowedSortFields[sortBy] || 't.date';
-    // NULLS LAST for text fields to keep empty values at the end
-    const nullsLast = ['payee', 'category', 'account'].includes(sortBy) ? ` NULLS LAST` : '';
-    sql += ` ORDER BY ${sortField} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}${nullsLast}`;
+    // SQLite doesn't support NULLS LAST, use CASE expression instead
+    const isNullableField = ['payee', 'category', 'account'].includes(sortBy);
+    if (isNullableField) {
+      sql += ` ORDER BY (CASE WHEN ${sortField} IS NULL THEN 1 ELSE 0 END), ${sortField} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+    } else {
+      sql += ` ORDER BY ${sortField} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+    }
     sql += ' LIMIT ? OFFSET ?';
     params.push(limit, (page - 1) * limit);
     
@@ -212,19 +216,42 @@ export class Transaction {
   
   /**
    * Met à jour une transaction
+   * For transfers, also updates the linked transaction
    */
   static update(id, userId, data) {
     const tx = Transaction.findByIdOrFail(id, userId);
     const oldAccountId = tx.accountId;
-    
+    const isTransfer = tx.type === 'transfer' || data.type === 'transfer';
+
+    // Get linked transaction if it's a transfer
+    const linkedTx = tx.linkedTransactionId
+      ? query.get('SELECT * FROM transactions WHERE id = ?', [tx.linkedTransactionId])
+      : null;
+    const oldLinkedAccountId = linkedTx?.account_id;
+
     const allowedFields = [
       'account_id', 'category_id', 'payee_id', 'credit_card_id', 'amount', 'description',
       'notes', 'date', 'value_date', 'purchase_date', 'status', 'type', 'tags'
     ];
-    
+
+    // Fields that should be synced to linked transaction
+    const syncFields = ['category_id', 'payee_id', 'description', 'notes', 'date', 'status'];
+
     const updates = [];
     const values = [];
-    
+    const linkedUpdates = [];
+    const linkedValues = [];
+
+    // Calculate amount with correct sign
+    let newAmount = null;
+    if (data.amount !== undefined) {
+      const type = data.type || tx.type;
+      newAmount = Math.abs(data.amount);
+      if (type === 'expense' || type === 'transfer') {
+        newAmount = -newAmount;
+      }
+    }
+
     for (const [key, value] of Object.entries(data)) {
       const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
       if (allowedFields.includes(dbKey)) {
@@ -232,31 +259,120 @@ export class Transaction {
         if (dbKey === 'tags') {
           values.push(JSON.stringify(value));
         } else if (dbKey === 'amount') {
-          // Ajuster le signe
-          const type = data.type || tx.type;
-          let amount = Math.abs(value);
-          if (type === 'expense') amount = -amount;
-          values.push(amount);
+          values.push(newAmount);
         } else {
           values.push(value);
         }
+
+        // Also update linked transaction for synced fields
+        if (syncFields.includes(dbKey)) {
+          linkedUpdates.push(`${dbKey} = ?`);
+          linkedValues.push(value);
+        }
       }
     }
-    
-    if (updates.length > 0) {
-      values.push(id, userId);
-      
-      dbTransaction(() => {
-        query.run(`UPDATE transactions SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, values);
-        
-        // Mettre à jour les soldes
-        Account.updateBalance(oldAccountId, userId);
-        if (data.accountId && data.accountId !== oldAccountId) {
-          Account.updateBalance(data.accountId, userId);
-        }
-      });
+
+    // Handle amount for linked transaction (opposite sign)
+    if (newAmount !== null && linkedTx) {
+      linkedUpdates.push('amount = ?');
+      linkedValues.push(Math.abs(newAmount)); // Positive for destination
     }
-    
+
+    dbTransaction(() => {
+      // Update main transaction
+      if (updates.length > 0) {
+        query.run(
+          `UPDATE transactions SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
+          [...values, id, userId]
+        );
+      }
+
+      // Handle transfer-specific logic
+      if (isTransfer) {
+        const newToAccountId = data.toAccountId;
+        const hasToAccountId = 'toAccountId' in data;
+
+        // Case 1: toAccountId is explicitly set to null or empty - remove linked transaction
+        if (hasToAccountId && !newToAccountId && linkedTx) {
+          query.run('UPDATE transactions SET linked_transaction_id = NULL WHERE id = ?', [id]);
+          query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
+          Account.updateBalance(linkedTx.account_id, userId);
+        }
+        // Case 2: toAccountId changed to a different account - delete old, create new
+        else if (hasToAccountId && newToAccountId && linkedTx && newToAccountId !== linkedTx.account_id) {
+          // Delete old linked transaction
+          query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
+          Account.updateBalance(linkedTx.account_id, userId);
+
+          // Create new linked transaction
+          const newLinkedId = generateId();
+          const amount = newAmount !== null ? Math.abs(newAmount) : Math.abs(tx.amount);
+          query.run(`
+            INSERT INTO transactions (
+              id, user_id, account_id, category_id, payee_id, amount, description,
+              notes, date, status, type, linked_transaction_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            newLinkedId, userId, newToAccountId,
+            data.categoryId !== undefined ? data.categoryId : tx.categoryId,
+            data.payeeId !== undefined ? data.payeeId : tx.payeeId,
+            amount,
+            data.description || tx.description,
+            data.notes !== undefined ? data.notes : tx.notes,
+            data.date || tx.date,
+            data.status || tx.status,
+            'transfer', id
+          ]);
+
+          // Update main transaction link
+          query.run('UPDATE transactions SET linked_transaction_id = ? WHERE id = ?', [newLinkedId, id]);
+          Account.updateBalance(newToAccountId, userId);
+        }
+        // Case 3: toAccountId provided but no linked transaction exists - create new
+        else if (hasToAccountId && newToAccountId && !linkedTx) {
+          const newLinkedId = generateId();
+          const amount = newAmount !== null ? Math.abs(newAmount) : Math.abs(tx.amount);
+          query.run(`
+            INSERT INTO transactions (
+              id, user_id, account_id, category_id, payee_id, amount, description,
+              notes, date, status, type, linked_transaction_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            newLinkedId, userId, newToAccountId,
+            data.categoryId !== undefined ? data.categoryId : tx.categoryId,
+            data.payeeId !== undefined ? data.payeeId : tx.payeeId,
+            amount,
+            data.description || tx.description,
+            data.notes !== undefined ? data.notes : tx.notes,
+            data.date || tx.date,
+            data.status || tx.status,
+            'transfer', id
+          ]);
+
+          query.run('UPDATE transactions SET linked_transaction_id = ? WHERE id = ?', [newLinkedId, id]);
+          Account.updateBalance(newToAccountId, userId);
+        }
+        // Case 4: Linked transaction exists and no account change - just update it
+        else if (linkedTx && linkedUpdates.length > 0) {
+          query.run(
+            `UPDATE transactions SET ${linkedUpdates.join(', ')} WHERE id = ?`,
+            [...linkedValues, linkedTx.id]
+          );
+        }
+      }
+
+      // Update account balances
+      Account.updateBalance(oldAccountId, userId);
+      if (data.accountId && data.accountId !== oldAccountId) {
+        Account.updateBalance(data.accountId, userId);
+      }
+      if (oldLinkedAccountId) {
+        Account.updateBalance(oldLinkedAccountId, userId);
+      }
+    });
+
     return Transaction.findById(id, userId);
   }
   

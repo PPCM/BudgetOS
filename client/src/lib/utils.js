@@ -67,3 +67,80 @@ export function formatDateRelative(date) {
   if (diff < 7) return `Il y a ${diff} jours`
   return formatDate(date)
 }
+
+/**
+ * Formats a date as YYYY-MM-DD in local timezone
+ * Unlike toISOString() which converts to UTC, this preserves local date
+ * @param {Date} date - Date to format
+ * @returns {string} Date string in YYYY-MM-DD format
+ * @example
+ * formatLocalDate(new Date(2026, 0, 21)) // => "2026-01-21"
+ */
+export function formatLocalDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Calculates start and end dates for a given period
+ * @param {string} period - Period identifier ('week', '7days', 'month', '30days', 'year', '365days')
+ * @param {number} weekStartDay - First day of week: 0 = Sunday, 1 = Monday (default), 6 = Saturday
+ * @returns {{ startDate: string, endDate: string }} Object with start and end dates in YYYY-MM-DD format
+ */
+export function getDatePeriod(period, weekStartDay = 1) {
+  const now = new Date()
+  const endDate = formatLocalDate(now)
+  let startDate
+
+  switch (period) {
+    case 'week': {
+      const day = now.getDay()
+      let diff
+      if (weekStartDay === 0) {
+        diff = day
+      } else if (weekStartDay === 6) {
+        diff = day === 6 ? 0 : day + 1
+      } else {
+        diff = day === 0 ? 6 : day - 1
+      }
+      const firstDayOfWeek = new Date(now)
+      firstDayOfWeek.setDate(now.getDate() - diff)
+      startDate = formatLocalDate(firstDayOfWeek)
+      break
+    }
+    case '7days': {
+      const past = new Date(now)
+      past.setDate(now.getDate() - 6)
+      startDate = formatLocalDate(past)
+      break
+    }
+    case 'month': {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      startDate = formatLocalDate(firstDay)
+      break
+    }
+    case '30days': {
+      const past = new Date(now)
+      past.setDate(now.getDate() - 29)
+      startDate = formatLocalDate(past)
+      break
+    }
+    case 'year': {
+      const firstDay = new Date(now.getFullYear(), 0, 1)
+      startDate = formatLocalDate(firstDay)
+      break
+    }
+    case '365days': {
+      const past = new Date(now)
+      past.setDate(now.getDate() - 364)
+      startDate = formatLocalDate(past)
+      break
+    }
+    default:
+      startDate = ''
+  }
+
+  return { startDate, endDate }
+}

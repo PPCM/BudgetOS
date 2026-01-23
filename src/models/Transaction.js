@@ -12,16 +12,40 @@ export class Transaction {
    */
   static create(userId, data) {
     const id = generateId();
-    
-    // Vérifier que le compte existe
+
+    // Handle external source transfer (no source account, only destination)
+    if (data.type === 'transfer' && !data.accountId && data.toAccountId) {
+      Account.findByIdOrFail(data.toAccountId, userId);
+
+      dbTransaction(() => {
+        // Create transaction on destination account with positive amount
+        query.run(`
+          INSERT INTO transactions (
+            id, user_id, account_id, category_id, payee_id,
+            amount, description, notes, date, status, type
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          id, userId, data.toAccountId, data.categoryId || null, data.payeeId || null,
+          Math.abs(data.amount), data.description, data.notes || null, data.date,
+          data.status || 'pending', 'transfer'
+        ]);
+
+        Account.updateBalance(data.toAccountId, userId);
+      });
+
+      return Transaction.findById(id, userId);
+    }
+
+    // Standard flow: source account exists
     Account.findByIdOrFail(data.accountId, userId);
-    
+
     // Ajuster le signe du montant selon le type
     let amount = Math.abs(data.amount);
     if (data.type === 'expense' || data.type === 'transfer') {
       amount = -amount; // Débit pour dépenses et virements (compte source)
     }
-    
+
     dbTransaction(() => {
       query.run(`
         INSERT INTO transactions (
@@ -37,14 +61,13 @@ export class Transaction {
         data.status || 'pending', data.type, data.isRecurring ? 1 : 0,
         data.recurringId || null, data.tags ? JSON.stringify(data.tags) : null
       ]);
-      
+
       // Mettre à jour le solde du compte
       Account.updateBalance(data.accountId, userId);
-      
+
       // Gérer les virements avec compte destination
       if (data.type === 'transfer' && data.toAccountId) {
-        // Récupérer le nom du compte source pour la description
-        const sourceAccount = Account.findById(data.accountId, userId);
+        Account.findByIdOrFail(data.toAccountId, userId);
         const transferId = generateId();
         query.run(`
           INSERT INTO transactions (
@@ -57,14 +80,14 @@ export class Transaction {
           Math.abs(amount), data.description,
           data.date, data.status || 'pending', 'transfer', id
         ]);
-        
+
         // Mettre à jour la transaction source avec le lien vers la transaction destination
         query.run('UPDATE transactions SET linked_transaction_id = ? WHERE id = ?', [transferId, id]);
-        
+
         Account.updateBalance(data.toAccountId, userId);
       }
     });
-    
+
     return Transaction.findById(id, userId);
   }
   
@@ -228,6 +251,51 @@ export class Transaction {
       ? query.get('SELECT * FROM transactions WHERE id = ?', [tx.linkedTransactionId])
       : null;
     const oldLinkedAccountId = linkedTx?.account_id;
+
+    // Special case: Converting to external source transfer (accountId = null, toAccountId set)
+    const hasAccountId = 'accountId' in data;
+    const hasToAccountId = 'toAccountId' in data;
+    if (isTransfer && hasAccountId && !data.accountId && hasToAccountId && data.toAccountId) {
+      Account.findByIdOrFail(data.toAccountId, userId);
+      const newAmount = data.amount !== undefined ? Math.abs(data.amount) : Math.abs(tx.amount);
+
+      dbTransaction(() => {
+        // Update main transaction to destination account with positive amount
+        query.run(`
+          UPDATE transactions SET
+            account_id = ?,
+            amount = ?,
+            linked_transaction_id = NULL,
+            category_id = ?,
+            payee_id = ?,
+            description = ?,
+            date = ?,
+            status = ?
+          WHERE id = ? AND user_id = ?
+        `, [
+          data.toAccountId,
+          newAmount,
+          data.categoryId !== undefined ? data.categoryId : tx.categoryId,
+          data.payeeId !== undefined ? data.payeeId : tx.payeeId,
+          data.description || tx.description,
+          data.date || tx.date,
+          data.status || tx.status,
+          id, userId
+        ]);
+
+        // Delete linked transaction if exists
+        if (linkedTx) {
+          query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
+          Account.updateBalance(linkedTx.account_id, userId);
+        }
+
+        // Update balances
+        Account.updateBalance(oldAccountId, userId);
+        Account.updateBalance(data.toAccountId, userId);
+      });
+
+      return Transaction.findById(id, userId);
+    }
 
     const allowedFields = [
       'account_id', 'category_id', 'payee_id', 'credit_card_id', 'amount', 'description',

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
+import { useToast } from '../components/Toast'
 import { findKnownLogo } from '../lib/knownLogos'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -53,6 +54,40 @@ const CategoryIcon = ({ icon, color }) => {
 }
 
 /**
+ * Transaction type icon component
+ * @param {Object} props - Component props
+ * @param {string} props.type - Transaction type (income, expense, transfer)
+ * @param {number} props.amount - Transaction amount (positive or negative)
+ */
+const TransactionTypeIcon = ({ type, amount }) => {
+  if (type === 'income') {
+    return (
+      <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+        <TrendingUp className="w-3.5 h-3.5 text-green-600" />
+      </div>
+    )
+  }
+  if (type === 'expense') {
+    return (
+      <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+        <TrendingDown className="w-3.5 h-3.5 text-red-600" />
+      </div>
+    )
+  }
+  // Transfer: amount >= 0 means incoming (credit), amount < 0 means outgoing (debit)
+  const isIncoming = amount >= 0
+  return (
+    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+      isIncoming ? 'bg-green-100' : 'bg-red-100'
+    }`}>
+      <ArrowLeftRight className={`w-3.5 h-3.5 ${
+        isIncoming ? 'text-green-600 rotate-180' : 'text-red-600'
+      }`} />
+    </div>
+  )
+}
+
+/**
  * Modal form for creating or editing a transaction
  * Supports income, expense, and transfer types
  * @param {Object} props - Component props
@@ -65,7 +100,7 @@ const CategoryIcon = ({ icon, color }) => {
  * @param {Function} props.onCreatePayee - Callback to create a new payee inline
  * @param {Function} props.onCreateCategory - Callback to create a new category inline
  */
-function TransactionModal({ transaction, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
+function TransactionModal({ transaction, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
   const [formData, setFormData] = useState(transaction || {
     accountId: accounts?.[0]?.id || '',
     toAccountId: '',
@@ -79,6 +114,16 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    // For transfers, at least one account must be selected
+    if (formData.type === 'transfer' && !formData.accountId && !formData.toAccountId) {
+      toast.error('Veuillez sélectionner au moins un compte (source ou destination)')
+      return
+    }
+    // For non-transfers, account is required
+    if (formData.type !== 'transfer' && !formData.accountId) {
+      toast.error('Veuillez sélectionner un compte')
+      return
+    }
     onSave(formData)
   }
 
@@ -162,14 +207,17 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
           {formData.type === 'transfer' ? (
             <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Compte source (débit)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Compte source (débit) - optionnel
+                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">(désactivé car tiers sélectionné)</span>}
+                </label>
                 <select
                   value={formData.accountId}
                   onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
                   className="input"
-                  required
+                  disabled={!!formData.payeeId}
                 >
-                  <option value="">Sélectionner le compte source</option>
+                  <option value="">Aucun (virement externe)</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id} disabled={a.id === formData.toAccountId}>
                       {a.name}
@@ -290,6 +338,7 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
  */
 export default function Transactions() {
   const { userSettings } = useAuth()
+  const toast = useToast()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
   /** @type {boolean} Whether reconciliation mode is active */
@@ -419,7 +468,7 @@ export default function Transactions() {
       const result = await createPayeeMutation.mutateAsync({ name, imageUrl })
       return result.data.data
     } catch (err) {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      toast.error(err.response?.data?.error?.message || err.message)
       return null
     }
   }
@@ -433,15 +482,15 @@ export default function Transactions() {
 
   const handleCreateCategory = async (name, type) => {
     try {
-      const result = await createCategoryMutation.mutateAsync({ 
-        name, 
+      const result = await createCategoryMutation.mutateAsync({
+        name,
         type: type || 'expense',
         icon: 'tag',
         color: '#6B7280'
       })
       return result.data.data.category
     } catch (err) {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      toast.error(err.response?.data?.error?.message || err.message)
       return null
     }
   }
@@ -452,9 +501,10 @@ export default function Transactions() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setModalOpen(false)
+      toast.success('Transaction créée avec succès')
     },
     onError: (err) => {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      toast.error(err.response?.data?.error?.message || err.message)
     },
   })
 
@@ -465,9 +515,10 @@ export default function Transactions() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setModalOpen(false)
       setEditingTx(null)
+      toast.success('Transaction modifiée avec succès')
     },
     onError: (err) => {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      toast.error(err.response?.data?.error?.message || err.message)
     },
   })
 
@@ -476,6 +527,10 @@ export default function Transactions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      toast.success('Transaction supprimée')
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.error?.message || err.message)
     },
   })
 
@@ -515,7 +570,7 @@ export default function Transactions() {
       if (context?.previousData) {
         queryClient.setQueryData(['transactions', queryFilters, sort], context.previousData)
       }
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      toast.error(err.response?.data?.error?.message || err.message)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -532,32 +587,18 @@ export default function Transactions() {
   const handleSave = (formData) => {
     // Filtrer les données pour n'envoyer que les champs nécessaires
     const cleanData = {
-      accountId: formData.accountId,
+      accountId: formData.accountId || null,
       categoryId: formData.categoryId || null,
       payeeId: formData.payeeId || null,
-      amount: parseFloat(formData.amount),
+      amount: Math.abs(parseFloat(formData.amount)),
       description: formData.description,
       date: formData.date,
       type: formData.type,
     }
 
-    // Pour les virements, gérer le compte destination
+    // Pour les virements, ajouter le compte destination
     if (formData.type === 'transfer') {
-      if (formData.toAccountId) {
-        // Destination account selected
-        cleanData.toAccountId = formData.toAccountId
-      } else if (editingTx) {
-        // Editing a transfer with no destination = external transfer
-        // Send null to remove linked transaction
-        cleanData.toAccountId = null
-      }
-    }
-
-    // Ajuster le montant selon le type
-    if (cleanData.type === 'expense' || cleanData.type === 'transfer') {
-      cleanData.amount = -Math.abs(cleanData.amount)
-    } else {
-      cleanData.amount = Math.abs(cleanData.amount)
+      cleanData.toAccountId = formData.toAccountId || null
     }
 
     if (editingTx) {
@@ -568,12 +609,30 @@ export default function Transactions() {
   }
 
   const handleEdit = useCallback((tx) => {
+    let sourceAccountId = tx.accountId
+    let destAccountId = tx.linkedAccountId || ''
+
+    if (tx.type === 'transfer') {
+      if (tx.amount > 0 && tx.linkedAccountId) {
+        // Credit side of internal transfer: swap source and destination
+        // tx.accountId is destination, tx.linkedAccountId is source
+        sourceAccountId = tx.linkedAccountId
+        destAccountId = tx.accountId
+      } else if (tx.amount > 0 && !tx.linkedAccountId) {
+        // External source transfer: no source, destination is tx.accountId
+        sourceAccountId = ''
+        destAccountId = tx.accountId
+      }
+      // For debit side (amount < 0): tx.accountId is source, tx.linkedAccountId is destination
+      // This is the default case, no changes needed
+    }
+
     setEditingTx({
       ...tx,
       amount: Math.abs(tx.amount),
       date: tx.date.split('T')[0],
-      // Pour les virements, récupérer le compte destination depuis la transaction liée
-      toAccountId: tx.linkedAccountId || '',
+      accountId: sourceAccountId,
+      toAccountId: destAccountId,
     })
     setModalOpen(true)
   }, [])
@@ -749,6 +808,7 @@ export default function Transactions() {
               <table className="w-full table-fixed">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-2 py-3 w-10"></th>
                     <th
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24 cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort('date')}
@@ -816,6 +876,9 @@ export default function Transactions() {
                           : 'hover:bg-gray-50'
                       }`}
                     >
+                      <td className="px-2 py-3">
+                        <TransactionTypeIcon type={tx.type} amount={tx.amount} />
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{formatDate(tx.date)}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{tx.description}</p>
@@ -913,6 +976,7 @@ export default function Transactions() {
           onSave={handleSave}
           onCreatePayee={handleCreatePayee}
           onCreateCategory={handleCreateCategory}
+          toast={toast}
         />
       )}
     </div>

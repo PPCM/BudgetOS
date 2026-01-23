@@ -51,8 +51,23 @@ const baseTransactionSchema = {
  */
 export const createTransactionSchema = z.object({
   ...baseTransactionSchema,
-  // Pour les virements
-  toAccountId: z.string().uuid('ID de compte destination invalide').optional(),
+  // accountId can be null for transfers with external source
+  accountId: z.string().uuid('ID de compte invalide').nullable(),
+  // Pour les virements (can be null or undefined)
+  toAccountId: z.string().uuid('ID de compte destination invalide').nullable().optional(),
+}).refine((data) => {
+  // For non-transfers, accountId is required
+  if (data.type !== 'transfer' && !data.accountId) {
+    return false
+  }
+  // For transfers, at least one account must be set
+  if (data.type === 'transfer' && !data.accountId && !data.toAccountId) {
+    return false
+  }
+  return true
+}, {
+  message: 'Un compte est requis',
+  path: ['accountId'],
 });
 
 /**
@@ -60,7 +75,8 @@ export const createTransactionSchema = z.object({
  */
 export const updateTransactionSchema = z.object({
   ...baseTransactionSchema,
-  accountId: baseTransactionSchema.accountId.optional(),
+  // accountId can be null for transfers with external source
+  accountId: z.string().uuid('ID de compte invalide').nullable().optional(),
   amount: baseTransactionSchema.amount.optional(),
   description: z
     .string()

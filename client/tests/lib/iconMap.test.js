@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import iconMap, { getIconComponent } from './iconMap'
+import iconMap, { getIconComponent } from '../../src/lib/iconMap'
 import { Tag, Home, CreditCard, Briefcase } from 'lucide-react'
 
 describe('iconMap', () => {

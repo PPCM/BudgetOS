@@ -6,7 +6,7 @@ import {
   formatDateRelative,
   formatLocalDate,
   getDatePeriod,
-} from './utils'
+} from '../../src/lib/utils'
 
 describe('cn', () => {
   it('merges class names', () => {

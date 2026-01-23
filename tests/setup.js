@@ -20,7 +20,7 @@ export async function setupTestDb() {
   db.run('PRAGMA foreign_keys = ON')
 
   // Load schema
-  const schemaPath = path.join(__dirname, '../database/schema.sql')
+  const schemaPath = path.join(__dirname, '../src/database/schema.sql')
   const schema = fs.readFileSync(schemaPath, 'utf8')
   db.exec(schema)
 
@@ -81,11 +81,12 @@ export function resetTestDb() {
 /**
  * Create test user
  */
-export function createTestUser(id = 'test-user-1') {
+export function createTestUser(id = 'test-user-1', email = null) {
+  const userEmail = email || `${id}@test.com`
   db.run(`
     INSERT INTO users (id, email, password_hash, first_name, last_name)
-    VALUES (?, 'test@test.com', 'hash', 'Test', 'User')
-  `, [id])
+    VALUES (?, ?, 'hash', 'Test', 'User')
+  `, [id, userEmail])
   return id
 }
 

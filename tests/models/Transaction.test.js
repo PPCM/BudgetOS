@@ -14,11 +14,11 @@ import {
   createTestPayee,
   createTestTransaction,
   createTestTransfer,
-} from './setup.js'
+} from '../setup.js'
 
 // Mock the database connection module
-vi.mock('../database/connection.js', async () => {
-  const actual = await vi.importActual('./setup.js')
+vi.mock('../../src/database/connection.js', async () => {
+  const actual = await vi.importActual('../setup.js')
   return {
     query: {
       all: (sql, params = []) => {
@@ -63,7 +63,7 @@ vi.mock('../database/connection.js', async () => {
 })
 
 // Import after mocking
-const { Transaction } = await import('../models/Transaction.js')
+const { Transaction } = await import('../../src/models/Transaction.js')
 
 describe('Transaction.findByUser', () => {
   let userId

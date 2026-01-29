@@ -41,6 +41,18 @@ npm run db:seed
 npm run dev
 ```
 
+## Database Support
+
+BudgetOS supports three database backends via [Knex.js](https://knexjs.org/):
+
+| Database | Driver | Typical use |
+|----------|--------|-------------|
+| SQLite | better-sqlite3 | Development, single-user |
+| PostgreSQL | pg | Production |
+| MariaDB / MySQL | mysql2 | Production |
+
+Set `DB_TYPE` to `sqlite`, `postgres`, or `mysql` in your `.env` file.
+
 ## Project Structure
 
 ```
@@ -49,17 +61,23 @@ budgetos/
 │   ├── config/           # Configuration
 │   ├── controllers/      # API controllers
 │   ├── database/         # Migrations and seeds
-│   ├── middleware/       # Express middleware
+│   ├── middleware/        # Express middleware
 │   ├── models/           # Data models
 │   ├── routes/           # API routes
 │   ├── services/         # Business logic
 │   ├── utils/            # Utilities
 │   ├── validators/       # Zod validation schemas
+│   ├── app.js            # Express app factory
 │   └── server.js         # Entry point
 ├── client/               # React frontend
 ├── data/                 # SQLite database (dev)
+├── docker/               # Docker Compose files
+├── e2e/                  # E2E tests (Playwright)
+├── tests/                # Unit and integration tests
+│   ├── integration/      # API integration tests (Supertest)
+│   └── ...               # Unit tests (mirrors src/)
 ├── uploads/              # Uploaded files
-└── tests/                # Tests
+└── doc/                  # Documentation
 ```
 
 ## API
@@ -100,6 +118,43 @@ The REST API is available at `/api/v1/`.
 - `POST /api/v1/import/upload` - Upload file
 - `POST /api/v1/import/process` - Process import
 - `GET /api/v1/import/reconcile` - Reconciliation interface
+
+## Testing
+
+```bash
+# Unit tests
+npm test
+
+# Integration tests (API, Supertest)
+npm run test:integration
+
+# Unit + integration
+npm run test:all
+
+# E2E browser tests (Playwright, requires built frontend)
+npm run test:e2e
+
+# E2E on a specific database
+npm run test:e2e:sqlite
+npm run test:e2e:postgres
+npm run test:e2e:mysql
+
+# E2E on all 3 databases sequentially
+npm run test:e2e:all-dbs
+```
+
+### Multi-database E2E setup
+
+```bash
+# Start PostgreSQL and MariaDB containers
+docker compose -f docker/docker-compose.e2e.yml up -d --wait
+
+# Run all E2E suites
+npm run test:e2e:all-dbs
+
+# Stop containers
+docker compose -f docker/docker-compose.e2e.yml down
+```
 
 ## Security
 

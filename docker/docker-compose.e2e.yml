@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: budgetos-e2e-postgres
+    environment:
+      POSTGRES_DB: budgetos_e2e_test
+      POSTGRES_USER: budgetos
+      POSTGRES_PASSWORD: budgetos
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budgetos -d budgetos_e2e_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mariadb:
+    image: mariadb:11
+    container_name: budgetos-e2e-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: budgetos_root
+      MYSQL_DATABASE: budgetos_e2e_test
+      MYSQL_USER: budgetos
+      MYSQL_PASSWORD: budgetos
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

@@ -12,12 +12,23 @@
     "db:seed": "node src/database/seed.js",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.js",
+    "test:all": "vitest run && vitest run --config vitest.integration.config.js",
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:sqlite": "E2E_DB_TYPE=sqlite npx playwright test",
+    "test:e2e:postgres": "E2E_DB_TYPE=postgres npx playwright test",
+    "test:e2e:mysql": "E2E_DB_TYPE=mysql npx playwright test",
+    "test:e2e:all-dbs": "npm run test:e2e:sqlite && npm run test:e2e:postgres && npm run test:e2e:mysql",
+    "test:full": "npm run test:all && npm run test:e2e",
     "test:sqlite": "TEST_DB_CLIENT=better-sqlite3 vitest",
     "test:mysql": "TEST_DB_CLIENT=mysql2 vitest",
     "test:postgres": "TEST_DB_CLIENT=pg vitest",
     "test:all-dbs": "npm run test:sqlite && npm run test:mysql && npm run test:postgres",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "prepare": "husky"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -44,8 +55,10 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.0",
     "@vitest/coverage-v8": "^1.0.4",
     "eslint": "^8.55.0",
+    "husky": "^9.1.7",
     "nodemon": "^3.0.2",
     "supertest": "^6.3.3",
     "vitest": "^1.0.4"

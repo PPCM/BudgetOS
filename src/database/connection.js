@@ -1,205 +1,117 @@
-import initSqlJs from 'sql.js';
+import Knex from 'knex';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import config from '../config/index.js';
 import logger from '../utils/logger.js';
 
-let db = null;
-let SQL = null;
-let dbPath = null;
-let inTransaction = false;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
- * Vérifie si une colonne existe dans une table
+ * Build the Knex configuration based on environment settings.
  */
-const columnExists = (tableName, columnName) => {
-  const result = db.exec(`PRAGMA table_info(${tableName})`);
-  if (result.length === 0) return false;
-  const columns = result[0].values.map(row => row[1]);
-  return columns.includes(columnName);
+const buildKnexConfig = () => {
+  const dbType = process.env.DB_TYPE || config.database.type || 'sqlite';
+
+  const migrationsConfig = {
+    directory: path.resolve(__dirname, 'migrations'),
+    sortDirsSeparately: true,
+  };
+
+  switch (dbType) {
+    case 'mysql':
+    case 'mariadb':
+      return {
+        client: 'mysql2',
+        connection: {
+          host: config.database.mysql.host,
+          port: config.database.mysql.port,
+          database: config.database.mysql.database,
+          user: config.database.mysql.user,
+          password: config.database.mysql.password,
+          charset: 'utf8mb4',
+        },
+        pool: { min: 2, max: 10 },
+        migrations: migrationsConfig,
+      };
+
+    case 'postgres':
+    case 'postgresql':
+      return {
+        client: 'pg',
+        connection: {
+          host: config.database.postgres.host,
+          port: config.database.postgres.port,
+          database: config.database.postgres.database,
+          user: config.database.postgres.user,
+          password: config.database.postgres.password,
+        },
+        pool: { min: 2, max: 10 },
+        migrations: migrationsConfig,
+      };
+
+    case 'sqlite':
+    default: {
+      const dbPath = path.resolve(config.database.sqlite.path);
+      const dbDir = path.dirname(dbPath);
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+      return {
+        client: 'better-sqlite3',
+        connection: { filename: dbPath },
+        useNullAsDefault: true,
+        pool: {
+          afterCreate: (conn, cb) => {
+            conn.pragma('foreign_keys = ON');
+            cb();
+          },
+        },
+        migrations: migrationsConfig,
+      };
+    }
+  }
 };
 
-/**
- * Exécute les migrations nécessaires
- */
-const runMigrations = () => {
-  // Migration: Ajouter image_url à payees
-  if (!columnExists('payees', 'image_url')) {
-    try {
-      db.run('ALTER TABLE payees ADD COLUMN image_url TEXT');
-      logger.info('Migration: Added image_url column to payees table');
-    } catch (e) {
-      // Table n'existe peut-être pas encore, ignorer
-    }
-  }
-  
-  // Migration: Ajouter linked_transaction_id à transactions (pour les virements)
-  if (!columnExists('transactions', 'linked_transaction_id')) {
-    try {
-      db.run('ALTER TABLE transactions ADD COLUMN linked_transaction_id TEXT REFERENCES transactions(id) ON DELETE SET NULL');
-      logger.info('Migration: Added linked_transaction_id column to transactions table');
-    } catch (e) {
-      // Table n'existe peut-être pas encore, ignorer
-    }
-  }
-  
-  // Migration: Ajouter payee_id à planned_transactions
-  if (!columnExists('planned_transactions', 'payee_id')) {
-    try {
-      db.run('ALTER TABLE planned_transactions ADD COLUMN payee_id TEXT REFERENCES payees(id) ON DELETE SET NULL');
-      logger.info('Migration: Added payee_id column to planned_transactions table');
-    } catch (e) {
-      // Table n'existe peut-être pas encore, ignorer
-    }
-  }
-  
-  // Migration: Ajouter delete_on_end à planned_transactions (suppression auto à la date de fin)
-  if (!columnExists('planned_transactions', 'delete_on_end')) {
-    try {
-      db.run('ALTER TABLE planned_transactions ADD COLUMN delete_on_end INTEGER DEFAULT 0');
-      logger.info('Migration: Added delete_on_end column to planned_transactions table');
-    } catch (e) {
-      // Table n'existe peut-être pas encore, ignorer
-    }
-  }
-  
-  // Migration: Ajouter expiration_date à credit_cards
-  if (!columnExists('credit_cards', 'expiration_date')) {
-    try {
-      db.run('ALTER TABLE credit_cards ADD COLUMN expiration_date TEXT');
-      logger.info('Migration: Added expiration_date column to credit_cards table');
-    } catch (e) {
-      // Table n'existe peut-être pas encore, ignorer
-    }
-  }
-};
+// Create the Knex instance
+const knex = Knex(buildKnexConfig());
 
 /**
- * Initialise la connexion à la base de données SQLite
+ * Initialize the database: run migrations to bring schema up to date.
  */
 export const initDatabase = async () => {
-  if (db) return db;
-
-  dbPath = path.resolve(config.database.sqlite.path);
-  const dbDir = path.dirname(dbPath);
-
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-    logger.info('Database directory created', { path: dbDir });
-  }
-
   try {
-    SQL = await initSqlJs();
-    
-    if (fs.existsSync(dbPath)) {
-      const fileBuffer = fs.readFileSync(dbPath);
-      db = new SQL.Database(fileBuffer);
-      logger.info('Database loaded from file', { path: dbPath });
-    } else {
-      db = new SQL.Database();
-      logger.info('New database created', { path: dbPath });
-    }
-
-    db.run('PRAGMA foreign_keys = ON');
-    
-    // Migrations automatiques
-    runMigrations();
-    
-    return db;
+    await knex.migrate.latest();
+    logger.info('Database migrations applied successfully');
+    return knex;
   } catch (error) {
-    logger.error('Failed to connect to database', { error: error.message });
+    logger.error('Failed to initialize database', { error: error.message });
     throw error;
   }
 };
 
-export const getDatabase = () => {
-  if (!db) throw new Error('Database not initialized. Call initDatabase() first.');
-  return db;
-};
-
-export const saveDatabase = () => {
-  if (db && dbPath) {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
-  }
-};
-
-export const closeDatabase = () => {
-  if (db) {
-    saveDatabase();
-    db.close();
-    db = null;
+/**
+ * Close the database connection pool.
+ */
+export const closeDatabase = async () => {
+  try {
+    await knex.destroy();
     logger.info('Database connection closed');
-  }
-};
-
-export const transaction = (fn) => {
-  const database = getDatabase();
-  inTransaction = true;
-  database.run('BEGIN TRANSACTION');
-  try {
-    const result = fn();
-    database.run('COMMIT');
-    saveDatabase();
-    return result;
   } catch (error) {
-    try {
-      database.run('ROLLBACK');
-    } catch (e) {
-      // Transaction déjà terminée, ignorer
-    }
-    throw error;
-  } finally {
-    inTransaction = false;
+    logger.error('Error closing database', { error: error.message });
   }
 };
 
-const convertParams = (params) => {
-  return params.map(p => p === undefined ? null : p);
+/**
+ * Execute a function inside a database transaction.
+ * @param {function(import('knex').Knex.Transaction): Promise<*>} fn
+ * @returns {Promise<*>}
+ */
+export const transaction = async (fn) => {
+  return knex.transaction(fn);
 };
 
-const stmtToObjects = (stmt) => {
-  const results = [];
-  const columns = stmt.getColumnNames();
-  while (stmt.step()) {
-    const row = stmt.get();
-    const obj = {};
-    columns.forEach((col, i) => { obj[col] = row[i]; });
-    results.push(obj);
-  }
-  stmt.free();
-  return results;
-};
-
-export const query = {
-  all: (sql, params = []) => {
-    const database = getDatabase();
-    const stmt = database.prepare(sql);
-    stmt.bind(convertParams(params));
-    const results = stmtToObjects(stmt);
-    return results;
-  },
-
-  get: (sql, params = []) => {
-    const results = query.all(sql, params);
-    return results.length > 0 ? results[0] : null;
-  },
-
-  run: (sql, params = []) => {
-    const database = getDatabase();
-    database.run(sql, convertParams(params));
-    if (!inTransaction) {
-      saveDatabase();
-    }
-    return { changes: database.getRowsModified(), lastInsertRowid: null };
-  },
-
-  exec: (sql) => {
-    const database = getDatabase();
-    database.exec(sql);
-    saveDatabase();
-  },
-};
-
-export default { initDatabase, getDatabase, closeDatabase, saveDatabase, transaction, query };
+// Export the Knex instance as default and named
+export { knex };
+export default knex;

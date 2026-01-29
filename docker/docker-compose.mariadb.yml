@@ -1,0 +1,22 @@
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: budgetos-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: budgetos_root
+      MYSQL_DATABASE: budgetos
+      MYSQL_USER: budgetos
+      MYSQL_PASSWORD: budgetos
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mariadb_data:

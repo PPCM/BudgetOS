@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { UserPlus, Mail, Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { preloadCsrfToken } from '../lib/api'
+import { useToast } from '../components/Toast'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -13,10 +14,10 @@ export default function Register() {
     lastName: '',
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
 
   // Pré-charger le token CSRF au montage du composant
   useEffect(() => {
@@ -29,10 +30,9 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
 
     if (formData.password !== formData.passwordConfirm) {
-      setError('Les mots de passe ne correspondent pas')
+      toast.error('Les mots de passe ne correspondent pas')
       return
     }
 
@@ -42,7 +42,12 @@ export default function Register() {
       await register(formData)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Erreur lors de l\'inscription')
+      const details = err.response?.data?.error?.details
+      if (details?.length > 0) {
+        details.forEach(d => toast.error(d.message))
+      } else {
+        toast.error(err.response?.data?.error?.message || 'Erreur lors de l\'inscription')
+      }
     } finally {
       setLoading(false)
     }
@@ -59,13 +64,6 @@ export default function Register() {
             <h1 className="text-2xl font-bold text-gray-900">Créer un compte</h1>
             <p className="text-gray-600 mt-2">Commencez à gérer vos finances</p>
           </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -122,7 +120,7 @@ export default function Register() {
                   value={formData.password}
                   onChange={handleChange}
                   className="input pl-10 pr-10"
-                  placeholder="Min. 8 caractères"
+                  placeholder="Min. 8 car., 1 majuscule, 1 minuscule, 1 chiffre"
                   required
                 />
                 <button

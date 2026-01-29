@@ -18,6 +18,7 @@ export const helmetMiddleware = helmet({
       connectSrc: ["'self'"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
+      upgradeInsecureRequests: config.isDev ? null : [],
     },
   },
   crossOriginEmbedderPolicy: false,

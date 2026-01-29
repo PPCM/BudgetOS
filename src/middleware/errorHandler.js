@@ -17,7 +17,7 @@ export const errorHandler = (err, req, res, next) => {
   
   if (err instanceof AppError && err.isOperational) {
     // Erreurs opérationnelles (prévues)
-    logger.warn(err.message, { ...logContext, code: err.code });
+    logger.warn(err.message, { ...logContext, code: err.code, ...(err.errors && { details: err.errors }) });
   } else {
     // Erreurs inattendues
     logger.error(err.message, { ...logContext, stack: err.stack });

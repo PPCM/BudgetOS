@@ -1,132 +1,147 @@
-import { query } from '../database/connection.js';
+import knex from '../database/connection.js';
 import { roundAmount, formatDateISO } from '../utils/helpers.js';
 import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, endOfYear } from 'date-fns';
 
 export class ReportService {
   /**
-   * Dépenses par catégorie
+   * Expenses by category
    */
-  static getExpensesByCategory(userId, startDate, endDate, accountId = null) {
-    let sql = `
-      SELECT c.id, c.name, c.color, c.icon, SUM(ABS(t.amount)) as total, COUNT(*) as count
-      FROM transactions t
-      LEFT JOIN categories c ON t.category_id = c.id
-      WHERE t.user_id = ? AND t.type = 'expense' AND t.status != 'void'
-        AND t.date BETWEEN ? AND ?
-    `;
-    const params = [userId, startDate, endDate];
-    
-    if (accountId) { sql += ' AND t.account_id = ?'; params.push(accountId); }
-    sql += ' GROUP BY c.id ORDER BY total DESC';
-    
-    const results = query.all(sql, params);
-    const total = results.reduce((sum, r) => sum + r.total, 0);
-    
+  static async getExpensesByCategory(userId, startDate, endDate, accountId = null) {
+    let query = knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .select('c.id', 'c.name', 'c.color', 'c.icon')
+      .sum(knex.raw('ABS(t.amount) as total'))
+      .count('* as count')
+      .where('t.user_id', userId)
+      .where('t.type', 'expense')
+      .whereNot('t.status', 'void')
+      .whereBetween('t.date', [startDate, endDate])
+      .groupBy('c.id')
+      .orderBy('total', 'desc');
+
+    if (accountId) query = query.where('t.account_id', accountId);
+
+    const results = await query;
+    const total = results.reduce((sum, r) => sum + (r.total || 0), 0);
+
     return results.map(r => ({
       categoryId: r.id,
       categoryName: r.name || 'Non catégorisé',
       color: r.color || '#9CA3AF',
       icon: r.icon || 'tag',
-      total: roundAmount(r.total),
+      total: roundAmount(r.total || 0),
       count: r.count,
-      percentage: total > 0 ? roundAmount((r.total / total) * 100) : 0,
+      percentage: total > 0 ? roundAmount(((r.total || 0) / total) * 100) : 0,
     }));
   }
 
   /**
-   * Revenus par catégorie
+   * Income by category
    */
-  static getIncomeByCategory(userId, startDate, endDate) {
-    const results = query.all(`
-      SELECT c.id, c.name, c.color, SUM(t.amount) as total, COUNT(*) as count
-      FROM transactions t
-      LEFT JOIN categories c ON t.category_id = c.id
-      WHERE t.user_id = ? AND t.type = 'income' AND t.status != 'void'
-        AND t.date BETWEEN ? AND ?
-      GROUP BY c.id ORDER BY total DESC
-    `, [userId, startDate, endDate]);
-    
-    const total = results.reduce((sum, r) => sum + r.total, 0);
+  static async getIncomeByCategory(userId, startDate, endDate) {
+    const results = await knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .select('c.id', 'c.name', 'c.color')
+      .sum('t.amount as total')
+      .count('* as count')
+      .where('t.user_id', userId)
+      .where('t.type', 'income')
+      .whereNot('t.status', 'void')
+      .whereBetween('t.date', [startDate, endDate])
+      .groupBy('c.id')
+      .orderBy('total', 'desc');
+
+    const total = results.reduce((sum, r) => sum + (r.total || 0), 0);
     return results.map(r => ({
       categoryId: r.id,
       categoryName: r.name || 'Non catégorisé',
       color: r.color || '#10B981',
-      total: roundAmount(r.total),
+      total: roundAmount(r.total || 0),
       count: r.count,
-      percentage: total > 0 ? roundAmount((r.total / total) * 100) : 0,
+      percentage: total > 0 ? roundAmount(((r.total || 0) / total) * 100) : 0,
     }));
   }
 
   /**
-   * Évolution mensuelle
+   * Monthly trend
    */
-  static getMonthlyTrend(userId, months = 12) {
+  static async getMonthlyTrend(userId, months = 12) {
     const endDate = endOfMonth(new Date());
     const startDate = startOfMonth(subMonths(endDate, months - 1));
     const monthsInterval = eachMonthOfInterval({ start: startDate, end: endDate });
 
-    return monthsInterval.map(month => {
+    const results = [];
+    for (const month of monthsInterval) {
       const monthStart = formatDateISO(startOfMonth(month));
       const monthEnd = formatDateISO(endOfMonth(month));
-      
-      const data = query.get(`
-        SELECT 
-          SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
-          SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses
-        FROM transactions
-        WHERE user_id = ? AND status != 'void' AND date BETWEEN ? AND ?
-      `, [userId, monthStart, monthEnd]);
 
-      return {
+      const data = await knex('transactions')
+        .where('user_id', userId)
+        .whereNot('status', 'void')
+        .whereBetween('date', [monthStart, monthEnd])
+        .select(
+          knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+          knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+        )
+        .first();
+
+      results.push({
         month: format(month, 'yyyy-MM'),
         monthLabel: format(month, 'MMM yyyy'),
         income: roundAmount(data?.income || 0),
         expenses: roundAmount(data?.expenses || 0),
         netFlow: roundAmount((data?.income || 0) - (data?.expenses || 0)),
-      };
-    });
+      });
+    }
+
+    return results;
   }
 
   /**
-   * Dépenses par carte de crédit
+   * Expenses by credit card
    */
-  static getExpensesByCreditCard(userId, startDate, endDate) {
-    const results = query.all(`
-      SELECT cc.id, cc.name, cc.color, SUM(ABS(t.amount)) as total, COUNT(*) as count
-      FROM transactions t
-      JOIN credit_cards cc ON t.credit_card_id = cc.id
-      WHERE t.user_id = ? AND t.type = 'expense' AND t.status != 'void'
-        AND t.date BETWEEN ? AND ?
-      GROUP BY cc.id ORDER BY total DESC
-    `, [userId, startDate, endDate]);
+  static async getExpensesByCreditCard(userId, startDate, endDate) {
+    const results = await knex('transactions as t')
+      .join('credit_cards as cc', 't.credit_card_id', 'cc.id')
+      .select('cc.id', 'cc.name', 'cc.color')
+      .sum(knex.raw('ABS(t.amount) as total'))
+      .count('* as count')
+      .where('t.user_id', userId)
+      .where('t.type', 'expense')
+      .whereNot('t.status', 'void')
+      .whereBetween('t.date', [startDate, endDate])
+      .groupBy('cc.id')
+      .orderBy('total', 'desc');
 
     return results.map(r => ({
       cardId: r.id, cardName: r.name, color: r.color,
-      total: roundAmount(r.total), count: r.count,
+      total: roundAmount(r.total || 0), count: r.count,
     }));
   }
 
   /**
-   * Comparaison mois à mois
+   * Month-to-month comparison
    */
-  static getMonthComparison(userId, month1, month2) {
-    const getMonthData = (monthStr) => {
+  static async getMonthComparison(userId, month1, month2) {
+    const getMonthData = async (monthStr) => {
       const [year, month] = monthStr.split('-').map(Number);
       const start = formatDateISO(new Date(year, month - 1, 1));
       const end = formatDateISO(endOfMonth(new Date(year, month - 1, 1)));
-      
-      return query.get(`
-        SELECT 
-          SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
-          SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses,
-          COUNT(*) as transaction_count
-        FROM transactions
-        WHERE user_id = ? AND status != 'void' AND date BETWEEN ? AND ?
-      `, [userId, start, end]);
+
+      return knex('transactions')
+        .where('user_id', userId)
+        .whereNot('status', 'void')
+        .whereBetween('date', [start, end])
+        .select(
+          knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+          knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+          knex.raw('COUNT(*) as transaction_count'),
+        )
+        .first();
     };
 
-    const data1 = getMonthData(month1);
-    const data2 = getMonthData(month2);
+    const data1 = await getMonthData(month1);
+    const data2 = await getMonthData(month2);
 
     const calcChange = (v1, v2) => v1 && v1 !== 0 ? roundAmount(((v2 - v1) / v1) * 100) : 0;
 
@@ -141,41 +156,48 @@ export class ReportService {
   }
 
   /**
-   * Tableau de bord résumé
+   * Dashboard summary
    */
-  static getDashboardSummary(userId) {
+  static async getDashboardSummary(userId) {
     const today = new Date();
     const monthStart = formatDateISO(startOfMonth(today));
     const monthEnd = formatDateISO(endOfMonth(today));
     const yearStart = formatDateISO(startOfYear(today));
 
-    const monthly = query.get(`
-      SELECT 
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
-        SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses
-      FROM transactions WHERE user_id = ? AND status != 'void' AND date BETWEEN ? AND ?
-    `, [userId, monthStart, monthEnd]);
+    const monthly = await knex('transactions')
+      .where('user_id', userId)
+      .whereNot('status', 'void')
+      .whereBetween('date', [monthStart, monthEnd])
+      .select(
+        knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+        knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+      )
+      .first();
 
-    const yearly = query.get(`
-      SELECT 
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
-        SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses
-      FROM transactions WHERE user_id = ? AND status != 'void' AND date BETWEEN ? AND ?
-    `, [userId, yearStart, monthEnd]);
+    const yearly = await knex('transactions')
+      .where('user_id', userId)
+      .whereNot('status', 'void')
+      .whereBetween('date', [yearStart, monthEnd])
+      .select(
+        knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+        knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+      )
+      .first();
 
-    const totals = query.get(`
-      SELECT SUM(current_balance) as total FROM accounts
-      WHERE user_id = ? AND is_active = 1 AND is_included_in_total = 1
-    `, [userId]);
+    const totals = await knex('accounts')
+      .where({ user_id: userId, is_active: true, is_included_in_total: true })
+      .sum('current_balance as total')
+      .first();
 
-    const recentTx = query.all(`
-      SELECT t.*, c.name as category_name, a.name as account_name
-      FROM transactions t
-      LEFT JOIN categories c ON t.category_id = c.id
-      LEFT JOIN accounts a ON t.account_id = a.id
-      WHERE t.user_id = ? AND t.status != 'void'
-      ORDER BY t.date DESC, t.created_at DESC LIMIT 5
-    `, [userId]);
+    const recentTx = await knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .leftJoin('accounts as a', 't.account_id', 'a.id')
+      .select('t.*', 'c.name as category_name', 'a.name as account_name')
+      .where('t.user_id', userId)
+      .whereNot('t.status', 'void')
+      .orderBy('t.date', 'desc')
+      .orderBy('t.created_at', 'desc')
+      .limit(5);
 
     return {
       totalBalance: roundAmount(totals?.total || 0),

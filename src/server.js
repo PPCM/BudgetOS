@@ -124,9 +124,9 @@ const startServer = async () => {
     const shutdown = async (signal) => {
       logger.info(`${signal} received, shutting down gracefully...`);
       
-      server.close(() => {
+      server.close(async () => {
         logger.info('HTTP server closed');
-        closeDatabase();
+        await closeDatabase();
         logger.info('Database connection closed');
         process.exit(0);
       });

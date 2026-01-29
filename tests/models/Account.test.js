@@ -1,5 +1,6 @@
 /**
  * Account model tests
+ * Uses an in-memory Knex (better-sqlite3) instance
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
 import {
@@ -14,71 +15,40 @@ import {
 
 // Mock the database connection module
 vi.mock('../../src/database/connection.js', async () => {
-  const actual = await vi.importActual('../setup.js')
+  const setup = await vi.importActual('../setup.js')
+  const knexInstance = await setup.setupTestDb()
+
   return {
-    query: {
-      all: (sql, params = []) => {
-        const db = actual.getTestDb()
-        const stmt = db.prepare(sql)
-        stmt.bind(params.map(p => p === undefined ? null : p))
-        const results = []
-        const columns = stmt.getColumnNames()
-        while (stmt.step()) {
-          const row = stmt.get()
-          const obj = {}
-          columns.forEach((col, i) => { obj[col] = row[i] })
-          results.push(obj)
-        }
-        stmt.free()
-        return results
-      },
-      get: (sql, params = []) => {
-        const db = actual.getTestDb()
-        const stmt = db.prepare(sql)
-        stmt.bind(params.map(p => p === undefined ? null : p))
-        const results = []
-        const columns = stmt.getColumnNames()
-        while (stmt.step()) {
-          const row = stmt.get()
-          const obj = {}
-          columns.forEach((col, i) => { obj[col] = row[i] })
-          results.push(obj)
-        }
-        stmt.free()
-        return results.length > 0 ? results[0] : null
-      },
-      run: (sql, params = []) => {
-        const db = actual.getTestDb()
-        db.run(sql, params.map(p => p === undefined ? null : p))
-        return { changes: db.getRowsModified() }
-      },
-    },
-    transaction: (fn) => fn(),
-    getDatabase: () => actual.getTestDb(),
+    default: knexInstance,
+    knex: knexInstance,
+    initDatabase: async () => knexInstance,
+    closeDatabase: async () => {},
+    transaction: async (fn) => knexInstance.transaction(fn),
   }
 })
 
 // Import after mocking
 const { Account } = await import('../../src/models/Account.js')
 
+// Single setup/teardown for all tests in this file
+beforeAll(async () => {
+  await setupTestDb()
+})
+
+afterAll(async () => {
+  await closeTestDb()
+})
+
 describe('Account.create', () => {
   let userId
 
-  beforeAll(async () => {
-    await setupTestDb()
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
   })
 
-  afterAll(() => {
-    closeTestDb()
-  })
-
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-  })
-
-  it('creates account with required fields', () => {
-    const account = Account.create(userId, {
+  it('creates account with required fields', async () => {
+    const account = await Account.create(userId, {
       name: 'Checking',
       type: 'checking',
     })
@@ -89,8 +59,8 @@ describe('Account.create', () => {
     expect(account.userId).toBe(userId)
   })
 
-  it('creates account with default values', () => {
-    const account = Account.create(userId, {
+  it('creates account with default values', async () => {
+    const account = await Account.create(userId, {
       name: 'Test',
       type: 'savings',
     })
@@ -103,8 +73,8 @@ describe('Account.create', () => {
     expect(account.isIncludedInTotal).toBe(true)
   })
 
-  it('creates account with custom values', () => {
-    const account = Account.create(userId, {
+  it('creates account with custom values', async () => {
+    const account = await Account.create(userId, {
       name: 'Savings',
       type: 'savings',
       initialBalance: 1000,
@@ -128,38 +98,30 @@ describe('Account.create', () => {
 describe('Account.findById', () => {
   let userId
 
-  beforeAll(async () => {
-    await setupTestDb()
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
   })
 
-  afterAll(() => {
-    closeTestDb()
-  })
-
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-  })
-
-  it('returns account when found', () => {
-    const accountId = createTestAccount(userId, 'acc-1', 'Test Account')
-    const account = Account.findById(accountId, userId)
+  it('returns account when found', async () => {
+    const accountId = await createTestAccount(userId, 'acc-1', 'Test Account')
+    const account = await Account.findById(accountId, userId)
 
     expect(account).not.toBeNull()
     expect(account.id).toBe(accountId)
     expect(account.name).toBe('Test Account')
   })
 
-  it('returns null when account not found', () => {
-    const account = Account.findById('non-existent', userId)
+  it('returns null when account not found', async () => {
+    const account = await Account.findById('non-existent', userId)
     expect(account).toBeNull()
   })
 
-  it('returns null when user does not own account', () => {
-    const otherUserId = createTestUser('other-user')
-    const accountId = createTestAccount(otherUserId, 'acc-1', 'Other Account')
+  it('returns null when user does not own account', async () => {
+    const otherUserId = await createTestUser('other-user')
+    const accountId = await createTestAccount(otherUserId, 'acc-1', 'Other Account')
 
-    const account = Account.findById(accountId, userId)
+    const account = await Account.findById(accountId, userId)
     expect(account).toBeNull()
   })
 })
@@ -167,93 +129,79 @@ describe('Account.findById', () => {
 describe('Account.findByIdOrFail', () => {
   let userId
 
-  beforeAll(async () => {
-    await setupTestDb()
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
   })
 
-  afterAll(() => {
-    closeTestDb()
-  })
-
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-  })
-
-  it('returns account when found', () => {
-    const accountId = createTestAccount(userId)
-    const account = Account.findByIdOrFail(accountId, userId)
+  it('returns account when found', async () => {
+    const accountId = await createTestAccount(userId)
+    const account = await Account.findByIdOrFail(accountId, userId)
     expect(account).not.toBeNull()
   })
 
-  it('throws NotFoundError when account not found', () => {
-    expect(() => Account.findByIdOrFail('non-existent', userId))
-      .toThrow('Compte non trouvé')
+  it('throws NotFoundError when account not found', async () => {
+    await expect(Account.findByIdOrFail('non-existent', userId))
+      .rejects.toThrow('Compte non trouvé')
   })
 })
 
 describe('Account.findByUser', () => {
   let userId
 
-  beforeAll(async () => {
-    await setupTestDb()
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
   })
 
-  afterAll(() => {
-    closeTestDb()
-  })
+  it('returns all accounts for user', async () => {
+    await createTestAccount(userId, 'acc-1', 'Account 1')
+    await createTestAccount(userId, 'acc-2', 'Account 2')
 
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-  })
-
-  it('returns all accounts for user', () => {
-    createTestAccount(userId, 'acc-1', 'Account 1')
-    createTestAccount(userId, 'acc-2', 'Account 2')
-
-    const result = Account.findByUser(userId)
+    const result = await Account.findByUser(userId)
 
     expect(result.data).toHaveLength(2)
   })
 
-  it('filters by account type', () => {
-    // Using createTestAccount which creates 'checking' type
-    createTestAccount(userId, 'acc-1', 'Checking')
+  it('filters by account type', async () => {
+    await createTestAccount(userId, 'acc-1', 'Checking')
 
-    const result = Account.findByUser(userId, { type: 'checking' })
+    const result = await Account.findByUser(userId, { type: 'checking' })
 
     expect(result.data).toHaveLength(1)
     expect(result.data[0].type).toBe('checking')
   })
 
-  it('includes totals by default', () => {
-    createTestAccount(userId, 'acc-1', 'Account 1')
+  it('includes totals by default', async () => {
+    await createTestAccount(userId, 'acc-1', 'Account 1')
 
-    const result = Account.findByUser(userId)
+    const result = await Account.findByUser(userId)
 
     expect(result.totals).not.toBeNull()
     expect(result.totals.totalBalance).toBeDefined()
     expect(result.totals.accountCount).toBe(1)
   })
 
-  it('excludes totals when requested', () => {
-    createTestAccount(userId, 'acc-1', 'Account 1')
+  it('excludes totals when requested', async () => {
+    await createTestAccount(userId, 'acc-1', 'Account 1')
 
-    const result = Account.findByUser(userId, { includeBalance: false })
+    const result = await Account.findByUser(userId, { includeBalance: false })
 
     expect(result.totals).toBeNull()
   })
 
-  it('orders by sort_order and name', () => {
-    // Create accounts in reverse alphabetical order
+  it('orders by sort_order and name', async () => {
     const db = getTestDb()
-    db.run(`INSERT INTO accounts (id, user_id, name, type, initial_balance, current_balance, sort_order)
-            VALUES ('acc-b', ?, 'B Account', 'checking', 0, 0, 2)`, [userId])
-    db.run(`INSERT INTO accounts (id, user_id, name, type, initial_balance, current_balance, sort_order)
-            VALUES ('acc-a', ?, 'A Account', 'checking', 0, 0, 1)`, [userId])
+    await db('accounts').insert({
+      id: 'acc-b', user_id: userId, name: 'B Account', type: 'checking',
+      initial_balance: 0, current_balance: 0, sort_order: 2,
+    })
+    await db('accounts').insert({
+      id: 'acc-a', user_id: userId, name: 'A Account', type: 'checking',
+      initial_balance: 0, current_balance: 0, sort_order: 1,
+    })
 
-    const result = Account.findByUser(userId)
+    const result = await Account.findByUser(userId)
 
     expect(result.data[0].name).toBe('A Account')
     expect(result.data[1].name).toBe('B Account')
@@ -264,22 +212,14 @@ describe('Account.update', () => {
   let userId
   let accountId
 
-  beforeAll(async () => {
-    await setupTestDb()
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
+    accountId = await createTestAccount(userId)
   })
 
-  afterAll(() => {
-    closeTestDb()
-  })
-
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-    accountId = createTestAccount(userId)
-  })
-
-  it('updates allowed fields', () => {
-    const updated = Account.update(accountId, userId, {
+  it('updates allowed fields', async () => {
+    const updated = await Account.update(accountId, userId, {
       name: 'Updated Name',
       color: '#00FF00',
     })
@@ -288,17 +228,17 @@ describe('Account.update', () => {
     expect(updated.color).toBe('#00FF00')
   })
 
-  it('converts camelCase to snake_case', () => {
-    const updated = Account.update(accountId, userId, {
+  it('converts camelCase to snake_case', async () => {
+    const updated = await Account.update(accountId, userId, {
       isIncludedInTotal: false,
     })
 
     expect(updated.isIncludedInTotal).toBe(false)
   })
 
-  it('throws NotFoundError for non-existent account', () => {
-    expect(() => Account.update('non-existent', userId, { name: 'Test' }))
-      .toThrow('Compte non trouvé')
+  it('throws NotFoundError for non-existent account', async () => {
+    await expect(Account.update('non-existent', userId, { name: 'Test' }))
+      .rejects.toThrow('Compte non trouvé')
   })
 })
 
@@ -306,90 +246,87 @@ describe('Account.updateBalance', () => {
   let userId
   let accountId
 
-  beforeAll(async () => {
-    await setupTestDb()
-  })
-
-  afterAll(() => {
-    closeTestDb()
-  })
-
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-    // Create account with initial balance of 1000
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
     const db = getTestDb()
-    db.run(`INSERT INTO accounts (id, user_id, name, type, initial_balance, current_balance)
-            VALUES ('test-account', ?, 'Test Account', 'checking', 1000, 1000)`, [userId])
+    await db('accounts').insert({
+      id: 'test-account', user_id: userId, name: 'Test Account', type: 'checking',
+      initial_balance: 1000, current_balance: 1000,
+    })
     accountId = 'test-account'
   })
 
-  it('calculates balance from initial balance and transactions', () => {
-    createTestTransaction(userId, accountId, { amount: -100 })
-    createTestTransaction(userId, accountId, { amount: -50 })
-    createTestTransaction(userId, accountId, { amount: 200 })
+  it('calculates balance from initial balance and transactions', async () => {
+    await createTestTransaction(userId, accountId, { amount: -100 })
+    await createTestTransaction(userId, accountId, { amount: -50 })
+    await createTestTransaction(userId, accountId, { amount: 200 })
 
-    const newBalance = Account.updateBalance(accountId, userId)
+    const newBalance = await Account.updateBalance(accountId, userId)
 
     // 1000 + (-100) + (-50) + 200 = 1050
     expect(newBalance).toBe(1050)
   })
 
-  it('handles account with no transactions', () => {
-    const newBalance = Account.updateBalance(accountId, userId)
-    expect(newBalance).toBe(1000) // Just initial balance
+  it('handles account with no transactions', async () => {
+    const newBalance = await Account.updateBalance(accountId, userId)
+    expect(newBalance).toBe(1000)
   })
 })
 
 describe('Account.calculateTotals', () => {
   let userId
 
-  beforeAll(async () => {
-    await setupTestDb()
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
   })
 
-  afterAll(() => {
-    closeTestDb()
-  })
-
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-  })
-
-  it('calculates total balance', () => {
+  it('calculates total balance', async () => {
     const db = getTestDb()
-    db.run(`INSERT INTO accounts (id, user_id, name, type, current_balance, is_included_in_total)
-            VALUES ('acc-1', ?, 'Account 1', 'checking', 1000, 1)`, [userId])
-    db.run(`INSERT INTO accounts (id, user_id, name, type, current_balance, is_included_in_total)
-            VALUES ('acc-2', ?, 'Account 2', 'savings', 2000, 1)`, [userId])
+    await db('accounts').insert({
+      id: 'acc-1', user_id: userId, name: 'Account 1', type: 'checking',
+      current_balance: 1000, is_included_in_total: true,
+    })
+    await db('accounts').insert({
+      id: 'acc-2', user_id: userId, name: 'Account 2', type: 'savings',
+      current_balance: 2000, is_included_in_total: true,
+    })
 
-    const totals = Account.calculateTotals(userId)
+    const totals = await Account.calculateTotals(userId)
 
     expect(totals.totalBalance).toBe(3000)
     expect(totals.accountCount).toBe(2)
   })
 
-  it('excludes accounts not included in total', () => {
+  it('excludes accounts not included in total', async () => {
     const db = getTestDb()
-    db.run(`INSERT INTO accounts (id, user_id, name, type, current_balance, is_included_in_total)
-            VALUES ('acc-1', ?, 'Account 1', 'checking', 1000, 1)`, [userId])
-    db.run(`INSERT INTO accounts (id, user_id, name, type, current_balance, is_included_in_total)
-            VALUES ('acc-2', ?, 'Account 2', 'checking', 500, 0)`, [userId])
+    await db('accounts').insert({
+      id: 'acc-1', user_id: userId, name: 'Account 1', type: 'checking',
+      current_balance: 1000, is_included_in_total: true,
+    })
+    await db('accounts').insert({
+      id: 'acc-2', user_id: userId, name: 'Account 2', type: 'checking',
+      current_balance: 500, is_included_in_total: false,
+    })
 
-    const totals = Account.calculateTotals(userId)
+    const totals = await Account.calculateTotals(userId)
 
     expect(totals.totalBalance).toBe(1000)
   })
 
-  it('calculates available vs investment balance', () => {
+  it('calculates available vs investment balance', async () => {
     const db = getTestDb()
-    db.run(`INSERT INTO accounts (id, user_id, name, type, current_balance, is_included_in_total)
-            VALUES ('acc-1', ?, 'Checking', 'checking', 1000, 1)`, [userId])
-    db.run(`INSERT INTO accounts (id, user_id, name, type, current_balance, is_included_in_total)
-            VALUES ('acc-2', ?, 'Investment', 'investment', 5000, 1)`, [userId])
+    await db('accounts').insert({
+      id: 'acc-1', user_id: userId, name: 'Checking', type: 'checking',
+      current_balance: 1000, is_included_in_total: true,
+    })
+    await db('accounts').insert({
+      id: 'acc-2', user_id: userId, name: 'Investment', type: 'investment',
+      current_balance: 5000, is_included_in_total: true,
+    })
 
-    const totals = Account.calculateTotals(userId)
+    const totals = await Account.calculateTotals(userId)
 
     expect(totals.availableBalance).toBe(1000)
     expect(totals.investmentBalance).toBe(5000)
@@ -400,59 +337,41 @@ describe('Account.calculateTotals', () => {
 describe('Account.delete', () => {
   let userId
 
-  beforeAll(async () => {
-    await setupTestDb()
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
   })
 
-  afterAll(() => {
-    closeTestDb()
-  })
+  it('soft deletes account with transactions', async () => {
+    const accountId = await createTestAccount(userId)
+    await createTestTransaction(userId, accountId)
 
-  beforeEach(() => {
-    resetTestDb()
-    userId = createTestUser()
-  })
-
-  it('soft deletes account with transactions', () => {
-    const accountId = createTestAccount(userId)
-    createTestTransaction(userId, accountId)
-
-    const result = Account.delete(accountId, userId)
+    const result = await Account.delete(accountId, userId)
 
     expect(result.deleted).toBe(true)
     expect(result.softDelete).toBe(true)
 
-    // Account should be inactive
     const db = getTestDb()
-    const stmt = db.prepare('SELECT is_active FROM accounts WHERE id = ?')
-    stmt.bind([accountId])
-    stmt.step()
-    const isActive = stmt.get()[0]
-    stmt.free()
-    expect(isActive).toBe(0)
+    const row = await db('accounts').where('id', accountId).select('is_active').first()
+    expect(row.is_active).toBeFalsy()
   })
 
-  it('hard deletes account without transactions', () => {
-    const accountId = createTestAccount(userId)
+  it('hard deletes account without transactions', async () => {
+    const accountId = await createTestAccount(userId)
 
-    const result = Account.delete(accountId, userId)
+    const result = await Account.delete(accountId, userId)
 
     expect(result.deleted).toBe(true)
     expect(result.softDelete).toBe(false)
 
-    // Account should not exist
     const db = getTestDb()
-    const stmt = db.prepare('SELECT COUNT(*) FROM accounts WHERE id = ?')
-    stmt.bind([accountId])
-    stmt.step()
-    const count = stmt.get()[0]
-    stmt.free()
-    expect(count).toBe(0)
+    const row = await db('accounts').where('id', accountId).first()
+    expect(row).toBeUndefined()
   })
 
-  it('throws NotFoundError for non-existent account', () => {
-    expect(() => Account.delete('non-existent', userId))
-      .toThrow('Compte non trouvé')
+  it('throws NotFoundError for non-existent account', async () => {
+    await expect(Account.delete('non-existent', userId))
+      .rejects.toThrow('Compte non trouvé')
   })
 })
 

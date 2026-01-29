@@ -1,49 +1,59 @@
-import { query } from '../database/connection.js';
+import knex from '../database/connection.js';
 import { generateId } from '../utils/helpers.js';
-import { NotFoundError, ForbiddenError } from '../utils/errors.js';
+import { NotFoundError } from '../utils/errors.js';
 
 export class Category {
-  static create(userId, data) {
+  static async create(userId, data) {
     const id = generateId();
-    query.run(`
-      INSERT INTO categories (id, user_id, parent_id, name, type, icon, color, budget_monthly, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, userId, data.parentId || null, data.name, data.type,
-      data.icon || 'tag', data.color || '#6B7280', data.budgetMonthly || null, data.sortOrder || 0]);
+    await knex('categories').insert({
+      id, user_id: userId, parent_id: data.parentId || null,
+      name: data.name, type: data.type,
+      icon: data.icon || 'tag', color: data.color || '#6B7280',
+      budget_monthly: data.budgetMonthly || null, sort_order: data.sortOrder || 0,
+    });
     return Category.findById(id, userId);
   }
 
-  static findById(id, userId) {
-    const category = query.get(`
-      SELECT c.*, p.name as parent_name FROM categories c
-      LEFT JOIN categories p ON c.parent_id = p.id
-      WHERE c.id = ? AND (c.user_id = ? OR c.user_id IS NULL) AND c.is_active = 1
-    `, [id, userId]);
+  static async findById(id, userId) {
+    const category = await knex('categories as c')
+      .leftJoin('categories as p', 'c.parent_id', 'p.id')
+      .select('c.*', 'p.name as parent_name')
+      .where('c.id', id)
+      .where(function () {
+        this.where('c.user_id', userId).orWhereNull('c.user_id');
+      })
+      .where('c.is_active', true)
+      .first();
     return category ? Category.format(category) : null;
   }
 
-  static findByIdOrFail(id, userId) {
-    const category = Category.findById(id, userId);
+  static async findByIdOrFail(id, userId) {
+    const category = await Category.findById(id, userId);
     if (!category) throw new NotFoundError('Catégorie non trouvée');
     return category;
   }
 
-  static findByUser(userId, options = {}) {
+  static async findByUser(userId, options = {}) {
     const { type, parentId, isActive = true, includeSystem = true, flat = false } = options;
-    let sql = `SELECT c.*, p.name as parent_name FROM categories c
-      LEFT JOIN categories p ON c.parent_id = p.id WHERE (c.user_id = ? OR c.user_id IS NULL)`;
-    const params = [userId];
-    
-    if (!includeSystem) { sql += ' AND c.is_system = 0'; }
-    if (type) { sql += ' AND c.type = ?'; params.push(type); }
+
+    let query = knex('categories as c')
+      .leftJoin('categories as p', 'c.parent_id', 'p.id')
+      .select('c.*', 'p.name as parent_name')
+      .where(function () {
+        this.where('c.user_id', userId).orWhereNull('c.user_id');
+      });
+
+    if (!includeSystem) query = query.where('c.is_system', false);
+    if (type) query = query.where('c.type', type);
     if (parentId !== undefined) {
-      sql += parentId === null ? ' AND c.parent_id IS NULL' : ' AND c.parent_id = ?';
-      if (parentId !== null) params.push(parentId);
+      query = parentId === null
+        ? query.whereNull('c.parent_id')
+        : query.where('c.parent_id', parentId);
     }
-    if (isActive !== undefined) { sql += ' AND c.is_active = ?'; params.push(isActive ? 1 : 0); }
-    sql += ' ORDER BY c.sort_order ASC, c.name ASC';
-    
-    const categories = query.all(sql, params).map(Category.format);
+    if (isActive !== undefined) query = query.where('c.is_active', isActive);
+
+    const categories = (await query.orderBy('c.sort_order', 'asc').orderBy('c.name', 'asc'))
+      .map(Category.format);
     return flat ? categories : Category.buildTree(categories);
   }
 
@@ -59,28 +69,33 @@ export class Category {
     return tree;
   }
 
-  static update(id, userId, data) {
-    Category.findByIdOrFail(id, userId);
-    
+  static async update(id, userId, data) {
+    await Category.findByIdOrFail(id, userId);
+
     const fields = ['parent_id', 'name', 'type', 'icon', 'color', 'budget_monthly', 'sort_order'];
-    const updates = [], values = [];
+    const updates = {};
     Object.entries(data).forEach(([key, value]) => {
       const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (fields.includes(dbKey)) { updates.push(`${dbKey} = ?`); values.push(value); }
+      if (fields.includes(dbKey)) updates[dbKey] = value;
     });
-    if (updates.length) {
-      values.push(id, userId);
-      query.run(`UPDATE categories SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, values);
+
+    if (Object.keys(updates).length > 0) {
+      await knex('categories').where({ id, user_id: userId }).update(updates);
     }
     return Category.findById(id, userId);
   }
 
-  static delete(id, userId) {
-    Category.findByIdOrFail(id, userId);
-    const txCount = query.get('SELECT COUNT(*) as count FROM transactions WHERE category_id = ?', [id])?.count || 0;
-    if (txCount > 0) query.run('UPDATE categories SET is_active = 0 WHERE id = ? AND user_id = ?', [id, userId]);
-    else query.run('DELETE FROM categories WHERE id = ? AND user_id = ?', [id, userId]);
-    return { deleted: true, softDelete: txCount > 0 };
+  static async delete(id, userId) {
+    await Category.findByIdOrFail(id, userId);
+    const txCount = await knex('transactions').where('category_id', id).count('* as count').first();
+    const count = txCount?.count || 0;
+
+    if (count > 0) {
+      await knex('categories').where({ id, user_id: userId }).update({ is_active: false });
+    } else {
+      await knex('categories').where({ id, user_id: userId }).del();
+    }
+    return { deleted: true, softDelete: count > 0 };
   }
 
   static format(category) {

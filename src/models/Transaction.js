@@ -1,209 +1,203 @@
-import { query, transaction as dbTransaction } from '../database/connection.js';
+import knex from '../database/connection.js';
+import dateHelpers from '../database/dateHelpers.js';
 import { generateId, roundAmount, normalizeDescription } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
 import Account from './Account.js';
 
 /**
- * Modèle Transaction
+ * Transaction model
  */
 export class Transaction {
   /**
-   * Crée une nouvelle transaction
+   * Create a new transaction
    */
-  static create(userId, data) {
+  static async create(userId, data) {
     const id = generateId();
 
     // Handle external source transfer (no source account, only destination)
     if (data.type === 'transfer' && !data.accountId && data.toAccountId) {
-      Account.findByIdOrFail(data.toAccountId, userId);
+      await Account.findByIdOrFail(data.toAccountId, userId);
 
-      dbTransaction(() => {
+      await knex.transaction(async (trx) => {
         // Create transaction on destination account with positive amount
-        query.run(`
-          INSERT INTO transactions (
-            id, user_id, account_id, category_id, payee_id,
-            amount, description, notes, date, status, type
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          id, userId, data.toAccountId, data.categoryId || null, data.payeeId || null,
-          Math.abs(data.amount), data.description, data.notes || null, data.date,
-          data.status || 'pending', 'transfer'
-        ]);
+        await trx('transactions').insert({
+          id,
+          user_id: userId,
+          account_id: data.toAccountId,
+          category_id: data.categoryId || null,
+          payee_id: data.payeeId || null,
+          amount: Math.abs(data.amount),
+          description: data.description,
+          notes: data.notes || null,
+          date: data.date,
+          status: data.status || 'pending',
+          type: 'transfer',
+        });
 
-        Account.updateBalance(data.toAccountId, userId);
+        await Account.updateBalance(data.toAccountId, userId, trx);
       });
 
       return Transaction.findById(id, userId);
     }
 
     // Standard flow: source account exists
-    Account.findByIdOrFail(data.accountId, userId);
+    await Account.findByIdOrFail(data.accountId, userId);
 
-    // Ajuster le signe du montant selon le type
+    // Adjust amount sign based on type
     let amount = Math.abs(data.amount);
     if (data.type === 'expense' || data.type === 'transfer') {
-      amount = -amount; // Débit pour dépenses et virements (compte source)
+      amount = -amount; // Debit for expenses and transfers (source account)
     }
 
-    dbTransaction(() => {
-      query.run(`
-        INSERT INTO transactions (
-          id, user_id, account_id, category_id, payee_id, credit_card_id,
-          amount, description, notes, date, value_date, purchase_date,
-          status, type, is_recurring, recurring_id, tags
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        id, userId, data.accountId, data.categoryId || null, data.payeeId || null, data.creditCardId || null,
-        amount, data.description, data.notes || null, data.date,
-        data.valueDate || null, data.purchaseDate || null,
-        data.status || 'pending', data.type, data.isRecurring ? 1 : 0,
-        data.recurringId || null, data.tags ? JSON.stringify(data.tags) : null
-      ]);
+    await knex.transaction(async (trx) => {
+      await trx('transactions').insert({
+        id,
+        user_id: userId,
+        account_id: data.accountId,
+        category_id: data.categoryId || null,
+        payee_id: data.payeeId || null,
+        credit_card_id: data.creditCardId || null,
+        amount,
+        description: data.description,
+        notes: data.notes || null,
+        date: data.date,
+        value_date: data.valueDate || null,
+        purchase_date: data.purchaseDate || null,
+        status: data.status || 'pending',
+        type: data.type,
+        is_recurring: data.isRecurring ? 1 : 0,
+        recurring_id: data.recurringId || null,
+        tags: data.tags ? JSON.stringify(data.tags) : null,
+      });
 
-      // Mettre à jour le solde du compte
-      Account.updateBalance(data.accountId, userId);
+      // Update source account balance
+      await Account.updateBalance(data.accountId, userId, trx);
 
-      // Gérer les virements avec compte destination
+      // Handle transfers with destination account
       if (data.type === 'transfer' && data.toAccountId) {
-        Account.findByIdOrFail(data.toAccountId, userId);
+        await Account.findByIdOrFail(data.toAccountId, userId);
         const transferId = generateId();
-        query.run(`
-          INSERT INTO transactions (
-            id, user_id, account_id, category_id, payee_id, amount, description,
-            date, status, type, linked_transaction_id
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          transferId, userId, data.toAccountId, data.categoryId || null, data.payeeId || null,
-          Math.abs(amount), data.description,
-          data.date, data.status || 'pending', 'transfer', id
-        ]);
 
-        // Mettre à jour la transaction source avec le lien vers la transaction destination
-        query.run('UPDATE transactions SET linked_transaction_id = ? WHERE id = ?', [transferId, id]);
+        await trx('transactions').insert({
+          id: transferId,
+          user_id: userId,
+          account_id: data.toAccountId,
+          category_id: data.categoryId || null,
+          payee_id: data.payeeId || null,
+          amount: Math.abs(amount),
+          description: data.description,
+          date: data.date,
+          status: data.status || 'pending',
+          type: 'transfer',
+          linked_transaction_id: id,
+        });
 
-        Account.updateBalance(data.toAccountId, userId);
+        // Update source transaction with link to destination transaction
+        await trx('transactions').where('id', id).update({ linked_transaction_id: transferId });
+
+        await Account.updateBalance(data.toAccountId, userId, trx);
       }
     });
 
     return Transaction.findById(id, userId);
   }
-  
+
   /**
-   * Trouve une transaction par ID
+   * Find a transaction by ID
    */
-  static findById(id, userId) {
-    const tx = query.get(`
-      SELECT t.*, c.name as category_name, a.name as account_name
-      FROM transactions t
-      LEFT JOIN categories c ON t.category_id = c.id
-      LEFT JOIN accounts a ON t.account_id = a.id
-      WHERE t.id = ? AND t.user_id = ?
-    `, [id, userId]);
-    
+  static async findById(id, userId) {
+    const tx = await knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .leftJoin('accounts as a', 't.account_id', 'a.id')
+      .where('t.id', id)
+      .andWhere('t.user_id', userId)
+      .select('t.*', 'c.name as category_name', 'a.name as account_name')
+      .first();
+
     return tx ? Transaction.format(tx) : null;
   }
-  
+
   /**
-   * Trouve une transaction ou lance une erreur
+   * Find a transaction by ID or throw
    */
-  static findByIdOrFail(id, userId) {
-    const tx = Transaction.findById(id, userId);
+  static async findByIdOrFail(id, userId) {
+    const tx = await Transaction.findById(id, userId);
     if (!tx) {
       throw new NotFoundError('Transaction non trouvée');
     }
     return tx;
   }
-  
+
   /**
-   * Liste les transactions avec filtres
+   * List transactions with filters
    */
-  static findByUser(userId, options = {}) {
+  static async findByUser(userId, options = {}) {
     const {
       accountId, categoryId, creditCardId, type, status, isReconciled,
       startDate, endDate, minAmount, maxAmount, search,
       page = 1, limit = 50, sortBy = 'date', sortOrder = 'desc'
     } = options;
-    
-    let sql = `
-      SELECT t.*, 
-        c.name as category_name, c.icon as category_icon, c.color as category_color, 
-        a.name as account_name, 
-        p.name as payee_name, p.image_url as payee_image_url,
-        linked_tx.account_id as linked_account_id,
-        linked_a.name as linked_account_name
-      FROM transactions t
-      LEFT JOIN categories c ON t.category_id = c.id
-      LEFT JOIN accounts a ON t.account_id = a.id
-      LEFT JOIN payees p ON t.payee_id = p.id
-      LEFT JOIN transactions linked_tx ON t.linked_transaction_id = linked_tx.id
-      LEFT JOIN accounts linked_a ON linked_tx.account_id = linked_a.id
-      WHERE t.user_id = ?
-    `;
-    const params = [userId];
-    
+
+    let baseQuery = knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .leftJoin('accounts as a', 't.account_id', 'a.id')
+      .leftJoin('payees as p', 't.payee_id', 'p.id')
+      .leftJoin('transactions as linked_tx', 't.linked_transaction_id', 'linked_tx.id')
+      .leftJoin('accounts as linked_a', 'linked_tx.account_id', 'linked_a.id')
+      .where('t.user_id', userId);
+
     if (accountId) {
-      sql += ' AND t.account_id = ?';
-      params.push(accountId);
+      baseQuery = baseQuery.andWhere('t.account_id', accountId);
     }
-    
+
     if (categoryId) {
-      sql += ' AND t.category_id = ?';
-      params.push(categoryId);
+      baseQuery = baseQuery.andWhere('t.category_id', categoryId);
     }
-    
+
     if (creditCardId) {
-      sql += ' AND t.credit_card_id = ?';
-      params.push(creditCardId);
+      baseQuery = baseQuery.andWhere('t.credit_card_id', creditCardId);
     }
-    
+
     if (type) {
-      sql += ' AND t.type = ?';
-      params.push(type);
+      baseQuery = baseQuery.andWhere('t.type', type);
     }
-    
+
     if (status) {
-      sql += ' AND t.status = ?';
-      params.push(status);
+      baseQuery = baseQuery.andWhere('t.status', status);
     }
 
     if (isReconciled !== undefined) {
-      sql += ' AND t.is_reconciled = ?';
-      params.push(isReconciled === 'true' ? 1 : 0);
+      baseQuery = baseQuery.andWhere('t.is_reconciled', isReconciled === 'true' ? 1 : 0);
     }
 
     if (startDate) {
-      sql += ' AND t.date >= ?';
-      params.push(startDate);
+      baseQuery = baseQuery.andWhere('t.date', '>=', startDate);
     }
-    
+
     if (endDate) {
-      sql += ' AND t.date <= ?';
-      params.push(endDate);
+      baseQuery = baseQuery.andWhere('t.date', '<=', endDate);
     }
-    
+
     if (minAmount !== undefined) {
-      sql += ' AND ABS(t.amount) >= ?';
-      params.push(minAmount);
+      baseQuery = baseQuery.andWhereRaw('ABS(t.amount) >= ?', [minAmount]);
     }
-    
+
     if (maxAmount !== undefined) {
-      sql += ' AND ABS(t.amount) <= ?';
-      params.push(maxAmount);
+      baseQuery = baseQuery.andWhereRaw('ABS(t.amount) <= ?', [maxAmount]);
     }
-    
+
     if (search) {
-      sql += ' AND (t.description LIKE ? OR t.notes LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
+      baseQuery = baseQuery.andWhere(function () {
+        this.where('t.description', 'like', `%${search}%`)
+          .orWhere('t.notes', 'like', `%${search}%`);
+      });
     }
-    
-    // Compte total - utiliser une regex pour remplacer tout le SELECT jusqu'à FROM
-    const countSql = sql.replace(/SELECT[\s\S]*?FROM transactions/i, 'SELECT COUNT(*) as count FROM transactions');
-    const total = query.get(countSql, params)?.count || 0;
-    
-    // Tri et pagination
+
+    // Count total using clone
+    const countResult = await baseQuery.clone().count('* as count').first();
+    const total = countResult?.count || 0;
+
+    // Sorting and pagination
     const allowedSortFields = {
       date: 't.date',
       amount: 't.amount',
@@ -211,21 +205,35 @@ export class Transaction {
       created_at: 't.created_at',
       payee: 'p.name',
       category: 'c.name',
-      account: 'a.name'
+      account: 'a.name',
     };
     const sortField = allowedSortFields[sortBy] || 't.date';
-    // SQLite doesn't support NULLS LAST, use CASE expression instead
+    const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
     const isNullableField = ['payee', 'category', 'account'].includes(sortBy);
+
+    let dataQuery = baseQuery.clone().select(
+      't.*',
+      'c.name as category_name',
+      'c.icon as category_icon',
+      'c.color as category_color',
+      'a.name as account_name',
+      'p.name as payee_name',
+      'p.image_url as payee_image_url',
+      'linked_tx.account_id as linked_account_id',
+      'linked_a.name as linked_account_name'
+    );
+
     if (isNullableField) {
-      sql += ` ORDER BY (CASE WHEN ${sortField} IS NULL THEN 1 ELSE 0 END), ${sortField} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+      dataQuery = dataQuery.orderByRaw(dateHelpers.nullsLast(knex, sortField, direction).toString());
     } else {
-      sql += ` ORDER BY ${sortField} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+      dataQuery = dataQuery.orderBy(sortField, direction);
     }
-    sql += ' LIMIT ? OFFSET ?';
-    params.push(limit, (page - 1) * limit);
-    
-    const transactions = query.all(sql, params);
-    
+
+    dataQuery = dataQuery.limit(limit).offset((page - 1) * limit);
+
+    const transactions = await dataQuery;
+
     return {
       data: transactions.map(Transaction.format),
       pagination: {
@@ -236,19 +244,19 @@ export class Transaction {
       },
     };
   }
-  
+
   /**
-   * Met à jour une transaction
+   * Update a transaction
    * For transfers, also updates the linked transaction
    */
-  static update(id, userId, data) {
-    const tx = Transaction.findByIdOrFail(id, userId);
+  static async update(id, userId, data) {
+    const tx = await Transaction.findByIdOrFail(id, userId);
     const oldAccountId = tx.accountId;
     const isTransfer = tx.type === 'transfer' || data.type === 'transfer';
 
     // Get linked transaction if it's a transfer
     const linkedTx = tx.linkedTransactionId
-      ? query.get('SELECT * FROM transactions WHERE id = ?', [tx.linkedTransactionId])
+      ? await knex('transactions').where('id', tx.linkedTransactionId).first()
       : null;
     const oldLinkedAccountId = linkedTx?.account_id;
 
@@ -256,42 +264,33 @@ export class Transaction {
     const hasAccountId = 'accountId' in data;
     const hasToAccountId = 'toAccountId' in data;
     if (isTransfer && hasAccountId && !data.accountId && hasToAccountId && data.toAccountId) {
-      Account.findByIdOrFail(data.toAccountId, userId);
+      await Account.findByIdOrFail(data.toAccountId, userId);
       const newAmount = data.amount !== undefined ? Math.abs(data.amount) : Math.abs(tx.amount);
 
-      dbTransaction(() => {
+      await knex.transaction(async (trx) => {
         // Update main transaction to destination account with positive amount
-        query.run(`
-          UPDATE transactions SET
-            account_id = ?,
-            amount = ?,
-            linked_transaction_id = NULL,
-            category_id = ?,
-            payee_id = ?,
-            description = ?,
-            date = ?,
-            status = ?
-          WHERE id = ? AND user_id = ?
-        `, [
-          data.toAccountId,
-          newAmount,
-          data.categoryId !== undefined ? data.categoryId : tx.categoryId,
-          data.payeeId !== undefined ? data.payeeId : tx.payeeId,
-          data.description || tx.description,
-          data.date || tx.date,
-          data.status || tx.status,
-          id, userId
-        ]);
+        await trx('transactions')
+          .where({ id, user_id: userId })
+          .update({
+            account_id: data.toAccountId,
+            amount: newAmount,
+            linked_transaction_id: null,
+            category_id: data.categoryId !== undefined ? data.categoryId : tx.categoryId,
+            payee_id: data.payeeId !== undefined ? data.payeeId : tx.payeeId,
+            description: data.description || tx.description,
+            date: data.date || tx.date,
+            status: data.status || tx.status,
+          });
 
         // Delete linked transaction if exists
         if (linkedTx) {
-          query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
-          Account.updateBalance(linkedTx.account_id, userId);
+          await trx('transactions').where('id', linkedTx.id).del();
+          await Account.updateBalance(linkedTx.account_id, userId, trx);
         }
 
         // Update balances
-        Account.updateBalance(oldAccountId, userId);
-        Account.updateBalance(data.toAccountId, userId);
+        await Account.updateBalance(oldAccountId, userId, trx);
+        await Account.updateBalance(data.toAccountId, userId, trx);
       });
 
       return Transaction.findById(id, userId);
@@ -305,10 +304,8 @@ export class Transaction {
     // Fields that should be synced to linked transaction
     const syncFields = ['category_id', 'payee_id', 'description', 'notes', 'date', 'status'];
 
-    const updates = [];
-    const values = [];
-    const linkedUpdates = [];
-    const linkedValues = [];
+    const updates = {};
+    const linkedUpdatesObj = {};
 
     // Calculate amount with correct sign
     let newAmount = null;
@@ -323,175 +320,166 @@ export class Transaction {
     for (const [key, value] of Object.entries(data)) {
       const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
       if (allowedFields.includes(dbKey)) {
-        updates.push(`${dbKey} = ?`);
         if (dbKey === 'tags') {
-          values.push(JSON.stringify(value));
+          updates[dbKey] = JSON.stringify(value);
         } else if (dbKey === 'amount') {
-          values.push(newAmount);
+          updates[dbKey] = newAmount;
         } else {
-          values.push(value);
+          updates[dbKey] = value;
         }
 
         // Also update linked transaction for synced fields
         if (syncFields.includes(dbKey)) {
-          linkedUpdates.push(`${dbKey} = ?`);
-          linkedValues.push(value);
+          linkedUpdatesObj[dbKey] = value;
         }
       }
     }
 
     // Handle amount for linked transaction (opposite sign)
     if (newAmount !== null && linkedTx) {
-      linkedUpdates.push('amount = ?');
-      linkedValues.push(Math.abs(newAmount)); // Positive for destination
+      linkedUpdatesObj.amount = Math.abs(newAmount); // Positive for destination
     }
 
-    dbTransaction(() => {
+    await knex.transaction(async (trx) => {
       // Update main transaction
-      if (updates.length > 0) {
-        query.run(
-          `UPDATE transactions SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
-          [...values, id, userId]
-        );
+      if (Object.keys(updates).length > 0) {
+        await trx('transactions')
+          .where({ id, user_id: userId })
+          .update(updates);
       }
 
       // Handle transfer-specific logic
       if (isTransfer) {
         const newToAccountId = data.toAccountId;
-        const hasToAccountId = 'toAccountId' in data;
+        const hasToAccountIdInner = 'toAccountId' in data;
 
         // Case 1: toAccountId is explicitly set to null or empty - remove linked transaction
-        if (hasToAccountId && !newToAccountId && linkedTx) {
-          query.run('UPDATE transactions SET linked_transaction_id = NULL WHERE id = ?', [id]);
-          query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
-          Account.updateBalance(linkedTx.account_id, userId);
+        if (hasToAccountIdInner && !newToAccountId && linkedTx) {
+          await trx('transactions').where('id', id).update({ linked_transaction_id: null });
+          await trx('transactions').where('id', linkedTx.id).del();
+          await Account.updateBalance(linkedTx.account_id, userId, trx);
         }
         // Case 2: toAccountId changed to a different account - delete old, create new
-        else if (hasToAccountId && newToAccountId && linkedTx && newToAccountId !== linkedTx.account_id) {
+        else if (hasToAccountIdInner && newToAccountId && linkedTx && newToAccountId !== linkedTx.account_id) {
           // Delete old linked transaction
-          query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
-          Account.updateBalance(linkedTx.account_id, userId);
+          await trx('transactions').where('id', linkedTx.id).del();
+          await Account.updateBalance(linkedTx.account_id, userId, trx);
 
           // Create new linked transaction
           const newLinkedId = generateId();
           const amount = newAmount !== null ? Math.abs(newAmount) : Math.abs(tx.amount);
-          query.run(`
-            INSERT INTO transactions (
-              id, user_id, account_id, category_id, payee_id, amount, description,
-              notes, date, status, type, linked_transaction_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            newLinkedId, userId, newToAccountId,
-            data.categoryId !== undefined ? data.categoryId : tx.categoryId,
-            data.payeeId !== undefined ? data.payeeId : tx.payeeId,
+          await trx('transactions').insert({
+            id: newLinkedId,
+            user_id: userId,
+            account_id: newToAccountId,
+            category_id: data.categoryId !== undefined ? data.categoryId : tx.categoryId,
+            payee_id: data.payeeId !== undefined ? data.payeeId : tx.payeeId,
             amount,
-            data.description || tx.description,
-            data.notes !== undefined ? data.notes : tx.notes,
-            data.date || tx.date,
-            data.status || tx.status,
-            'transfer', id
-          ]);
+            description: data.description || tx.description,
+            notes: data.notes !== undefined ? data.notes : tx.notes,
+            date: data.date || tx.date,
+            status: data.status || tx.status,
+            type: 'transfer',
+            linked_transaction_id: id,
+          });
 
           // Update main transaction link
-          query.run('UPDATE transactions SET linked_transaction_id = ? WHERE id = ?', [newLinkedId, id]);
-          Account.updateBalance(newToAccountId, userId);
+          await trx('transactions').where('id', id).update({ linked_transaction_id: newLinkedId });
+          await Account.updateBalance(newToAccountId, userId, trx);
         }
         // Case 3: toAccountId provided but no linked transaction exists - create new
-        else if (hasToAccountId && newToAccountId && !linkedTx) {
+        else if (hasToAccountIdInner && newToAccountId && !linkedTx) {
           const newLinkedId = generateId();
           const amount = newAmount !== null ? Math.abs(newAmount) : Math.abs(tx.amount);
-          query.run(`
-            INSERT INTO transactions (
-              id, user_id, account_id, category_id, payee_id, amount, description,
-              notes, date, status, type, linked_transaction_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            newLinkedId, userId, newToAccountId,
-            data.categoryId !== undefined ? data.categoryId : tx.categoryId,
-            data.payeeId !== undefined ? data.payeeId : tx.payeeId,
+          await trx('transactions').insert({
+            id: newLinkedId,
+            user_id: userId,
+            account_id: newToAccountId,
+            category_id: data.categoryId !== undefined ? data.categoryId : tx.categoryId,
+            payee_id: data.payeeId !== undefined ? data.payeeId : tx.payeeId,
             amount,
-            data.description || tx.description,
-            data.notes !== undefined ? data.notes : tx.notes,
-            data.date || tx.date,
-            data.status || tx.status,
-            'transfer', id
-          ]);
+            description: data.description || tx.description,
+            notes: data.notes !== undefined ? data.notes : tx.notes,
+            date: data.date || tx.date,
+            status: data.status || tx.status,
+            type: 'transfer',
+            linked_transaction_id: id,
+          });
 
-          query.run('UPDATE transactions SET linked_transaction_id = ? WHERE id = ?', [newLinkedId, id]);
-          Account.updateBalance(newToAccountId, userId);
+          await trx('transactions').where('id', id).update({ linked_transaction_id: newLinkedId });
+          await Account.updateBalance(newToAccountId, userId, trx);
         }
         // Case 4: Linked transaction exists and no account change - just update it
-        else if (linkedTx && linkedUpdates.length > 0) {
-          query.run(
-            `UPDATE transactions SET ${linkedUpdates.join(', ')} WHERE id = ?`,
-            [...linkedValues, linkedTx.id]
-          );
+        else if (linkedTx && Object.keys(linkedUpdatesObj).length > 0) {
+          await trx('transactions')
+            .where('id', linkedTx.id)
+            .update(linkedUpdatesObj);
         }
       }
 
       // Update account balances
-      Account.updateBalance(oldAccountId, userId);
+      await Account.updateBalance(oldAccountId, userId, trx);
       if (data.accountId && data.accountId !== oldAccountId) {
-        Account.updateBalance(data.accountId, userId);
+        await Account.updateBalance(data.accountId, userId, trx);
       }
       if (oldLinkedAccountId) {
-        Account.updateBalance(oldLinkedAccountId, userId);
+        await Account.updateBalance(oldLinkedAccountId, userId, trx);
       }
     });
 
     return Transaction.findById(id, userId);
   }
-  
+
   /**
-   * Supprime une transaction
+   * Delete a transaction
    */
-  static delete(id, userId) {
-    const tx = Transaction.findByIdOrFail(id, userId);
-    
-    // Récupérer la transaction liée si c'est un virement
-    const linkedTx = tx.linked_transaction_id 
-      ? query.get('SELECT * FROM transactions WHERE id = ?', [tx.linked_transaction_id])
+  static async delete(id, userId) {
+    const tx = await Transaction.findByIdOrFail(id, userId);
+
+    // Get linked transaction if it's a transfer
+    const linkedTx = tx.linkedTransactionId
+      ? await knex('transactions').where('id', tx.linkedTransactionId).first()
       : null;
-    
-    dbTransaction(() => {
-      // Supprimer les splits associés
-      query.run('DELETE FROM transaction_splits WHERE transaction_id = ?', [id]);
-      
-      // Supprimer les transactions liées (ancienne méthode avec parent)
-      query.run('DELETE FROM transactions WHERE parent_transaction_id = ?', [id]);
-      
-      // Supprimer la transaction liée (virements)
+
+    await knex.transaction(async (trx) => {
+      // Delete associated splits
+      await trx('transaction_splits').where('transaction_id', id).del();
+
+      // Delete linked transactions (legacy method with parent)
+      await trx('transactions').where('parent_transaction_id', id).del();
+
+      // Delete linked transaction (transfers)
       if (linkedTx) {
-        query.run('DELETE FROM transactions WHERE id = ?', [linkedTx.id]);
-        Account.updateBalance(linkedTx.account_id, userId);
+        await trx('transactions').where('id', linkedTx.id).del();
+        await Account.updateBalance(linkedTx.account_id, userId, trx);
       }
-      
-      // Supprimer la transaction
-      query.run('DELETE FROM transactions WHERE id = ? AND user_id = ?', [id, userId]);
-      
-      // Mettre à jour le solde
-      Account.updateBalance(tx.accountId, userId);
+
+      // Delete the transaction
+      await trx('transactions').where({ id, user_id: userId }).del();
+
+      // Update balance
+      await Account.updateBalance(tx.accountId, userId, trx);
     });
-    
+
     return { deleted: true };
   }
-  
+
   /**
-   * Rapproche des transactions
+   * Reconcile transactions
    */
-  static reconcile(userId, transactionIds, reconcileDate) {
-    dbTransaction(() => {
+  static async reconcile(userId, transactionIds, reconcileDate) {
+    await knex.transaction(async (trx) => {
       for (const txId of transactionIds) {
-        query.run(`
-          UPDATE transactions
-          SET status = 'reconciled', is_reconciled = 1, reconciled_at = ?
-          WHERE id = ? AND user_id = ?
-        `, [reconcileDate, txId, userId]);
+        await trx('transactions')
+          .where({ id: txId, user_id: userId })
+          .update({
+            status: 'reconciled',
+            is_reconciled: 1,
+            reconciled_at: reconcileDate,
+          });
       }
     });
-    
+
     return { reconciled: transactionIds.length };
   }
 
@@ -499,90 +487,90 @@ export class Transaction {
    * Toggle reconciliation status of a single transaction
    * @param {string} userId - User ID
    * @param {string} transactionId - Transaction ID
-   * @returns {Object} Updated transaction with new reconciliation status
+   * @returns {Promise<Object>} Updated transaction with new reconciliation status
    */
-  static toggleReconcile(userId, transactionId) {
-    const tx = Transaction.findByIdOrFail(transactionId, userId);
+  static async toggleReconcile(userId, transactionId) {
+    const tx = await Transaction.findByIdOrFail(transactionId, userId);
     const isCurrentlyReconciled = tx.isReconciled;
     const now = new Date().toISOString();
 
     if (isCurrentlyReconciled) {
       // Unreconcile: set status back to 'cleared' and remove reconciliation
-      query.run(`
-        UPDATE transactions
-        SET status = 'cleared', is_reconciled = 0, reconciled_at = NULL
-        WHERE id = ? AND user_id = ?
-      `, [transactionId, userId]);
+      await knex('transactions')
+        .where({ id: transactionId, user_id: userId })
+        .update({
+          status: 'cleared',
+          is_reconciled: 0,
+          reconciled_at: null,
+        });
     } else {
       // Reconcile: set status to 'reconciled'
-      query.run(`
-        UPDATE transactions
-        SET status = 'reconciled', is_reconciled = 1, reconciled_at = ?
-        WHERE id = ? AND user_id = ?
-      `, [now, transactionId, userId]);
+      await knex('transactions')
+        .where({ id: transactionId, user_id: userId })
+        .update({
+          status: 'reconciled',
+          is_reconciled: 1,
+          reconciled_at: now,
+        });
     }
 
     return Transaction.findById(transactionId, userId);
   }
 
   /**
-   * Recherche de transactions pour rapprochement
+   * Find transactions for reconciliation matching
    */
-  static findForReconciliation(userId, accountId, criteria) {
+  static async findForReconciliation(userId, accountId, criteria) {
     const { date, amount, dateTolerance = 2, amountTolerance = 0.01 } = criteria;
-    
+
     const minAmount = Math.abs(amount) * (1 - amountTolerance);
     const maxAmount = Math.abs(amount) * (1 + amountTolerance);
-    
-    const transactions = query.all(`
-      SELECT t.*, c.name as category_name
-      FROM transactions t
-      LEFT JOIN categories c ON t.category_id = c.id
-      WHERE t.user_id = ? AND t.account_id = ?
-        AND t.status != 'reconciled'
-        AND t.date BETWEEN date(?, '-' || ? || ' days') AND date(?, '+' || ? || ' days')
-        AND ABS(t.amount) BETWEEN ? AND ?
-      ORDER BY ABS(ABS(t.amount) - ?) ASC, ABS(julianday(t.date) - julianday(?)) ASC
-      LIMIT 10
-    `, [
-      userId, accountId,
-      date, dateTolerance, date, dateTolerance,
-      minAmount, maxAmount,
-      Math.abs(amount), date
-    ]);
-    
+
+    const transactions = await knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .where('t.user_id', userId)
+      .andWhere('t.account_id', accountId)
+      .andWhere('t.status', '!=', 'reconciled')
+      .andWhereRaw(dateHelpers.dateTolerance(knex, 't.date', date, dateTolerance).toString())
+      .andWhereRaw('ABS(t.amount) BETWEEN ? AND ?', [minAmount, maxAmount])
+      .select('t.*', 'c.name as category_name')
+      .orderByRaw(`ABS(ABS(t.amount) - ?) ASC`, [Math.abs(amount)])
+      .orderByRaw(dateHelpers.absDateDistance(knex, 't.date', date).toString() + ' ASC')
+      .limit(10);
+
     return transactions.map(Transaction.format);
   }
-  
+
   /**
-   * Crée une transaction avec ventilation
+   * Create a transaction with splits
    */
-  static createWithSplits(userId, data, splits) {
-    const tx = Transaction.create(userId, { ...data, isSplit: true });
-    
+  static async createWithSplits(userId, data, splits) {
+    const tx = await Transaction.create(userId, { ...data, isSplit: true });
+
     for (const split of splits) {
-      query.run(`
-        INSERT INTO transaction_splits (id, transaction_id, category_id, amount, description)
-        VALUES (?, ?, ?, ?, ?)
-      `, [generateId(), tx.id, split.categoryId, split.amount, split.description || null]);
+      await knex('transaction_splits').insert({
+        id: generateId(),
+        transaction_id: tx.id,
+        category_id: split.categoryId,
+        amount: split.amount,
+        description: split.description || null,
+      });
     }
-    
+
     return Transaction.findById(tx.id, userId);
   }
-  
+
   /**
-   * Récupère les splits d'une transaction
+   * Get splits for a transaction
    */
-  static getSplits(transactionId, userId) {
-    Transaction.findByIdOrFail(transactionId, userId);
-    
-    const splits = query.all(`
-      SELECT ts.*, c.name as category_name
-      FROM transaction_splits ts
-      LEFT JOIN categories c ON ts.category_id = c.id
-      WHERE ts.transaction_id = ?
-    `, [transactionId]);
-    
+  static async getSplits(transactionId, userId) {
+    await Transaction.findByIdOrFail(transactionId, userId);
+
+    const splits = await knex('transaction_splits as ts')
+      .leftJoin('categories as c', 'ts.category_id', 'c.id')
+      .where('ts.transaction_id', transactionId)
+      .select('ts.*', 'c.name as category_name');
+
     return splits.map(s => ({
       id: s.id,
       transactionId: s.transaction_id,
@@ -592,9 +580,9 @@ export class Transaction {
       description: s.description,
     }));
   }
-  
+
   /**
-   * Formate une transaction pour l'API
+   * Format a transaction for the API
    */
   static format(tx) {
     return {

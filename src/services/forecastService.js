@@ -1,36 +1,41 @@
-import { query } from '../database/connection.js';
+import knex from '../database/connection.js';
 import { roundAmount, formatDateISO } from '../utils/helpers.js';
 import { addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import dateHelpers from '../database/dateHelpers.js';
 import Account from '../models/Account.js';
-import PlannedTransaction from '../models/PlannedTransaction.js';
 
 export class ForecastService {
   /**
-   * Calcule les prévisions de trésorerie pour un compte
+   * Calculate cash flow forecast for an account
    */
-  static calculateForecast(userId, accountId, days = 90) {
-    const account = Account.findByIdOrFail(accountId, userId);
+  static async calculateForecast(userId, accountId, days = 90) {
+    const account = await Account.findByIdOrFail(accountId, userId);
     const today = new Date();
     const horizon = addDays(today, days);
+    const todayStr = formatDateISO(today);
+    const horizonStr = formatDateISO(horizon);
 
-    // Récupérer les transactions planifiées
-    const planned = query.all(`
-      SELECT * FROM planned_transactions
-      WHERE user_id = ? AND (account_id = ? OR to_account_id = ?) AND is_active = 1
-        AND (end_date IS NULL OR end_date >= date('now'))
-    `, [userId, accountId, accountId]);
+    // Get planned transactions
+    const planned = await knex('planned_transactions')
+      .where('user_id', userId)
+      .where(function () {
+        this.where('account_id', accountId).orWhere('to_account_id', accountId);
+      })
+      .where('is_active', true)
+      .where(function () {
+        this.whereNull('end_date').orWhere('end_date', '>=', todayStr);
+      });
 
-    // Récupérer les débits différés à venir
-    const deferredDebits = query.all(`
-      SELECT cc.name as card_name, ccc.debit_date, ccc.total_amount
-      FROM credit_card_cycles ccc
-      JOIN credit_cards cc ON ccc.credit_card_id = cc.id
-      WHERE cc.user_id = ? AND cc.linked_account_id = ?
-        AND ccc.status IN ('open', 'pending')
-        AND ccc.debit_date BETWEEN date('now') AND date('now', '+' || ? || ' days')
-    `, [userId, accountId, days]);
+    // Get upcoming deferred debits
+    const deferredDebits = await knex('credit_card_cycles as ccc')
+      .join('credit_cards as cc', 'ccc.credit_card_id', 'cc.id')
+      .select('cc.name as card_name', 'ccc.debit_date', 'ccc.total_amount')
+      .where('cc.user_id', userId)
+      .where('cc.linked_account_id', accountId)
+      .whereIn('ccc.status', ['open', 'pending'])
+      .whereBetween('ccc.debit_date', [todayStr, horizonStr]);
 
-    // Générer les occurrences futures des transactions planifiées
+    // Generate future occurrences of planned transactions
     const futureTransactions = [];
     for (const pt of planned) {
       const occurrences = ForecastService.generateOccurrences(pt, today, horizon);
@@ -46,7 +51,7 @@ export class ForecastService {
       }
     }
 
-    // Ajouter les débits différés
+    // Add deferred debits
     for (const debit of deferredDebits) {
       futureTransactions.push({
         date: debit.debit_date,
@@ -56,10 +61,10 @@ export class ForecastService {
       });
     }
 
-    // Trier par date
+    // Sort by date
     futureTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Calculer les soldes jour par jour
+    // Calculate daily balances
     let balance = account.currentBalance;
     const dailyBalances = [];
     const interval = eachDayOfInterval({ start: today, end: horizon });
@@ -112,7 +117,7 @@ export class ForecastService {
 
     while (current <= maxDate) {
       if (current >= start) occurrences.push(new Date(current));
-      
+
       switch (planned.frequency) {
         case 'once': return occurrences;
         case 'daily': current = addDays(current, 1); break;
@@ -130,22 +135,25 @@ export class ForecastService {
   }
 
   /**
-   * Calcule les prévisions globales pour tous les comptes
+   * Calculate global forecast for all accounts
    */
-  static calculateGlobalForecast(userId, days = 90) {
-    const accounts = query.all(`
-      SELECT id, name, current_balance FROM accounts
-      WHERE user_id = ? AND is_active = 1 AND is_included_in_total = 1 AND type != 'credit_card'
-    `, [userId]);
+  static async calculateGlobalForecast(userId, days = 90) {
+    const accounts = await knex('accounts')
+      .select('id', 'name', 'current_balance')
+      .where({ user_id: userId, is_active: true, is_included_in_total: true })
+      .whereNot('type', 'credit_card');
 
-    const forecasts = accounts.map(acc => ForecastService.calculateForecast(userId, acc.id, days));
-    
+    const forecasts = [];
+    for (const acc of accounts) {
+      forecasts.push(await ForecastService.calculateForecast(userId, acc.id, days));
+    }
+
     const today = new Date();
     const horizon = addDays(today, days);
     const interval = eachDayOfInterval({ start: today, end: horizon });
-    
-    // Agréger les soldes
-    const globalDaily = interval.map((day, i) => {
+
+    // Aggregate balances
+    const globalDaily = interval.map((day) => {
       const dayStr = formatDateISO(day);
       const totalBalance = forecasts.reduce((sum, f) => {
         const dayData = f.dailyBalances.find(d => d.date === dayStr);
@@ -177,36 +185,40 @@ export class ForecastService {
   }
 
   /**
-   * Calcule le résumé mensuel prévisionnel
+   * Monthly forecast summary
    */
-  static getMonthlyForecast(userId, months = 3) {
+  static async getMonthlyForecast(userId, months = 3) {
     const result = [];
     const today = new Date();
 
     for (let i = 0; i <= months; i++) {
       const monthStart = startOfMonth(addMonths(today, i));
       const monthEnd = endOfMonth(monthStart);
+      const monthStartStr = formatDateISO(monthStart);
+      const monthEndStr = formatDateISO(monthEnd);
 
-      const planned = query.all(`
-        SELECT SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
-               SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses
-        FROM planned_transactions
-        WHERE user_id = ? AND is_active = 1
-          AND next_occurrence BETWEEN ? AND ?
-      `, [userId, formatDateISO(monthStart), formatDateISO(monthEnd)]);
+      const planned = await knex('planned_transactions')
+        .where('user_id', userId)
+        .where('is_active', true)
+        .whereBetween('next_occurrence', [monthStartStr, monthEndStr])
+        .select(
+          knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+          knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+        )
+        .first();
 
-      const deferred = query.get(`
-        SELECT COALESCE(SUM(total_amount), 0) as total
-        FROM credit_card_cycles ccc
-        JOIN credit_cards cc ON ccc.credit_card_id = cc.id
-        WHERE cc.user_id = ? AND ccc.debit_date BETWEEN ? AND ?
-      `, [userId, formatDateISO(monthStart), formatDateISO(monthEnd)]);
+      const deferred = await knex('credit_card_cycles as ccc')
+        .join('credit_cards as cc', 'ccc.credit_card_id', 'cc.id')
+        .where('cc.user_id', userId)
+        .whereBetween('ccc.debit_date', [monthStartStr, monthEndStr])
+        .sum('ccc.total_amount as total')
+        .first();
 
       result.push({
-        month: formatDateISO(monthStart).slice(0, 7),
-        plannedIncome: planned[0]?.income || 0,
-        plannedExpenses: (planned[0]?.expenses || 0) + (deferred?.total || 0),
-        netFlow: (planned[0]?.income || 0) - (planned[0]?.expenses || 0) - (deferred?.total || 0),
+        month: monthStartStr.slice(0, 7),
+        plannedIncome: planned?.income || 0,
+        plannedExpenses: (planned?.expenses || 0) + (deferred?.total || 0),
+        netFlow: (planned?.income || 0) - (planned?.expenses || 0) - (deferred?.total || 0),
       });
     }
 

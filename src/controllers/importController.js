@@ -1,16 +1,16 @@
 import path from 'path';
 import fs from 'fs';
 import ImportService from '../services/importService.js';
-import { query } from '../database/connection.js';
+import knex from '../database/connection.js';
 import { BadRequestError } from '../utils/errors.js';
 import config from '../config/index.js';
 
 export const uploadFile = async (req, res) => {
   if (!req.file) throw new BadRequestError('Aucun fichier fourni');
-  
+
   const { accountId, fileType } = req.body;
   const importId = await ImportService.createImport(req.user.id, accountId, req.file, fileType);
-  
+
   res.status(201).json({
     success: true,
     data: { importId, filename: req.file.originalname },
@@ -19,16 +19,16 @@ export const uploadFile = async (req, res) => {
 
 export const previewImport = async (req, res) => {
   if (!req.file) throw new BadRequestError('Aucun fichier fourni');
-  
+
   const { fileType, config: importConfig } = req.body;
   const parsedConfig = importConfig ? JSON.parse(importConfig) : {};
-  
+
   const transactions = await ImportService.parseFile(req.file.path, fileType, parsedConfig);
   const preview = transactions.slice(0, parseInt(req.query.previewRows) || 10);
-  
-  // Nettoyer le fichier temporaire
+
+  // Clean up temporary file
   fs.unlinkSync(req.file.path);
-  
+
   res.json({
     success: true,
     data: { preview, totalRows: transactions.length },
@@ -38,16 +38,16 @@ export const previewImport = async (req, res) => {
 export const processImport = async (req, res) => {
   const { importId, accountId, fileType, config: importConfig, filePath } = req.body;
   const parsedConfig = importConfig ? JSON.parse(importConfig) : {};
-  
-  // Parser le fichier
+
+  // Parse the file
   const transactions = await ImportService.parseFile(filePath, fileType, parsedConfig);
-  
-  // Trouver les correspondances
+
+  // Find matches
   const matches = await ImportService.findMatches(req.user.id, accountId, transactions, {
     dateTolerance: req.body.dateTolerance || 2,
     amountTolerance: req.body.amountTolerance || 0.01,
   });
-  
+
   res.json({
     success: true,
     data: {
@@ -66,24 +66,23 @@ export const processImport = async (req, res) => {
 export const validateImport = async (req, res) => {
   const { importId, actions, autoCategories } = req.body;
   const result = await ImportService.processImport(req.user.id, importId, actions, autoCategories);
-  
+
   res.json({ success: true, data: result });
 };
 
 export const getImportHistory = async (req, res) => {
   const { accountId, status, page = 1, limit = 20 } = req.query;
-  
-  let sql = 'SELECT * FROM imports WHERE user_id = ?';
-  const params = [req.user.id];
-  
-  if (accountId) { sql += ' AND account_id = ?'; params.push(accountId); }
-  if (status) { sql += ' AND status = ?'; params.push(status); }
-  
-  sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
-  
-  const imports = query.all(sql, params);
-  
+
+  let query = knex('imports').where('user_id', req.user.id);
+
+  if (accountId) query = query.where('account_id', accountId);
+  if (status) query = query.where('status', status);
+
+  const imports = await query
+    .orderBy('created_at', 'desc')
+    .limit(parseInt(limit))
+    .offset((parseInt(page) - 1) * parseInt(limit));
+
   res.json({
     success: true,
     data: imports.map(imp => ({
@@ -96,9 +95,12 @@ export const getImportHistory = async (req, res) => {
 };
 
 export const getImport = async (req, res) => {
-  const imp = query.get('SELECT * FROM imports WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+  const imp = await knex('imports')
+    .where({ id: req.params.id, user_id: req.user.id })
+    .first();
+
   if (!imp) throw new BadRequestError('Import non trouvé');
-  
+
   res.json({
     success: true,
     data: {

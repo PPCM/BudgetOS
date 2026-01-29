@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
-import { query, transaction as dbTransaction } from '../database/connection.js';
+import knex from '../database/connection.js';
 import { generateId, normalizeDescription, calculateMatchScore, formatDateISO } from '../utils/helpers.js';
 import { BadRequestError } from '../utils/errors.js';
 import Transaction from '../models/Transaction.js';
@@ -13,16 +13,17 @@ import { parse as parseDate, isValid } from 'date-fns';
 export class ImportService {
   static async createImport(userId, accountId, file, fileType) {
     const id = generateId();
-    query.run(`
-      INSERT INTO imports (id, user_id, account_id, filename, file_type, file_size, status)
-      VALUES (?, ?, ?, ?, ?, ?, 'pending')
-    `, [id, userId, accountId, file.filename, fileType, file.size]);
+    await knex('imports').insert({
+      id, user_id: userId, account_id: accountId,
+      filename: file.filename, file_type: fileType,
+      file_size: file.size, status: 'pending',
+    });
     return id;
   }
 
   static async parseFile(filePath, fileType, config = {}) {
     const content = fs.readFileSync(filePath);
-    
+
     switch (fileType) {
       case 'csv': return ImportService.parseCSV(content, config);
       case 'excel': return ImportService.parseExcel(content, config);
@@ -36,15 +37,15 @@ export class ImportService {
   static parseCSV(content, config) {
     const { delimiter = ';', encoding = 'utf-8', hasHeader = true, dateFormat = 'dd/MM/yyyy',
       decimalSeparator = ',', columns, skipRows = 0, invertAmounts = false } = config;
-    
+
     let text = content.toString(encoding === 'utf-8' ? 'utf-8' : 'latin1');
     const records = parse(text, { delimiter, skip_empty_lines: true, from_line: skipRows + 1 });
-    
+
     const dataRows = hasHeader ? records.slice(1) : records;
     return dataRows.map((row, index) => {
       const amount = ImportService.parseAmount(row[columns.amount], decimalSeparator, invertAmounts);
       const date = ImportService.parseLocalDate(row[columns.date], dateFormat);
-      
+
       return {
         rowIndex: index + skipRows + (hasHeader ? 2 : 1),
         date, amount,
@@ -61,16 +62,16 @@ export class ImportService {
     const workbook = XLSX.read(content, { type: 'buffer', cellDates: true });
     const sheet = workbook.Sheets[workbook.SheetNames[sheetIndex]];
     const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-    
+
     const dataRows = data.slice(skipRows + (hasHeader ? 1 : 0));
     const getColIndex = (col) => typeof col === 'string' ? XLSX.utils.decode_col(col) : col;
-    
+
     return dataRows.map((row, index) => {
       const amount = ImportService.parseAmount(row[getColIndex(columns.amount)], '.', invertAmounts);
       let date = row[getColIndex(columns.date)];
       if (date instanceof Date) date = formatDateISO(date);
       else date = ImportService.parseLocalDate(date, dateFormat);
-      
+
       return {
         rowIndex: index + skipRows + (hasHeader ? 2 : 1),
         date, amount,
@@ -83,14 +84,14 @@ export class ImportService {
   static parseQIF(content) {
     const transactions = [];
     let current = {};
-    
+
     content.split('\n').forEach(line => {
       line = line.trim();
       if (!line) return;
-      
+
       const code = line[0];
       const value = line.substring(1);
-      
+
       switch (code) {
         case 'D': current.date = ImportService.parseLocalDate(value, 'MM/dd/yyyy'); break;
         case 'T':
@@ -114,19 +115,19 @@ export class ImportService {
     const transactions = [];
     const txRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
     let match;
-    
+
     while ((match = txRegex.exec(content)) !== null) {
       const tx = match[1];
       const getValue = (tag) => {
         const m = tx.match(new RegExp(`<${tag}>([^<\\n]+)`, 'i'));
         return m ? m[1].trim() : null;
       };
-      
+
       const dateStr = getValue('DTPOSTED');
       const date = dateStr ? `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}` : null;
       const amount = parseFloat(getValue('TRNAMT')) || 0;
       const description = getValue('NAME') || getValue('MEMO') || '';
-      
+
       if (date) {
         transactions.push({
           date, amount, description,
@@ -161,10 +162,11 @@ export class ImportService {
 
   static async findMatches(userId, accountId, importedTxs, options = {}) {
     const { dateTolerance = 2, amountTolerance = 0.01 } = options;
-    const existingTxs = query.all(`
-      SELECT * FROM transactions WHERE user_id = ? AND account_id = ? AND status != 'void'
-      ORDER BY date DESC LIMIT 1000
-    `, [userId, accountId]);
+    const existingTxs = await knex('transactions')
+      .where({ user_id: userId, account_id: accountId })
+      .whereNot('status', 'void')
+      .orderBy('date', 'desc')
+      .limit(1000);
 
     return importedTxs.map(imported => {
       // Check for exact duplicate by hash
@@ -191,11 +193,11 @@ export class ImportService {
   }
 
   static async processImport(userId, importId, actions, autoCategories = true) {
-    const imp = query.get('SELECT * FROM imports WHERE id = ? AND user_id = ?', [importId, userId]);
+    const imp = await knex('imports').where({ id: importId, user_id: userId }).first();
     if (!imp) throw new BadRequestError('Import non trouvé');
 
-    query.run('UPDATE imports SET status = "processing", started_at = datetime("now") WHERE id = ?', [importId]);
-    
+    await knex('imports').where('id', importId).update({ status: 'processing', started_at: knex.fn.now() });
+
     let imported = 0, duplicates = 0, errors = 0;
     const errorDetails = [];
 
@@ -203,8 +205,8 @@ export class ImportService {
       try {
         if (action.action === 'skip') continue;
         if (action.action === 'match' && action.matchedTransactionId) {
-          query.run('UPDATE transactions SET is_reconciled = 1, reconciled_at = datetime("now") WHERE id = ?',
-            [action.matchedTransactionId]);
+          await knex('transactions').where('id', action.matchedTransactionId)
+            .update({ is_reconciled: true, reconciled_at: knex.fn.now() });
           continue;
         }
 
@@ -214,11 +216,11 @@ export class ImportService {
         // Auto-categorize
         let categoryId = action.categoryId;
         if (autoCategories && !categoryId) {
-          const rule = Rule.matchTransaction(userId, txData);
+          const rule = await Rule.matchTransaction(userId, txData);
           if (rule) categoryId = rule.actionCategoryId;
         }
 
-        Transaction.create(userId, {
+        await Transaction.create(userId, {
           accountId: imp.account_id, categoryId,
           amount: txData.amount, description: action.description || txData.description,
           date: txData.date, valueDate: txData.valueDate,
@@ -232,9 +234,12 @@ export class ImportService {
       }
     }
 
-    query.run(`UPDATE imports SET status = 'completed', imported_count = ?, duplicate_count = ?,
-      error_count = ?, error_details = ?, completed_at = datetime('now') WHERE id = ?`,
-      [imported, duplicates, errors, JSON.stringify(errorDetails), importId]);
+    await knex('imports').where('id', importId).update({
+      status: 'completed',
+      imported_count: imported, duplicate_count: duplicates,
+      error_count: errors, error_details: JSON.stringify(errorDetails),
+      completed_at: knex.fn.now(),
+    });
 
     return { imported, duplicates, errors, errorDetails };
   }

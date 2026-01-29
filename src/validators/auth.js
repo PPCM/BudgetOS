@@ -16,7 +16,7 @@ export const registerSchema = z.object({
     .max(128, 'Le mot de passe est trop long')
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre'
+      'Le mot de passe doit contenir au moins 8 caractères, une minuscule, une majuscule et un chiffre'
     ),
   passwordConfirm: z.string(),
   firstName: z
@@ -85,7 +85,7 @@ export const changePasswordSchema = z.object({
     .max(128, 'Le mot de passe est trop long')
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre'
+      'Le mot de passe doit contenir au moins 8 caractères, une minuscule, une majuscule et un chiffre'
     ),
   newPasswordConfirm: z.string(),
 }).refine((data) => data.newPassword === data.newPasswordConfirm, {

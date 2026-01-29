@@ -28,6 +28,13 @@ const config = {
     sqlite: {
       path: process.env.DB_PATH || './data/budgetos.db',
     },
+    mysql: {
+      host: process.env.MYSQL_HOST || 'localhost',
+      port: parseInt(process.env.MYSQL_PORT, 10) || 3306,
+      database: process.env.MYSQL_DB || 'budgetos',
+      user: process.env.MYSQL_USER || 'budgetos',
+      password: process.env.MYSQL_PASSWORD || 'budgetos',
+    },
     postgres: {
       host: process.env.POSTGRES_HOST || 'localhost',
       port: parseInt(process.env.POSTGRES_PORT, 10) || 5432,

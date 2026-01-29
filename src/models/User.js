@@ -1,259 +1,223 @@
 import bcrypt from 'bcryptjs';
-import { query, transaction } from '../database/connection.js';
+import knex from '../database/connection.js';
 import { generateId } from '../utils/helpers.js';
 import config from '../config/index.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 
 /**
- * Catégories par défaut pour les nouveaux utilisateurs
+ * Default categories for new users
  */
 const defaultCategories = [
-  // Revenus
+  // Income
   { name: 'Salaire', type: 'income', icon: 'Briefcase', color: '#10B981' },
   { name: 'Primes', type: 'income', icon: 'Gift', color: '#059669' },
   { name: 'Remboursements', type: 'income', icon: 'ArrowLeft', color: '#34D399' },
   { name: 'Autres revenus', type: 'income', icon: 'PlusCircle', color: '#A7F3D0' },
-  
-  // Dépenses - Logement
+  // Expenses - Housing
   { name: 'Loyer', type: 'expense', icon: 'Home', color: '#EF4444' },
   { name: 'Électricité', type: 'expense', icon: 'Zap', color: '#F97316' },
   { name: 'Eau', type: 'expense', icon: 'Droplet', color: '#3B82F6' },
   { name: 'Internet', type: 'expense', icon: 'Wifi', color: '#8B5CF6' },
   { name: 'Téléphone', type: 'expense', icon: 'Phone', color: '#A855F7' },
-  
-  // Dépenses - Transport
+  // Expenses - Transport
   { name: 'Carburant', type: 'expense', icon: 'Fuel', color: '#F59E0B' },
   { name: 'Transports', type: 'expense', icon: 'Train', color: '#06B6D4' },
   { name: 'Entretien véhicule', type: 'expense', icon: 'Wrench', color: '#78716C' },
-  
-  // Dépenses - Alimentation
+  // Expenses - Food
   { name: 'Courses', type: 'expense', icon: 'ShoppingCart', color: '#22C55E' },
   { name: 'Restaurant', type: 'expense', icon: 'Utensils', color: '#F97316' },
-  
-  // Dépenses - Santé
+  // Expenses - Health
   { name: 'Santé', type: 'expense', icon: 'Heart', color: '#F43F5E' },
-  
-  // Dépenses - Loisirs
+  // Expenses - Leisure
   { name: 'Loisirs', type: 'expense', icon: 'Music', color: '#EC4899' },
   { name: 'Abonnements', type: 'expense', icon: 'Tv', color: '#8B5CF6' },
-  
-  // Dépenses - Autres
+  // Expenses - Other
   { name: 'Vêtements', type: 'expense', icon: 'Shirt', color: '#D946EF' },
   { name: 'Impôts', type: 'expense', icon: 'FileText', color: '#64748B' },
   { name: 'Banque', type: 'expense', icon: 'Landmark', color: '#475569' },
   { name: 'Divers', type: 'expense', icon: 'MoreHorizontal', color: '#9CA3AF' },
-  
-  // Virements
+  // Transfers
   { name: 'Virement interne', type: 'transfer', icon: 'ArrowRightLeft', color: '#6366F1' },
   { name: 'Épargne', type: 'transfer', icon: 'PiggyBank', color: '#10B981' },
 ];
 
 /**
- * Modèle User
+ * User model
  */
 export class User {
   /**
-   * Crée un nouvel utilisateur
+   * Create a new user with default categories and settings
    */
   static async create(data) {
     const { email, password, firstName, lastName, locale, currency } = data;
-    
-    // Vérifier si l'email existe déjà
-    const existing = query.get('SELECT id FROM users WHERE email = ?', [email]);
+
+    const existing = await knex('users').where('email', email).first();
     if (existing) {
       throw new ConflictError('Cet email est déjà utilisé', 'EMAIL_EXISTS');
     }
-    
+
     const id = generateId();
     const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
-    
-    // Créer l'utilisateur, ses paramètres et ses catégories par défaut
-    transaction(() => {
-      query.run(`
-        INSERT INTO users (id, email, password_hash, first_name, last_name, locale, currency)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [id, email, passwordHash, firstName || null, lastName || null, locale, currency]);
-      
-      query.run(`
-        INSERT INTO user_settings (id, user_id)
-        VALUES (?, ?)
-      `, [generateId(), id]);
-      
-      // Créer les catégories par défaut pour l'utilisateur
-      defaultCategories.forEach((cat, index) => {
-        query.run(`
-          INSERT INTO categories (id, user_id, name, type, icon, color, sort_order)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `, [generateId(), id, cat.name, cat.type, cat.icon, cat.color, index]);
+
+    await knex.transaction(async (trx) => {
+      await trx('users').insert({
+        id, email, password_hash: passwordHash,
+        first_name: firstName || null, last_name: lastName || null,
+        locale, currency,
       });
+
+      await trx('user_settings').insert({ id: generateId(), user_id: id });
+
+      const categories = defaultCategories.map((cat, index) => ({
+        id: generateId(), user_id: id,
+        name: cat.name, type: cat.type,
+        icon: cat.icon, color: cat.color, sort_order: index,
+      }));
+      await trx('categories').insert(categories);
     });
-    
+
     return User.findById(id);
   }
-  
+
   /**
-   * Trouve un utilisateur par ID
+   * Find user by ID
    */
-  static findById(id) {
-    const user = query.get(`
-      SELECT id, email, first_name, last_name, role, locale, currency, timezone,
-             is_active, email_verified, last_login_at, created_at, updated_at
-      FROM users
-      WHERE id = ? AND is_active = 1
-    `, [id]);
-    
+  static async findById(id) {
+    const user = await knex('users')
+      .select('id', 'email', 'first_name', 'last_name', 'role', 'locale', 'currency', 'timezone',
+        'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
+      .where({ id, is_active: true })
+      .first();
+
     return user ? User.format(user) : null;
   }
-  
+
   /**
-   * Trouve un utilisateur par email
+   * Find user by email
    */
-  static findByEmail(email) {
-    const user = query.get(`
-      SELECT id, email, password_hash, first_name, last_name, role, locale, currency, timezone,
-             is_active, email_verified, last_login_at, created_at, updated_at
-      FROM users
-      WHERE email = ? AND is_active = 1
-    `, [email.toLowerCase()]);
-    
+  static async findByEmail(email) {
+    const user = await knex('users')
+      .select('id', 'email', 'password_hash', 'first_name', 'last_name', 'role', 'locale',
+        'currency', 'timezone', 'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
+      .where({ email: email.toLowerCase(), is_active: true })
+      .first();
+
     return user ? { ...User.format(user), passwordHash: user.password_hash } : null;
   }
-  
+
   /**
-   * Vérifie le mot de passe
+   * Verify password
    */
   static async verifyPassword(plainPassword, hashedPassword) {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
-  
+
   /**
-   * Met à jour un utilisateur
+   * Update user profile
    */
-  static update(id, data) {
-    const user = User.findById(id);
-    if (!user) {
-      throw new NotFoundError('Utilisateur non trouvé');
-    }
-    
+  static async update(id, data) {
+    const user = await User.findById(id);
+    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+
     const allowedFields = ['first_name', 'last_name', 'locale', 'currency', 'timezone'];
-    const updates = [];
-    const values = [];
-    
+    const updates = {};
+
     for (const [key, value] of Object.entries(data)) {
       const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
       if (allowedFields.includes(dbKey)) {
-        updates.push(`${dbKey} = ?`);
-        values.push(value);
+        updates[dbKey] = value;
       }
     }
-    
-    if (updates.length > 0) {
-      values.push(id);
-      query.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
+
+    if (Object.keys(updates).length > 0) {
+      await knex('users').where('id', id).update(updates);
     }
-    
+
     return User.findById(id);
   }
-  
+
   /**
-   * Change le mot de passe
+   * Change password
    */
   static async changePassword(id, newPassword) {
     const passwordHash = await bcrypt.hash(newPassword, config.security.bcryptRounds);
-    query.run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
+    await knex('users').where('id', id).update({ password_hash: passwordHash });
   }
-  
+
   /**
-   * Met à jour la date de dernière connexion
+   * Update last login timestamp
    */
-  static updateLastLogin(id) {
-    query.run('UPDATE users SET last_login_at = datetime("now") WHERE id = ?', [id]);
+  static async updateLastLogin(id) {
+    await knex('users').where('id', id).update({ last_login_at: knex.fn.now() });
   }
-  
+
   /**
-   * Désactive un utilisateur
+   * Deactivate user
    */
-  static deactivate(id) {
-    query.run('UPDATE users SET is_active = 0 WHERE id = ?', [id]);
+  static async deactivate(id) {
+    await knex('users').where('id', id).update({ is_active: false });
   }
-  
+
   /**
-   * Liste tous les utilisateurs (admin)
+   * List all users (admin)
    */
-  static findAll(options = {}) {
+  static async findAll(options = {}) {
     const { page = 1, limit = 50, role } = options;
     const offset = (page - 1) * limit;
-    
-    let sql = `
-      SELECT id, email, first_name, last_name, role, locale, currency,
-             is_active, email_verified, last_login_at, created_at
-      FROM users
-      WHERE 1=1
-    `;
-    const params = [];
-    
-    if (role) {
-      sql += ' AND role = ?';
-      params.push(role);
-    }
-    
-    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
-    
-    const users = query.all(sql, params);
-    const total = query.get('SELECT COUNT(*) as count FROM users')?.count || 0;
-    
+
+    let query = knex('users')
+      .select('id', 'email', 'first_name', 'last_name', 'role', 'locale', 'currency',
+        'is_active', 'email_verified', 'last_login_at', 'created_at');
+
+    if (role) query = query.where('role', role);
+
+    const users = await query.orderBy('created_at', 'desc').limit(limit).offset(offset);
+    const totalResult = await knex('users').count('* as count').first();
+    const total = totalResult?.count || 0;
+
     return {
       data: users.map(User.format),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
-  
+
   /**
-   * Récupère les paramètres utilisateur
+   * Get user settings
    */
-  static getSettings(userId) {
-    const settings = query.get('SELECT * FROM user_settings WHERE user_id = ?', [userId]);
+  static async getSettings(userId) {
+    const settings = await knex('user_settings').where('user_id', userId).first();
     return settings ? User.formatSettings(settings) : null;
   }
-  
+
   /**
-   * Met à jour les paramètres utilisateur
+   * Update user settings
    */
-  static updateSettings(userId, data) {
+  static async updateSettings(userId, data) {
     const allowedFields = [
       'date_format', 'number_format', 'week_start_day', 'dashboard_layout',
       'default_account_id', 'email_notifications', 'notify_low_balance',
       'low_balance_threshold', 'notify_upcoming_bills', 'bills_reminder_days',
-      'default_import_config', 'theme'
+      'default_import_config', 'theme',
     ];
-    
-    const updates = [];
-    const values = [];
-    
+
+    const updates = {};
+
     for (const [key, value] of Object.entries(data)) {
       const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
       if (allowedFields.includes(dbKey)) {
-        updates.push(`${dbKey} = ?`);
-        values.push(typeof value === 'object' ? JSON.stringify(value) : value);
+        updates[dbKey] = typeof value === 'object' ? JSON.stringify(value) : value;
       }
     }
-    
-    if (updates.length > 0) {
-      values.push(userId);
-      query.run(`UPDATE user_settings SET ${updates.join(', ')} WHERE user_id = ?`, values);
+
+    if (Object.keys(updates).length > 0) {
+      await knex('user_settings').where('user_id', userId).update(updates);
     }
-    
+
     return User.getSettings(userId);
   }
-  
+
   /**
-   * Formate un utilisateur pour l'API
+   * Format user for API response
    */
   static format(user) {
     return {
@@ -273,9 +237,9 @@ export class User {
       updatedAt: user.updated_at,
     };
   }
-  
+
   /**
-   * Formate les paramètres pour l'API
+   * Format settings for API response
    */
   static formatSettings(settings) {
     return {

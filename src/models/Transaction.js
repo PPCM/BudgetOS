@@ -478,8 +478,6 @@ export class Transaction {
   static async toggleReconcile(userId, transactionId) {
     const tx = await Transaction.findByIdOrFail(transactionId, userId);
     const isCurrentlyReconciled = tx.isReconciled;
-    const now = new Date().toISOString();
-
     if (isCurrentlyReconciled) {
       // Unreconcile: set status back to 'cleared' and remove reconciliation
       await knex('transactions')
@@ -496,7 +494,7 @@ export class Transaction {
         .update({
           status: 'reconciled',
           is_reconciled: true,
-          reconciled_at: now,
+          reconciled_at: knex.fn.now(),
         });
     }
 

@@ -23,7 +23,7 @@ export class ReportService {
     if (accountId) query = query.where('t.account_id', accountId);
 
     const results = await query;
-    const total = results.reduce((sum, r) => sum + (r.total || 0), 0);
+    const total = results.reduce((sum, r) => sum + Number(r.total || 0), 0);
 
     return results.map(r => ({
       categoryId: r.id,
@@ -31,8 +31,8 @@ export class ReportService {
       color: r.color || '#9CA3AF',
       icon: r.icon || 'tag',
       total: roundAmount(r.total || 0),
-      count: r.count,
-      percentage: total > 0 ? roundAmount(((r.total || 0) / total) * 100) : 0,
+      count: Number(r.count),
+      percentage: total > 0 ? roundAmount((Number(r.total || 0) / total) * 100) : 0,
     }));
   }
 
@@ -52,14 +52,14 @@ export class ReportService {
       .groupBy('c.id')
       .orderBy('total', 'desc');
 
-    const total = results.reduce((sum, r) => sum + (r.total || 0), 0);
+    const total = results.reduce((sum, r) => sum + Number(r.total || 0), 0);
     return results.map(r => ({
       categoryId: r.id,
       categoryName: r.name || 'Non catégorisé',
       color: r.color || '#10B981',
       total: roundAmount(r.total || 0),
-      count: r.count,
-      percentage: total > 0 ? roundAmount(((r.total || 0) / total) * 100) : 0,
+      count: Number(r.count),
+      percentage: total > 0 ? roundAmount((Number(r.total || 0) / total) * 100) : 0,
     }));
   }
 
@@ -125,7 +125,7 @@ export class ReportService {
 
     return results.map(r => ({
       cardId: r.id, cardName: r.name, color: r.color,
-      total: roundAmount(r.total || 0), count: r.count,
+      total: roundAmount(r.total || 0), count: Number(r.count),
     }));
   }
 
@@ -156,8 +156,8 @@ export class ReportService {
     const calcChange = (v1, v2) => v1 && v1 !== 0 ? roundAmount(((v2 - v1) / v1) * 100) : 0;
 
     return {
-      month1: { month: month1, income: data1?.income || 0, expenses: data1?.expenses || 0 },
-      month2: { month: month2, income: data2?.income || 0, expenses: data2?.expenses || 0 },
+      month1: { month: month1, income: roundAmount(data1?.income || 0), expenses: roundAmount(data1?.expenses || 0) },
+      month2: { month: month2, income: roundAmount(data2?.income || 0), expenses: roundAmount(data2?.expenses || 0) },
       changes: {
         income: calcChange(data1?.income, data2?.income),
         expenses: calcChange(data1?.expenses, data2?.expenses),
@@ -217,7 +217,7 @@ export class ReportService {
       yearlyIncome: roundAmount(yearly?.income || 0),
       yearlyExpenses: roundAmount(yearly?.expenses || 0),
       recentTransactions: recentTx.map(t => ({
-        id: t.id, date: t.date, amount: t.amount, description: t.description,
+        id: t.id, date: t.date, amount: Number(t.amount), description: t.description,
         categoryName: t.category_name, accountName: t.account_name, type: t.type,
       })),
     };

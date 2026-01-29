@@ -49,5 +49,6 @@ export function buildUpdates(data, allowedFields, options = {}) {
  * @returns {{ page: number, limit: number, total: number, totalPages: number }}
  */
 export function paginationMeta(page, limit, total) {
-  return { page, limit, total, totalPages: Math.ceil(total / limit) };
+  const t = Number(total);
+  return { page, limit, total: t, totalPages: Math.ceil(t / limit) };
 }

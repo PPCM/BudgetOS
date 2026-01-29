@@ -1,6 +1,7 @@
 import knex from '../database/connection.js';
 import { generateId } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
+import { buildUpdates } from '../utils/modelHelpers.js';
 
 export class Category {
   static async create(userId, data) {
@@ -73,11 +74,7 @@ export class Category {
     await Category.findByIdOrFail(id, userId);
 
     const fields = ['parent_id', 'name', 'type', 'icon', 'color', 'budget_monthly', 'sort_order'];
-    const updates = {};
-    Object.entries(data).forEach(([key, value]) => {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (fields.includes(dbKey)) updates[dbKey] = value;
-    });
+    const updates = buildUpdates(data, fields);
 
     if (Object.keys(updates).length > 0) {
       await knex('categories').where({ id, user_id: userId }).update(updates);

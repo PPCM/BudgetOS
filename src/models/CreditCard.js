@@ -3,6 +3,7 @@ import dateHelpers from '../database/dateHelpers.js';
 import { generateId, roundAmount, calculateDeferredDebitDate, getCycleForPurchase, formatDateISO } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
 import { addMonths, setDate, subDays, endOfMonth, startOfMonth, format } from 'date-fns';
+import { buildUpdates } from '../utils/modelHelpers.js';
 
 /**
  * Parse a MM/YY expiration date string and return a comparable numeric value.
@@ -167,19 +168,67 @@ export class CreditCard {
 
     // Add current cycle balances if requested
     if (includeBalances) {
-      const result = [];
-      for (const card of cards) {
+      const deferredCards = cards.filter(c => c.debit_type === 'deferred');
+      const deferredCardIds = deferredCards.map(c => c.id);
+
+      let cycleBalanceMap = {};
+      let pendingAmountMap = {};
+
+      if (deferredCardIds.length > 0) {
+        const balances = await CreditCard.getBalancesForCards(deferredCardIds);
+        cycleBalanceMap = balances.cycleBalances;
+        pendingAmountMap = balances.pendingAmounts;
+      }
+
+      return cards.map(card => {
         const formatted = CreditCard.format(card);
         if (card.debit_type === 'deferred') {
-          formatted.currentCycleBalance = await CreditCard.getCurrentCycleBalance(card.id, userId);
-          formatted.pendingDebitAmount = await CreditCard.getPendingDebitAmount(card.id, userId);
+          formatted.currentCycleBalance = cycleBalanceMap[card.id] || 0;
+          formatted.pendingDebitAmount = pendingAmountMap[card.id] || 0;
         }
-        result.push(formatted);
-      }
-      return result;
+        return formatted;
+      });
     }
 
     return cards.map(CreditCard.format);
+  }
+
+  /**
+   * Batch-load cycle balances and pending debit amounts for multiple cards.
+   * Replaces N+1 individual calls with 2 batch queries.
+   */
+  static async getBalancesForCards(cardIds) {
+    if (!cardIds.length) return { cycleBalances: {}, pendingAmounts: {} };
+
+    // 1 query: sum of ABS(amount) for open cycles per card
+    const cycleRows = await knex('credit_card_cycles as ccc')
+      .join('transactions as t', 't.credit_card_cycle_id', 'ccc.id')
+      .whereIn('ccc.credit_card_id', cardIds)
+      .where('ccc.status', 'open')
+      .whereNot('t.status', 'void')
+      .groupBy('ccc.credit_card_id')
+      .select('ccc.credit_card_id')
+      .sum(knex.raw('ABS(t.amount) as balance'));
+
+    const cycleBalances = {};
+    for (const row of cycleRows) {
+      cycleBalances[row.credit_card_id] = roundAmount(row.balance || 0);
+    }
+
+    // 1 query: sum of total_amount for pending cycles per card
+    const pendingRows = await knex('credit_card_cycles')
+      .whereIn('credit_card_id', cardIds)
+      .where('status', 'pending')
+      .groupBy('credit_card_id')
+      .select('credit_card_id')
+      .sum('total_amount as total');
+
+    const pendingAmounts = {};
+    for (const row of pendingRows) {
+      pendingAmounts[row.credit_card_id] = roundAmount(row.total || 0);
+    }
+
+    return { cycleBalances, pendingAmounts };
   }
 
   /**
@@ -194,14 +243,7 @@ export class CreditCard {
       'credit_limit', 'has_dedicated_account', 'auto_generate_debit', 'color', 'notes'
     ];
 
-    const updates = {};
-
-    for (const [key, value] of Object.entries(data)) {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (allowedFields.includes(dbKey)) {
-        updates[dbKey] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
-      }
-    }
+    const updates = buildUpdates(data, allowedFields);
 
     if (Object.keys(updates).length > 0) {
       await knex('credit_cards')
@@ -324,19 +366,26 @@ export class CreditCard {
     }
 
     const cycles = await query
+      .leftJoin('transactions as t', function () {
+        this.on('credit_card_cycles.id', '=', 't.credit_card_cycle_id')
+          .andOnVal('t.status', '!=', 'void');
+      })
+      .select(
+        'credit_card_cycles.*',
+        knex.raw('COALESCE(SUM(ABS(t.amount)), 0) as total_amount_calc'),
+        knex.raw('COUNT(t.id) as transaction_count')
+      )
+      .groupBy('credit_card_cycles.id')
       .orderBy('cycle_start_date', 'desc')
       .limit(limit)
       .offset((page - 1) * limit);
 
-    // Add the total amount for each cycle
-    const result = [];
-    for (const cycle of cycles) {
+    return cycles.map(cycle => {
       const formatted = CreditCard.formatCycle(cycle);
-      formatted.totalAmount = await CreditCard.getCycleTotal(cycle.id);
-      formatted.transactionCount = await CreditCard.getCycleTransactionCount(cycle.id);
-      result.push(formatted);
-    }
-    return result;
+      formatted.totalAmount = roundAmount(cycle.total_amount_calc || 0);
+      formatted.transactionCount = cycle.transaction_count || 0;
+      return formatted;
+    });
   }
 
   /**

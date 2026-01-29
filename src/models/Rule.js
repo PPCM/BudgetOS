@@ -2,6 +2,7 @@ import knex from '../database/connection.js';
 import { generateId } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
 import dateHelpers from '../database/dateHelpers.js';
+import { buildUpdates } from '../utils/modelHelpers.js';
 
 export class Rule {
   static async create(userId, data) {
@@ -99,16 +100,7 @@ export class Rule {
   static async update(id, userId, data) {
     await Rule.findByIdOrFail(id, userId);
     const fields = ['name', 'priority', 'is_active', 'conditions', 'action_category_id', 'action_tags', 'action_notes'];
-    const updates = {};
-
-    Object.entries(data).forEach(([key, value]) => {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (fields.includes(dbKey)) {
-        if (dbKey === 'conditions' || dbKey === 'action_tags') updates[dbKey] = JSON.stringify(value);
-        else if (typeof value === 'boolean') updates[dbKey] = value;
-        else updates[dbKey] = value;
-      }
-    });
+    const updates = buildUpdates(data, fields, { jsonFields: ['conditions', 'action_tags'] });
 
     if (Object.keys(updates).length > 0) {
       await knex('rules').where({ id, user_id: userId }).update(updates);

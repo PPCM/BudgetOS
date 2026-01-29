@@ -3,6 +3,7 @@ import knex from '../database/connection.js';
 import { generateId } from '../utils/helpers.js';
 import config from '../config/index.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
+import { buildUpdates, paginationMeta } from '../utils/modelHelpers.js';
 
 /**
  * Default categories for new users
@@ -120,14 +121,7 @@ export class User {
     if (!user) throw new NotFoundError('Utilisateur non trouvé');
 
     const allowedFields = ['first_name', 'last_name', 'locale', 'currency', 'timezone'];
-    const updates = {};
-
-    for (const [key, value] of Object.entries(data)) {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (allowedFields.includes(dbKey)) {
-        updates[dbKey] = value;
-      }
-    }
+    const updates = buildUpdates(data, allowedFields);
 
     if (Object.keys(updates).length > 0) {
       await knex('users').where('id', id).update(updates);
@@ -177,7 +171,7 @@ export class User {
 
     return {
       data: users.map(User.format),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      pagination: paginationMeta(page, limit, total),
     };
   }
 
@@ -200,14 +194,9 @@ export class User {
       'default_import_config', 'theme',
     ];
 
-    const updates = {};
-
-    for (const [key, value] of Object.entries(data)) {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (allowedFields.includes(dbKey)) {
-        updates[dbKey] = typeof value === 'object' ? JSON.stringify(value) : value;
-      }
-    }
+    const updates = buildUpdates(data, allowedFields, {
+      jsonFields: ['dashboard_layout', 'default_import_config'],
+    });
 
     if (Object.keys(updates).length > 0) {
       await knex('user_settings').where('user_id', userId).update(updates);

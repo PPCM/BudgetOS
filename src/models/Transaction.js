@@ -3,6 +3,7 @@ import dateHelpers from '../database/dateHelpers.js';
 import { generateId, roundAmount, normalizeDescription } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
 import Account from './Account.js';
+import { buildUpdates, paginationMeta } from '../utils/modelHelpers.js';
 
 /**
  * Transaction model
@@ -236,12 +237,7 @@ export class Transaction {
 
     return {
       data: transactions.map(Transaction.format),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: paginationMeta(page, limit, total),
     };
   }
 
@@ -304,9 +300,6 @@ export class Transaction {
     // Fields that should be synced to linked transaction
     const syncFields = ['category_id', 'payee_id', 'description', 'notes', 'date', 'status'];
 
-    const updates = {};
-    const linkedUpdatesObj = {};
-
     // Calculate amount with correct sign
     let newAmount = null;
     if (data.amount !== undefined) {
@@ -317,21 +310,17 @@ export class Transaction {
       }
     }
 
+    const updates = buildUpdates(data, allowedFields, { jsonFields: ['tags'] });
+    if (newAmount !== null) {
+      updates.amount = newAmount;
+    }
+
+    // Build linked transaction updates from synced fields
+    const linkedUpdatesObj = {};
     for (const [key, value] of Object.entries(data)) {
       const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (allowedFields.includes(dbKey)) {
-        if (dbKey === 'tags') {
-          updates[dbKey] = JSON.stringify(value);
-        } else if (dbKey === 'amount') {
-          updates[dbKey] = newAmount;
-        } else {
-          updates[dbKey] = value;
-        }
-
-        // Also update linked transaction for synced fields
-        if (syncFields.includes(dbKey)) {
-          linkedUpdatesObj[dbKey] = value;
-        }
+      if (syncFields.includes(dbKey)) {
+        linkedUpdatesObj[dbKey] = value;
       }
     }
 
@@ -468,17 +457,14 @@ export class Transaction {
    * Reconcile transactions
    */
   static async reconcile(userId, transactionIds, reconcileDate) {
-    await knex.transaction(async (trx) => {
-      for (const txId of transactionIds) {
-        await trx('transactions')
-          .where({ id: txId, user_id: userId })
-          .update({
-            status: 'reconciled',
-            is_reconciled: 1,
-            reconciled_at: reconcileDate,
-          });
-      }
-    });
+    await knex('transactions')
+      .where('user_id', userId)
+      .whereIn('id', transactionIds)
+      .update({
+        status: 'reconciled',
+        is_reconciled: 1,
+        reconciled_at: reconcileDate,
+      });
 
     return { reconciled: transactionIds.length };
   }

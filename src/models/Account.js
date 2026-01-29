@@ -2,6 +2,7 @@ import knex from '../database/connection.js';
 import { generateId, roundAmount } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
 import dateHelpers from '../database/dateHelpers.js';
+import { buildUpdates } from '../utils/modelHelpers.js';
 
 /**
  * Account model
@@ -99,13 +100,7 @@ export class Account {
       'color', 'icon', 'is_included_in_total', 'notes', 'sort_order',
     ];
 
-    const updates = {};
-    for (const [key, value] of Object.entries(data)) {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (allowedFields.includes(dbKey)) {
-        updates[dbKey] = typeof value === 'boolean' ? value : value;
-      }
-    }
+    const updates = buildUpdates(data, allowedFields);
 
     if (Object.keys(updates).length > 0) {
       await knex('accounts').where({ id, user_id: userId }).update(updates);

@@ -1,4 +1,5 @@
 import knex from '../database/connection.js';
+import dateHelpers from '../database/dateHelpers.js';
 import { roundAmount, formatDateISO } from '../utils/helpers.js';
 import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, endOfYear } from 'date-fns';
 
@@ -70,31 +71,40 @@ export class ReportService {
     const startDate = startOfMonth(subMonths(endDate, months - 1));
     const monthsInterval = eachMonthOfInterval({ start: startDate, end: endDate });
 
-    const results = [];
-    for (const month of monthsInterval) {
-      const monthStart = formatDateISO(startOfMonth(month));
-      const monthEnd = formatDateISO(endOfMonth(month));
+    const yearMonthExpr = dateHelpers.yearMonth(knex, 'date');
 
-      const data = await knex('transactions')
-        .where('user_id', userId)
-        .whereNot('status', 'void')
-        .whereBetween('date', [monthStart, monthEnd])
-        .select(
-          knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
-          knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
-        )
-        .first();
+    // Single query with GROUP BY month instead of N queries
+    const rows = await knex('transactions')
+      .where('user_id', userId)
+      .whereNot('status', 'void')
+      .whereBetween('date', [formatDateISO(startDate), formatDateISO(endDate)])
+      .select(
+        knex.raw(`${yearMonthExpr} as month_key`),
+        knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+        knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+      )
+      .groupByRaw(yearMonthExpr);
 
-      results.push({
-        month: format(month, 'yyyy-MM'),
-        monthLabel: format(month, 'MMM yyyy'),
-        income: roundAmount(data?.income || 0),
-        expenses: roundAmount(data?.expenses || 0),
-        netFlow: roundAmount((data?.income || 0) - (data?.expenses || 0)),
-      });
+    // Build a lookup map from query results
+    const dataMap = {};
+    for (const row of rows) {
+      dataMap[row.month_key] = row;
     }
 
-    return results;
+    // Map every month in the interval (including months with no transactions)
+    return monthsInterval.map(month => {
+      const key = format(month, 'yyyy-MM');
+      const data = dataMap[key];
+      const income = roundAmount(data?.income || 0);
+      const expenses = roundAmount(data?.expenses || 0);
+      return {
+        month: key,
+        monthLabel: format(month, 'MMM yyyy'),
+        income,
+        expenses,
+        netFlow: roundAmount(income - expenses),
+      };
+    });
   }
 
   /**
@@ -164,40 +174,40 @@ export class ReportService {
     const monthEnd = formatDateISO(endOfMonth(today));
     const yearStart = formatDateISO(startOfYear(today));
 
-    const monthly = await knex('transactions')
-      .where('user_id', userId)
-      .whereNot('status', 'void')
-      .whereBetween('date', [monthStart, monthEnd])
-      .select(
-        knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
-        knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
-      )
-      .first();
-
-    const yearly = await knex('transactions')
-      .where('user_id', userId)
-      .whereNot('status', 'void')
-      .whereBetween('date', [yearStart, monthEnd])
-      .select(
-        knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
-        knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
-      )
-      .first();
-
-    const totals = await knex('accounts')
-      .where({ user_id: userId, is_active: true, is_included_in_total: true })
-      .sum('current_balance as total')
-      .first();
-
-    const recentTx = await knex('transactions as t')
-      .leftJoin('categories as c', 't.category_id', 'c.id')
-      .leftJoin('accounts as a', 't.account_id', 'a.id')
-      .select('t.*', 'c.name as category_name', 'a.name as account_name')
-      .where('t.user_id', userId)
-      .whereNot('t.status', 'void')
-      .orderBy('t.date', 'desc')
-      .orderBy('t.created_at', 'desc')
-      .limit(5);
+    // Run all 4 independent queries in parallel
+    const [monthly, yearly, totals, recentTx] = await Promise.all([
+      knex('transactions')
+        .where('user_id', userId)
+        .whereNot('status', 'void')
+        .whereBetween('date', [monthStart, monthEnd])
+        .select(
+          knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+          knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+        )
+        .first(),
+      knex('transactions')
+        .where('user_id', userId)
+        .whereNot('status', 'void')
+        .whereBetween('date', [yearStart, monthEnd])
+        .select(
+          knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
+          knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
+        )
+        .first(),
+      knex('accounts')
+        .where({ user_id: userId, is_active: true, is_included_in_total: true })
+        .sum('current_balance as total')
+        .first(),
+      knex('transactions as t')
+        .leftJoin('categories as c', 't.category_id', 'c.id')
+        .leftJoin('accounts as a', 't.account_id', 'a.id')
+        .select('t.*', 'c.name as category_name', 'a.name as account_name')
+        .where('t.user_id', userId)
+        .whereNot('t.status', 'void')
+        .orderBy('t.date', 'desc')
+        .orderBy('t.created_at', 'desc')
+        .limit(5),
+    ]);
 
     return {
       totalBalance: roundAmount(totals?.total || 0),

@@ -268,6 +268,21 @@ export function castInt(knex, expression) {
   }
 }
 
+/**
+ * Returns a raw SQL expression that extracts year-month (YYYY-MM) from a date column.
+ * @param {import('knex').Knex} knex
+ * @param {string} column - The date column name
+ * @returns {string} Raw SQL expression string (not a knex.raw object)
+ */
+export function yearMonth(knex, column) {
+  const dialect = getDialect(knex);
+  switch (dialect) {
+    case 'sqlite': return `strftime('%Y-%m', ${column})`;
+    case 'mysql': return `DATE_FORMAT(${column}, '%Y-%m')`;
+    case 'pg': return `TO_CHAR(${column}, 'YYYY-MM')`;
+  }
+}
+
 export default {
   getDialect,
   now,
@@ -289,4 +304,5 @@ export default {
   dateTolerance,
   absDateDistance,
   castInt,
+  yearMonth,
 };

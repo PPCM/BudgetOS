@@ -88,6 +88,7 @@ export class ForecastService {
     }
 
     const balances = dailyBalances.map(d => d.balance);
+    const minBalance = Math.min(...balances);
     return {
       accountId,
       accountName: account.name,
@@ -97,9 +98,9 @@ export class ForecastService {
         days60: ForecastService.getBalanceAtDay(dailyBalances, 60),
         days90: ForecastService.getBalanceAtDay(dailyBalances, 90),
       },
-      minBalance: Math.min(...balances),
+      minBalance,
       maxBalance: Math.max(...balances),
-      minBalanceDate: dailyBalances.find(d => d.balance === Math.min(...balances))?.date,
+      minBalanceDate: dailyBalances.find(d => d.balance === minBalance)?.date,
       dailyBalances,
       upcomingTransactions: futureTransactions.slice(0, 20),
     };
@@ -143,10 +144,9 @@ export class ForecastService {
       .where({ user_id: userId, is_active: true, is_included_in_total: true })
       .whereNot('type', 'credit_card');
 
-    const forecasts = [];
-    for (const acc of accounts) {
-      forecasts.push(await ForecastService.calculateForecast(userId, acc.id, days));
-    }
+    const forecasts = await Promise.all(
+      accounts.map(acc => ForecastService.calculateForecast(userId, acc.id, days))
+    );
 
     const today = new Date();
     const horizon = addDays(today, days);
@@ -188,37 +188,57 @@ export class ForecastService {
    * Monthly forecast summary
    */
   static async getMonthlyForecast(userId, months = 3) {
-    const result = [];
     const today = new Date();
+    const globalStart = formatDateISO(startOfMonth(today));
+    const globalEnd = formatDateISO(endOfMonth(addMonths(today, months)));
 
-    for (let i = 0; i <= months; i++) {
-      const monthStart = startOfMonth(addMonths(today, i));
-      const monthEnd = endOfMonth(monthStart);
-      const monthStartStr = formatDateISO(monthStart);
-      const monthEndStr = formatDateISO(monthEnd);
+    const yearMonthExpr = dateHelpers.yearMonth(knex, 'next_occurrence');
+    const yearMonthDebitExpr = dateHelpers.yearMonth(knex, 'ccc.debit_date');
 
-      const planned = await knex('planned_transactions')
+    // Batch query: all planned transactions grouped by month
+    const [plannedRows, deferredRows] = await Promise.all([
+      knex('planned_transactions')
         .where('user_id', userId)
         .where('is_active', true)
-        .whereBetween('next_occurrence', [monthStartStr, monthEndStr])
+        .whereBetween('next_occurrence', [globalStart, globalEnd])
         .select(
+          knex.raw(`${yearMonthExpr} as month_key`),
           knex.raw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income"),
           knex.raw("SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expenses"),
         )
-        .first();
-
-      const deferred = await knex('credit_card_cycles as ccc')
+        .groupByRaw(yearMonthExpr),
+      knex('credit_card_cycles as ccc')
         .join('credit_cards as cc', 'ccc.credit_card_id', 'cc.id')
         .where('cc.user_id', userId)
-        .whereBetween('ccc.debit_date', [monthStartStr, monthEndStr])
+        .whereBetween('ccc.debit_date', [globalStart, globalEnd])
+        .select(knex.raw(`${yearMonthDebitExpr} as month_key`))
         .sum('ccc.total_amount as total')
-        .first();
+        .groupByRaw(yearMonthDebitExpr),
+    ]);
 
+    const plannedMap = {};
+    for (const row of plannedRows) {
+      plannedMap[row.month_key] = row;
+    }
+    const deferredMap = {};
+    for (const row of deferredRows) {
+      deferredMap[row.month_key] = row;
+    }
+
+    const result = [];
+    for (let i = 0; i <= months; i++) {
+      const monthStart = startOfMonth(addMonths(today, i));
+      const key = formatDateISO(monthStart).slice(0, 7);
+      const planned = plannedMap[key];
+      const deferred = deferredMap[key];
+
+      const income = planned?.income || 0;
+      const expenses = (planned?.expenses || 0) + (deferred?.total || 0);
       result.push({
-        month: monthStartStr.slice(0, 7),
-        plannedIncome: planned?.income || 0,
-        plannedExpenses: (planned?.expenses || 0) + (deferred?.total || 0),
-        netFlow: (planned?.income || 0) - (planned?.expenses || 0) - (deferred?.total || 0),
+        month: key,
+        plannedIncome: income,
+        plannedExpenses: expenses,
+        netFlow: income - expenses,
       });
     }
 

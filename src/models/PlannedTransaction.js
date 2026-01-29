@@ -4,6 +4,7 @@ import { generateId, formatDateISO } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
 import { addDays, addWeeks, addMonths, addYears, setDate, setDay } from 'date-fns';
 import Transaction from './Transaction.js';
+import { buildUpdates, paginationMeta } from '../utils/modelHelpers.js';
 
 export class PlannedTransaction {
   static async create(userId, data) {
@@ -132,7 +133,7 @@ export class PlannedTransaction {
 
     return {
       data: rows.map(PlannedTransaction.format),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      pagination: paginationMeta(page, limit, total),
     };
   }
 
@@ -184,20 +185,7 @@ export class PlannedTransaction {
       'description', 'notes', 'type', 'frequency', 'start_date', 'end_date',
       'execute_before_holiday', 'delete_on_end', 'days_before_create', 'is_active', 'max_occurrences', 'tags',
     ];
-    const updates = {};
-
-    Object.entries(data).forEach(([key, value]) => {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (fields.includes(dbKey)) {
-        if (dbKey === 'tags') {
-          updates[dbKey] = JSON.stringify(value);
-        } else if (typeof value === 'boolean') {
-          updates[dbKey] = value ? 1 : 0;
-        } else {
-          updates[dbKey] = value;
-        }
-      }
-    });
+    const updates = buildUpdates(data, fields, { jsonFields: ['tags'] });
 
     // Recalculate next_occurrence if startDate, endDate or frequency changed
     if (data.startDate || data.endDate !== undefined || data.frequency) {

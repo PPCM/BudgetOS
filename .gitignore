@@ -44,6 +44,15 @@ build/
 coverage/
 .nyc_output/
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# E2E test database
+data/budgetos-e2e-test.db
+
 # Linting/TypeScript
 .eslintcache
 *.tsbuildinfo

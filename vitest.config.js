@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     include: ['tests/**/*.{test,spec}.js'],
+    exclude: ['tests/integration/**'],
     testTimeout: 10000,
   },
 })

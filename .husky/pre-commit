@@ -1,0 +1,6 @@
+#!/bin/sh
+echo "=> Unit tests..."
+npx vitest run --reporter=dot || exit 1
+echo "=> Integration tests..."
+npx vitest run --config vitest.integration.config.js --reporter=dot || exit 1
+echo "All checks passed!"

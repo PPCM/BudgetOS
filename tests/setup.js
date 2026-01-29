@@ -33,11 +33,16 @@ export async function setupTestDb() {
           user: process.env.MYSQL_USER || 'budgetos',
           password: process.env.MYSQL_PASSWORD || 'budgetos',
           charset: 'utf8mb4',
+          dateStrings: ['DATE'],
         },
-        pool: { min: 1, max: 5 },
+        // Single connection prevents FK_CHECKS from applying to wrong connection
+        pool: { min: 1, max: 1 },
       }
       break
-    case 'pg':
+    case 'pg': {
+      // Prevent pg from converting DATE columns to JS Date objects
+      const pgMod = await import('pg')
+      pgMod.default.types.setTypeParser(1082, (val) => val)
       config = {
         client: 'pg',
         connection: {
@@ -47,9 +52,11 @@ export async function setupTestDb() {
           user: process.env.POSTGRES_USER || 'budgetos',
           password: process.env.POSTGRES_PASSWORD || 'budgetos',
         },
-        pool: { min: 1, max: 5 },
+        // Single connection prevents TRUNCATE deadlocks during test cleanup
+        pool: { min: 1, max: 1 },
       }
       break
+    }
     case 'better-sqlite3':
     default:
       config = {
@@ -125,7 +132,13 @@ export async function resetTestDb() {
   // Disable FK checks for cleanup
   const dialect = knexInstance.client?.config?.client || ''
   if (dialect.includes('mysql')) {
+    // Single-connection pool ensures FK_CHECKS applies to all queries
     await knexInstance.raw('SET FOREIGN_KEY_CHECKS = 0')
+    for (const table of tables) {
+      try { await knexInstance.raw(`TRUNCATE TABLE \`${table}\``) } catch (e) { /* table may not exist */ }
+    }
+    await knexInstance.raw('SET FOREIGN_KEY_CHECKS = 1')
+    return
   } else if (dialect.includes('pg')) {
     // Truncate with cascade for PG
     for (const table of tables) {
@@ -141,9 +154,7 @@ export async function resetTestDb() {
     try { await knexInstance(table).del() } catch (e) { /* table may not exist */ }
   }
 
-  if (dialect.includes('mysql')) {
-    await knexInstance.raw('SET FOREIGN_KEY_CHECKS = 1')
-  } else if (dialect.includes('sqlite') || dialect.includes('better-sqlite')) {
+  if (dialect.includes('sqlite') || dialect.includes('better-sqlite')) {
     await knexInstance.raw('PRAGMA foreign_keys = ON')
   }
 }

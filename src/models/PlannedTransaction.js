@@ -27,9 +27,9 @@ export class PlannedTransaction {
       start_date: data.startDate,
       end_date: data.endDate || null,
       next_occurrence: nextOccurrence,
-      auto_create: 1,
-      execute_before_holiday: data.executeBeforeHoliday ? 1 : 0,
-      delete_on_end: data.deleteOnEnd ? 1 : 0,
+      auto_create: true,
+      execute_before_holiday: !!data.executeBeforeHoliday,
+      delete_on_end: !!data.deleteOnEnd,
       days_before_create: data.daysBeforeCreate || 0,
       max_occurrences: data.maxOccurrences || null,
       tags: data.tags ? JSON.stringify(data.tags) : null,
@@ -111,7 +111,7 @@ export class PlannedTransaction {
     if (accountId) baseQuery.andWhere('pt.account_id', accountId);
     if (type) baseQuery.andWhere('pt.type', type);
     if (frequency) baseQuery.andWhere('pt.frequency', frequency);
-    if (isActive !== undefined) baseQuery.andWhere('pt.is_active', isActive ? 1 : 0);
+    if (isActive !== undefined) baseQuery.andWhere('pt.is_active', !!isActive);
 
     const countResult = await baseQuery.clone().count('* as count').first();
     const total = countResult?.count || 0;
@@ -152,7 +152,7 @@ export class PlannedTransaction {
         'p.image_url as payee_image_url'
       )
       .where('pt.user_id', userId)
-      .andWhere('pt.is_active', 1)
+      .andWhere('pt.is_active', true)
       .andWhereRaw(dateHelpers.dateWithinNextDays(knex, 'pt.next_occurrence', days).toString())
       .orderBy('pt.next_occurrence', 'asc');
 
@@ -220,7 +220,7 @@ export class PlannedTransaction {
       categoryId: pt.category_id, categoryName: pt.category_name, categoryIcon: pt.category_icon, categoryColor: pt.category_color,
       payeeId: pt.payee_id, payeeName: pt.payee_name, payeeImageUrl: pt.payee_image_url,
       creditCardId: pt.credit_card_id, toAccountId: pt.to_account_id, toAccountName: pt.to_account_name,
-      amount: pt.amount, description: pt.description, notes: pt.notes, type: pt.type,
+      amount: Number(pt.amount), description: pt.description, notes: pt.notes, type: pt.type,
       frequency: pt.frequency, startDate: pt.start_date, endDate: pt.end_date, nextOccurrence: pt.next_occurrence,
       autoCreate: Boolean(pt.auto_create), executeBeforeHoliday: Boolean(pt.execute_before_holiday),
       deleteOnEnd: Boolean(pt.delete_on_end), daysBeforeCreate: pt.days_before_create, isActive: Boolean(pt.is_active),

@@ -1,9 +1,13 @@
 import Knex from 'knex';
+import pg from 'pg';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import config from '../config/index.js';
 import logger from '../utils/logger.js';
+
+// Prevent pg from converting DATE columns to JS Date objects (avoids timezone shifts)
+pg.types.setTypeParser(1082, (val) => val);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +35,7 @@ const buildKnexConfig = () => {
           user: config.database.mysql.user,
           password: config.database.mysql.password,
           charset: 'utf8mb4',
+          dateStrings: ['DATE'],
         },
         pool: { min: 2, max: 10 },
         migrations: migrationsConfig,

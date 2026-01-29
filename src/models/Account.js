@@ -85,7 +85,7 @@ export class Account {
       totalBalance: roundAmount(result?.total_balance || 0),
       availableBalance: roundAmount(result?.available_balance || 0),
       investmentBalance: roundAmount(result?.investment_balance || 0),
-      accountCount: result?.account_count || 0,
+      accountCount: Number(result?.account_count || 0),
     };
   }
 
@@ -126,7 +126,7 @@ export class Account {
       .sum('amount as transactions_sum')
       .first();
 
-    const newBalance = roundAmount(account.initial_balance + (result?.transactions_sum || 0));
+    const newBalance = roundAmount(Number(account.initial_balance) + Number(result?.transactions_sum || 0));
     await db('accounts').where('id', id).update({ current_balance: newBalance });
 
     return newBalance;
@@ -193,10 +193,10 @@ export class Account {
     ).first();
 
     return {
-      transactionCount: stats?.transaction_count || 0,
+      transactionCount: Number(stats?.transaction_count || 0),
       totalIncome: roundAmount(stats?.total_income || 0),
       totalExpenses: roundAmount(stats?.total_expenses || 0),
-      netFlow: roundAmount((stats?.total_income || 0) - (stats?.total_expenses || 0)),
+      netFlow: roundAmount(Number(stats?.total_income || 0) - Number(stats?.total_expenses || 0)),
       averageTransaction: roundAmount(stats?.average_transaction || 0),
     };
   }
@@ -212,8 +212,8 @@ export class Account {
       type: account.type,
       institution: account.institution,
       accountNumber: account.account_number,
-      initialBalance: account.initial_balance,
-      currentBalance: account.current_balance,
+      initialBalance: Number(account.initial_balance),
+      currentBalance: Number(account.current_balance),
       currency: account.currency,
       color: account.color,
       icon: account.icon,

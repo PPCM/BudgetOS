@@ -66,7 +66,7 @@ export class Transaction {
         purchase_date: data.purchaseDate || null,
         status: data.status || 'pending',
         type: data.type,
-        is_recurring: data.isRecurring ? 1 : 0,
+        is_recurring: !!data.isRecurring,
         recurring_id: data.recurringId || null,
         tags: data.tags ? JSON.stringify(data.tags) : null,
       });
@@ -168,7 +168,7 @@ export class Transaction {
     }
 
     if (isReconciled !== undefined) {
-      baseQuery = baseQuery.andWhere('t.is_reconciled', isReconciled === 'true' ? 1 : 0);
+      baseQuery = baseQuery.andWhere('t.is_reconciled', isReconciled === 'true');
     }
 
     if (startDate) {
@@ -462,7 +462,7 @@ export class Transaction {
       .whereIn('id', transactionIds)
       .update({
         status: 'reconciled',
-        is_reconciled: 1,
+        is_reconciled: true,
         reconciled_at: reconcileDate,
       });
 
@@ -486,7 +486,7 @@ export class Transaction {
         .where({ id: transactionId, user_id: userId })
         .update({
           status: 'cleared',
-          is_reconciled: 0,
+          is_reconciled: false,
           reconciled_at: null,
         });
     } else {
@@ -495,7 +495,7 @@ export class Transaction {
         .where({ id: transactionId, user_id: userId })
         .update({
           status: 'reconciled',
-          is_reconciled: 1,
+          is_reconciled: true,
           reconciled_at: now,
         });
     }
@@ -585,7 +585,7 @@ export class Transaction {
       payeeImageUrl: tx.payee_image_url,
       creditCardId: tx.credit_card_id,
       creditCardCycleId: tx.credit_card_cycle_id,
-      amount: tx.amount,
+      amount: Number(tx.amount),
       description: tx.description,
       notes: tx.notes,
       date: tx.date,

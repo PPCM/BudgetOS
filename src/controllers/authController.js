@@ -13,6 +13,11 @@ export const register = async (req, res) => {
   req.session.locale = user.locale;
   req.session.currency = user.currency;
 
+  // Persist session to store before responding so the next request can find it
+  await new Promise((resolve, reject) => {
+    req.session.save((err) => (err ? reject(err) : resolve()));
+  });
+
   logger.info('User registered', { userId: user.id, email: user.email });
 
   res.status(201).json({

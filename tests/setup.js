@@ -111,6 +111,9 @@ export async function resetTestDb() {
   if (!knexInstance) return
 
   const tables = [
+    'group_members',
+    'groups',
+    'system_settings',
     'reconciliation_matches',
     'transaction_splits',
     'transactions',
@@ -225,6 +228,52 @@ export async function createTestTransaction(userId, accountId, data = {}) {
     is_reconciled: tx.isReconciled,
   })
 
+  return id
+}
+
+/**
+ * Create a test group
+ * @param {string} createdBy - User ID of the creator
+ * @param {string} [id] - Optional group ID
+ * @param {string} [name] - Optional group name
+ * @returns {Promise<string>} Group ID
+ */
+export async function createTestGroup(createdBy, id = 'test-group-1', name = 'Test Group') {
+  await knexInstance('groups').insert({
+    id, name, description: 'Test group', is_active: true, created_by: createdBy,
+  })
+  return id
+}
+
+/**
+ * Create a test group member
+ * @param {string} groupId
+ * @param {string} userId
+ * @param {string} [role='member']
+ * @param {string} [id]
+ * @returns {Promise<string>} Membership ID
+ */
+export async function createTestGroupMember(groupId, userId, role = 'member', id = null) {
+  const memberId = id || `test-member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  await knexInstance('group_members').insert({
+    id: memberId, group_id: groupId, user_id: userId, role,
+  })
+  return memberId
+}
+
+/**
+ * Create a test super admin user
+ * @param {string} [id='test-super-admin']
+ * @param {string} [email]
+ * @returns {Promise<string>} User ID
+ */
+export async function createTestSuperAdmin(id = 'test-super-admin', email = null) {
+  const userEmail = email || `${id}@test.com`
+  await knexInstance('users').insert({
+    id, email: userEmail, password_hash: 'hash',
+    first_name: 'Super', last_name: 'Admin',
+    role: 'super_admin',
+  })
   return id
 }
 

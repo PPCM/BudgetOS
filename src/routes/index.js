@@ -10,6 +10,8 @@ import reportRoutes from './reports.js';
 import ruleRoutes from './rules.js';
 import payeeRoutes from './payees.js';
 import uploadRoutes from './uploads.js';
+import groupRoutes from './groups.js';
+import adminRoutes from './admin.js';
 import { csrfTokenRoute } from '../middleware/csrf.js';
 
 const router = Router();
@@ -29,6 +31,8 @@ router.use('/reports', reportRoutes);
 router.use('/rules', ruleRoutes);
 router.use('/payees', payeeRoutes);
 router.use('/uploads', uploadRoutes);
+router.use('/groups', groupRoutes);
+router.use('/admin', adminRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

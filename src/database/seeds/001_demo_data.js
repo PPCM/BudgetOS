@@ -12,14 +12,14 @@ export async function seed(knex) {
   const adminId = uuidv4();
   const adminPassword = await bcrypt.hash('Admin123!', 12);
 
-  // Create admin user
+  // Create super_admin user
   await knex('users').insert({
     id: adminId,
     email: 'admin@budgetos.local',
     password_hash: adminPassword,
     first_name: 'Admin',
     last_name: 'BudgetOS',
-    role: 'admin',
+    role: 'super_admin',
   });
 
   await knex('user_settings').insert({
@@ -27,7 +27,62 @@ export async function seed(knex) {
     user_id: adminId,
   });
 
-  // Create demo accounts
+  // Create Default group
+  const defaultGroupId = uuidv4();
+  await knex('groups').insert({
+    id: defaultGroupId,
+    name: 'Default',
+    description: 'Default group for all users',
+    is_active: true,
+    created_by: adminId,
+  });
+
+  // Set system settings for default group
+  const settingExists = await knex('system_settings')
+    .where('key', 'default_registration_group_id')
+    .first();
+  if (settingExists) {
+    await knex('system_settings')
+      .where('key', 'default_registration_group_id')
+      .update({ value: defaultGroupId, updated_by: adminId });
+  }
+
+  // Create demo users
+  const user1Id = uuidv4();
+  const user2Id = uuidv4();
+  const demoPassword = await bcrypt.hash('Demo1234!', 12);
+
+  await knex('users').insert([
+    {
+      id: user1Id,
+      email: 'user@budgetos.local',
+      password_hash: demoPassword,
+      first_name: 'Jean',
+      last_name: 'Dupont',
+      role: 'user',
+    },
+    {
+      id: user2Id,
+      email: 'manager@budgetos.local',
+      password_hash: demoPassword,
+      first_name: 'Marie',
+      last_name: 'Martin',
+      role: 'admin',
+    },
+  ]);
+
+  await knex('user_settings').insert([
+    { id: uuidv4(), user_id: user1Id },
+    { id: uuidv4(), user_id: user2Id },
+  ]);
+
+  // Add demo users to Default group
+  await knex('group_members').insert([
+    { id: uuidv4(), group_id: defaultGroupId, user_id: user1Id, role: 'member' },
+    { id: uuidv4(), group_id: defaultGroupId, user_id: user2Id, role: 'admin' },
+  ]);
+
+  // Create demo accounts (for super_admin)
   const checkingAccountId = uuidv4();
   const savingsAccountId = uuidv4();
   const creditCardAccountId = uuidv4();

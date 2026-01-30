@@ -4,6 +4,8 @@
  */
 import { vi } from 'vitest'
 import supertest from 'supertest'
+import bcrypt from 'bcryptjs'
+import { v4 as uuidv4 } from 'uuid'
 import { setupTestDb, getTestDb, closeTestDb, resetTestDb } from '../setup.js'
 
 /**
@@ -31,16 +33,43 @@ export async function createTestApp() {
 
 /**
  * Create an authenticated supertest agent.
- * Registers a new user, fetches a CSRF token, and returns the agent ready to make authenticated requests.
+ * Creates a user directly in the DB and logs in via /login to avoid
+ * registration restrictions (public registration is disabled by default).
  * @param {import('express').Express} app
  * @param {object} [opts]
  * @param {string} [opts.email] - Custom email
  * @param {string} [opts.password] - Custom password
+ * @param {string} [opts.role] - User role (default: 'user')
+ * @param {string} [opts.firstName] - First name
+ * @param {string} [opts.lastName] - Last name
  * @returns {Promise<{ agent: import('supertest').SuperAgentTest, csrfToken: string, user: object }>}
  */
 export async function createAuthenticatedAgent(app, opts = {}) {
-  const email = opts.email || `test-${Date.now()}@example.com`
+  const email = (opts.email || `test-${Date.now()}@example.com`).toLowerCase()
   const password = opts.password || 'TestPass1234'
+  const role = opts.role || 'user'
+  const firstName = opts.firstName || 'Test'
+  const lastName = opts.lastName || 'User'
+
+  const db = getTestDb()
+  const userId = uuidv4()
+  const passwordHash = await bcrypt.hash(password, 4) // Low rounds for speed
+
+  // Insert user directly in the database
+  await db('users').insert({
+    id: userId,
+    email,
+    password_hash: passwordHash,
+    first_name: firstName,
+    last_name: lastName,
+    role,
+  })
+
+  // Insert user settings
+  await db('user_settings').insert({
+    id: uuidv4(),
+    user_id: userId,
+  })
 
   const agent = supertest.agent(app)
 
@@ -48,22 +77,47 @@ export async function createAuthenticatedAgent(app, opts = {}) {
   const csrfRes = await agent.get('/api/v1/csrf-token')
   const csrfToken = csrfRes.body.csrfToken
 
-  // Register user
-  const registerRes = await agent
-    .post('/api/v1/auth/register')
+  // Login (instead of register, since public registration is closed)
+  const loginRes = await agent
+    .post('/api/v1/auth/login')
     .set('X-CSRF-Token', csrfToken)
-    .send({
-      email,
-      password,
-      passwordConfirm: password,
-      firstName: 'Test',
-      lastName: 'User',
-    })
+    .send({ email, password })
 
   return {
     agent,
     csrfToken,
-    user: registerRes.body.data?.user || registerRes.body.user || { email },
+    user: loginRes.body.data?.user || { id: userId, email, role },
+  }
+}
+
+/**
+ * Create an authenticated super admin agent.
+ * @param {import('express').Express} app
+ * @param {object} [opts]
+ * @returns {Promise<{ agent: import('supertest').SuperAgentTest, csrfToken: string, user: object }>}
+ */
+export async function createAuthenticatedSuperAdmin(app, opts = {}) {
+  return createAuthenticatedAgent(app, {
+    ...opts,
+    role: 'super_admin',
+    email: opts.email || `super-admin-${Date.now()}@example.com`,
+    firstName: opts.firstName || 'Super',
+    lastName: opts.lastName || 'Admin',
+  })
+}
+
+/**
+ * Ensure system_settings exist in the test DB (needed after resetTestDb).
+ * Call this in beforeEach when testing features that rely on system settings.
+ */
+export async function seedSystemSettings() {
+  const db = getTestDb()
+  const existing = await db('system_settings').where('key', 'allow_public_registration').first()
+  if (!existing) {
+    await db('system_settings').insert([
+      { id: uuidv4(), key: 'allow_public_registration', value: 'false' },
+      { id: uuidv4(), key: 'default_registration_group_id', value: null },
+    ])
   }
 }
 

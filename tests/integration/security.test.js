@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import supertest from 'supertest'
-import { createTestApp, createAuthenticatedAgent, setupTestDb, closeTestDb, resetTestDb } from './helpers.js'
+import { createTestApp, createAuthenticatedAgent, setupTestDb, closeTestDb, resetTestDb, seedSystemSettings } from './helpers.js'
 
 let app
 
@@ -18,6 +18,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestDb()
+  await seedSystemSettings()
 })
 
 describe('Security - 401 without auth', () => {

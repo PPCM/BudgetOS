@@ -26,6 +26,7 @@ export default defineConfig({
     timeout: 60000,
     reuseExistingServer: !process.env.CI,
     env: {
+      ...process.env,
       NODE_ENV: 'development',
       DB_TYPE,
       // SQLite

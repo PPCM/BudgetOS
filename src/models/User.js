@@ -94,13 +94,13 @@ export class User {
   }
 
   /**
-   * Find user by email
+   * Find user by email (includes inactive users for login checks)
    */
   static async findByEmail(email) {
     const user = await knex('users')
       .select('id', 'email', 'password_hash', 'first_name', 'last_name', 'role', 'locale',
         'currency', 'timezone', 'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
-      .where({ email: email.toLowerCase(), is_active: true })
+      .where({ email: email.toLowerCase() })
       .first();
 
     return user ? { ...User.format(user), passwordHash: user.password_hash } : null;
@@ -153,20 +153,100 @@ export class User {
   }
 
   /**
+   * Reactivate a deactivated user
+   */
+  static async reactivate(id) {
+    const user = await knex('users').where('id', id).first();
+    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+    await knex('users').where('id', id).update({ is_active: true });
+    return User.findById(id);
+  }
+
+  /**
+   * Update user role
+   * @param {string} id - User ID
+   * @param {string} role - New role ('user', 'admin', 'super_admin')
+   */
+  static async updateRole(id, role) {
+    const user = await knex('users').where('id', id).first();
+    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+    await knex('users').where('id', id).update({ role });
+    return User.findById(id);
+  }
+
+  /**
+   * Create a user via admin (no default categories, assigns to group)
+   * @param {Object} data - User data
+   * @returns {Promise<Object>}
+   */
+  static async createByAdmin(data) {
+    const { email, password, firstName, lastName, locale, currency, role } = data;
+
+    const existing = await knex('users').where('email', email).first();
+    if (existing) {
+      throw new ConflictError('Cet email est déjà utilisé', 'EMAIL_EXISTS');
+    }
+
+    const id = generateId();
+    const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
+
+    await knex.transaction(async (trx) => {
+      await trx('users').insert({
+        id, email, password_hash: passwordHash,
+        first_name: firstName || null, last_name: lastName || null,
+        locale: locale || 'fr', currency: currency || 'EUR',
+        role: role || 'user',
+      });
+
+      await trx('user_settings').insert({ id: generateId(), user_id: id });
+
+      // Create default categories for the new user
+      const categories = defaultCategories.map((cat, index) => ({
+        id: generateId(), user_id: id,
+        name: cat.name, type: cat.type,
+        icon: cat.icon, color: cat.color, sort_order: index,
+      }));
+      await trx('categories').insert(categories);
+    });
+
+    return User.findById(id);
+  }
+
+  /**
    * List all users (admin)
+   * @param {Object} [options]
+   * @param {number} [options.page=1]
+   * @param {number} [options.limit=50]
+   * @param {string} [options.role] - Filter by role
+   * @param {string} [options.groupId] - Filter by group membership
    */
   static async findAll(options = {}) {
-    const { page = 1, limit = 50, role } = options;
+    const { page = 1, limit = 50, role, groupId } = options;
     const offset = (page - 1) * limit;
 
     let query = knex('users')
-      .select('id', 'email', 'first_name', 'last_name', 'role', 'locale', 'currency',
-        'is_active', 'email_verified', 'last_login_at', 'created_at');
+      .select('users.id', 'users.email', 'users.first_name', 'users.last_name', 'users.role',
+        'users.locale', 'users.currency', 'users.is_active', 'users.email_verified',
+        'users.last_login_at', 'users.created_at');
 
-    if (role) query = query.where('role', role);
+    if (role) query = query.where('users.role', role);
 
-    const users = await query.orderBy('created_at', 'desc').limit(limit).offset(offset);
-    const totalResult = await knex('users').count('* as count').first();
+    if (groupId) {
+      query = query
+        .join('group_members', 'users.id', 'group_members.user_id')
+        .where('group_members.group_id', groupId);
+    }
+
+    const users = await query.orderBy('users.created_at', 'desc').limit(limit).offset(offset);
+
+    let countQuery = knex('users').count('* as count');
+    if (role) countQuery = countQuery.where('role', role);
+    if (groupId) {
+      countQuery = countQuery
+        .join('group_members', 'users.id', 'group_members.user_id')
+        .where('group_members.group_id', groupId);
+    }
+    const totalResult = await countQuery.first();
     const total = totalResult?.count || 0;
 
     return {

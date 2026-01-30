@@ -7,17 +7,41 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 
 /**
- * Clean SQLite E2E database by removing the file and associated WAL/SHM/journal files.
+ * Clean SQLite E2E database by truncating all data tables.
+ * NOTE: globalSetup runs AFTER webServer starts, so deleting the file
+ * would cause SQLITE_READONLY_DBMOVED.  Instead, connect and truncate.
  */
-function cleanSqlite() {
+async function cleanSqlite() {
   const dbPath = path.join(projectRoot, 'data', 'budgetos-e2e-test.db')
-  if (fs.existsSync(dbPath)) {
-    fs.unlinkSync(dbPath)
-    console.log('[E2E Setup] Removed stale SQLite E2E database')
+  if (!fs.existsSync(dbPath)) {
+    // DB does not exist yet — the server will create it via migrations.
+    console.log('[E2E Setup] No SQLite E2E database to clean (will be created by server)')
+    return
   }
-  for (const ext of ['-wal', '-shm', '-journal']) {
-    const f = dbPath + ext
-    if (fs.existsSync(f)) fs.unlinkSync(f)
+
+  const db = knex({
+    client: 'better-sqlite3',
+    connection: { filename: dbPath },
+    useNullAsDefault: true,
+  })
+  try {
+    // Get all user-created tables (skip knex internals and sqlite internals)
+    const tables = await db.raw(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'knex_%' AND name NOT LIKE 'sqlite_%'"
+    )
+    if (tables.length > 0) {
+      // Disable FK checks, delete all data, re-enable
+      await db.raw('PRAGMA foreign_keys = OFF')
+      for (const { name } of tables) {
+        await db.raw(`DELETE FROM "${name}"`)
+      }
+      await db.raw('PRAGMA foreign_keys = ON')
+      console.log(`[E2E Setup] Cleaned SQLite E2E database (truncated ${tables.length} tables)`)
+    } else {
+      console.log('[E2E Setup] SQLite E2E database already clean')
+    }
+  } finally {
+    await db.destroy()
   }
 }
 

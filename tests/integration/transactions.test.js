@@ -219,6 +219,18 @@ describe('Transactions - Check Number', () => {
     expect(res.status).toBe(200)
     expect(res.body.data.transaction.checkNumber).toBe('CHK-GET')
   })
+
+  it('should find transactions by searching checkNumber', async () => {
+    await agent.post('/api/v1/transactions').set('X-CSRF-Token', csrfToken)
+      .send(makeTx({ description: 'Check payment', checkNumber: 'CHK-9876' }))
+    await agent.post('/api/v1/transactions').set('X-CSRF-Token', csrfToken)
+      .send(makeTx({ description: 'Card payment' }))
+
+    const res = await agent.get('/api/v1/transactions?search=9876')
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].checkNumber).toBe('CHK-9876')
+  })
 })
 
 describe('Transactions - Validation', () => {

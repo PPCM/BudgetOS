@@ -8,8 +8,8 @@ import logger from '../utils/logger.js';
  * List all users (super_admin only)
  */
 export const listUsers = async (req, res) => {
-  const { page, limit, role, groupId } = req.query;
-  const result = await User.findAll({ page, limit, role, groupId });
+  const { page, limit, role, groupId, search, status } = req.query;
+  const result = await User.findAll({ page, limit, role, groupId, search, status });
 
   res.json({
     success: true,
@@ -22,10 +22,8 @@ export const listUsers = async (req, res) => {
  * Get user details (super_admin only)
  */
 export const getUser = async (req, res) => {
-  const user = await User.findById(req.params.userId);
+  const user = await User.findByIdAny(req.params.userId);
   if (!user) {
-    // Also check inactive users
-    const allUsers = await User.findAll({ page: 1, limit: 1 });
     const { NotFoundError } = await import('../utils/errors.js');
     throw new NotFoundError('Utilisateur non trouvé');
   }
@@ -64,6 +62,27 @@ export const createUser = async (req, res) => {
 };
 
 /**
+ * Update a user (super_admin only)
+ */
+export const updateUser = async (req, res) => {
+  const { userId } = req.params;
+
+  // Prevent self-role modification
+  if (req.body.role && userId === req.user.id) {
+    throw new BadRequestError('Vous ne pouvez pas modifier votre propre rôle');
+  }
+
+  const user = await User.adminUpdate(userId, req.body);
+
+  logger.info('User updated by admin', { userId, updatedBy: req.user.id });
+
+  res.json({
+    success: true,
+    data: { user },
+  });
+};
+
+/**
  * Suspend a user (super_admin only)
  */
 export const suspendUser = async (req, res) => {
@@ -74,12 +93,13 @@ export const suspendUser = async (req, res) => {
   }
 
   await User.deactivate(userId);
+  const user = await User.findByIdAny(userId);
 
   logger.info('User suspended', { userId, suspendedBy: req.user.id });
 
   res.json({
     success: true,
-    message: 'Utilisateur suspendu',
+    data: { user },
   });
 };
 

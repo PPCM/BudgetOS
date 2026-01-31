@@ -1,9 +1,9 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { 
-  LayoutDashboard, Wallet, ArrowLeftRight, CreditCard, 
+import {
+  LayoutDashboard, Wallet, ArrowLeftRight, CreditCard,
   Tags, BarChart3, LogOut, Menu, X, Upload, Repeat,
-  Wand2, Settings, Users
+  Wand2, Settings, Users, Shield, FolderTree, Cog
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../lib/utils'
@@ -20,6 +20,12 @@ const navigation = [
   { name: 'Règles', href: '/rules', icon: Wand2 },
   { name: 'Rapports', href: '/reports', icon: BarChart3 },
   { name: 'Paramètres', href: '/settings', icon: Settings },
+]
+
+const adminNavigation = [
+  { name: 'Utilisateurs', href: '/admin/users', icon: Users },
+  { name: 'Groupes', href: '/admin/groups', icon: FolderTree },
+  { name: 'Système', href: '/admin/settings', icon: Cog },
 ]
 
 export default function Layout() {
@@ -68,8 +74,8 @@ export default function Layout() {
                 end={item.href === '/'}
                 className={({ isActive }) => cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isActive 
-                    ? "bg-primary-50 text-primary-700" 
+                  isActive
+                    ? "bg-primary-50 text-primary-700"
                     : "text-gray-700 hover:bg-gray-100"
                 )}
                 onClick={() => setSidebarOpen(false)}
@@ -78,6 +84,33 @@ export default function Layout() {
                 {item.name}
               </NavLink>
             ))}
+
+            {/* Admin section - super_admin only */}
+            {user?.role === 'super_admin' && (
+              <>
+                <div className="border-t border-gray-200 my-3" />
+                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5" />
+                  Administration
+                </p>
+                {adminNavigation.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    to={item.href}
+                    className={({ isActive }) => cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-primary-50 text-primary-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                    )}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.name}
+                  </NavLink>
+                ))}
+              </>
+            )}
           </nav>
 
           {/* User */}

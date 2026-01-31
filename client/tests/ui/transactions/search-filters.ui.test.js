@@ -8,7 +8,7 @@
  *
  * These tests validate:
  *   - The X icon in the search field clears the search text
- *   - The "Réinitialiser" button resets all filters (search, account, category, type, status, dates)
+ *   - The "Réinitialiser" button (positioned right-aligned on the date/period row) resets all filters (search, account, category, type, status, dates)
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
@@ -30,7 +30,7 @@ describe('Transactions - Search Clear & Filter Reset (UI)', () => {
       // Expected:
       //   - No X icon is visible inside the search field
       //   - Only the magnifying glass icon is shown on the left
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
@@ -39,7 +39,7 @@ describe('Transactions - Search Clear & Filter Reset (UI)', () => {
       //   1. Type "test" in the search field
       // Expected:
       //   - An X icon appears on the right side of the search field
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
@@ -52,7 +52,7 @@ describe('Transactions - Search Clear & Filter Reset (UI)', () => {
       //   - The search field is now empty
       //   - The X icon disappears
       //   - The full transaction list is restored
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
   })
@@ -62,27 +62,27 @@ describe('Transactions - Search Clear & Filter Reset (UI)', () => {
       // Steps:
       //   1. Ensure all filters are at their default values (no search, all accounts, all categories, all types, all statuses, no dates)
       // Expected:
-      //   - The "Réinitialiser" button is NOT visible
-      // Verified: PENDING
+      //   - The "Réinitialiser" button is NOT visible on the date/period row
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
-    it('should show the reset button when a filter is active', () => {
+    it('should show the reset button on the period row when a filter is active', () => {
       // Steps:
       //   1. Select a specific account from the "Tous les comptes" dropdown
       // Expected:
-      //   - The "Réinitialiser" button appears with a rotate icon
-      // Verified: PENDING
+      //   - The "Réinitialiser" button appears right-aligned on the date/period row with a rotate icon
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
-    it('should show the reset button when search text is entered', () => {
+    it('should show the reset button on the period row when search text is entered', () => {
       // Steps:
       //   1. Clear all filters first
       //   2. Type "test" in the search field
       // Expected:
-      //   - The "Réinitialiser" button appears
-      // Verified: PENDING
+      //   - The "Réinitialiser" button appears right-aligned on the date/period row
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
@@ -102,7 +102,7 @@ describe('Transactions - Search Clear & Filter Reset (UI)', () => {
       //   - Date fields are cleared
       //   - The "Réinitialiser" button disappears
       //   - The full transaction list is restored
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
@@ -116,7 +116,7 @@ describe('Transactions - Search Clear & Filter Reset (UI)', () => {
       //   - Start date and end date fields are cleared
       //   - Quick period dropdown shows "Toutes les dates"
       //   - The "Réinitialiser" button disappears
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
   })

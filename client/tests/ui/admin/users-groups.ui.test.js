@@ -188,16 +188,17 @@ describe('AdminUsers - Conditional Group Management (UI)', () => {
   })
 
   describe('error cases - create mode', () => {
-    it('should show validation error when creating user with only email (no password)', () => {
+    it('should block form submission when password is empty (HTML required)', () => {
       // Steps:
       //   1. Click "Nouvel utilisateur"
-      //   2. Fill only Email field
+      //   2. Fill only Email field (test-e1@budgetos.local)
       //   3. Click "Creer"
-      // Expected:
-      //   - Form is NOT submitted (HTML required validation on password)
+      // Verified:
+      //   - Browser alert: "Veuillez renseigner ce champ." on password field
+      //   - Password field gets focus with invalid state (focused, required)
+      //   - Modal stays open (heading "Nouvel utilisateur" still visible)
       //   - No toast message, no API call
-      //   - Modal stays open
-      // Result: PENDING
+      // Result: PASS
     })
 
     it('should show API error for duplicate email', () => {
@@ -205,46 +206,56 @@ describe('AdminUsers - Conditional Group Management (UI)', () => {
       //   1. Click "Nouvel utilisateur"
       //   2. Fill: Email=admin@budgetos.local (existing), Password=Test1234!
       //   3. Click "Creer"
-      // Expected:
-      //   - Toast error with server message (e.g. "Email deja utilise")
-      //   - Modal stays open with form data preserved
-      // Result: PENDING
+      // Verified:
+      //   - Toast error: title "Erreur", message "Cet email est déjà utilisé"
+      //   - Modal stays open (heading "Nouvel utilisateur" still visible)
+      //   - Form data preserved: email="admin@budgetos.local", password masked
+      // Result: PASS
     })
 
     it('should create user successfully without Prenom, Nom, or Groupe', () => {
       // Steps:
       //   1. Click "Nouvel utilisateur"
-      //   2. Fill only Email and Password (leave Prenom, Nom empty, no group)
+      //   2. Fill only Email=noname-e3@budgetos.local and Password=Test1234!
       //   3. Click "Creer"
-      // Expected:
-      //   - "Utilisateur cree avec succes" toast
-      //   - Empty firstName/lastName are stripped (not sent as "")
-      //   - User appears in list with "-" as name
-      // Result: PENDING
+      // Verified:
+      //   - Toast success: "Utilisateur cree avec succes"
+      //   - Modal closes
+      //   - User appears in list: email "noname-e3@budgetos.local", name "-", role "Utilisateur", status "Actif"
+      //   - Empty firstName/lastName stripped before API call (no Zod validation error)
+      // Result: PASS
     })
 
-    it('should show API error for weak password', () => {
+    it('should block or reject weak passwords', () => {
       // Steps:
       //   1. Click "Nouvel utilisateur"
-      //   2. Fill: Email=weak@test.com, Password=abc (too short / no uppercase)
+      //   2. Fill: Email=weak@budgetos.local, Password=abc (3 chars)
       //   3. Click "Creer"
-      // Expected:
-      //   - Toast error with validation message from backend
-      //   - Modal stays open
-      // Result: PENDING
+      // Verified (step 1 - HTML validation):
+      //   - Browser alert: "Veuillez allonger ce texte pour qu'il comporte au moins 8 caractères. Il en compte actuellement 3."
+      //   - Password field marked invalid="true" with focus
+      //   - Modal stays open, no API call
+      // Steps continued:
+      //   4. Change password to "abcdefgh" (8 chars, no uppercase/digit)
+      //   5. Click "Creer"
+      // Verified (step 2 - backend validation):
+      //   - Toast error: title "Erreur", message "Données de requête invalides"
+      //   - Modal stays open with form data preserved
+      // Result: PASS
     })
   })
 
   describe('error cases - edit mode', () => {
     it('should close modal without API call when no changes made', () => {
       // Steps:
-      //   1. Click "Modifier" on any user
+      //   1. Click "Modifier" on Sophie Leroy
       //   2. Click "Enregistrer" immediately (no changes)
-      // Expected:
-      //   - Modal closes
-      //   - No API call made (no toast success/error)
-      //   - No network request to PUT /admin/users/:id
-      // Result: PENDING
+      // Verified:
+      //   - Modal closes (no heading "Modifier l'utilisateur" in snapshot)
+      //   - No toast message displayed (neither success nor error)
+      //   - Network requests: no new PUT request after the initial GET for user data
+      //   - Confirmed by comparing network request list before and after (last request unchanged: reqid=247 GET)
+      // Result: PASS
     })
 
     it('should show API error when updating to duplicate email', () => {
@@ -252,10 +263,12 @@ describe('AdminUsers - Conditional Group Management (UI)', () => {
       //   1. Click "Modifier" on Sophie Leroy
       //   2. Change email to admin@budgetos.local (existing)
       //   3. Click "Enregistrer"
-      // Expected:
-      //   - Toast error with server message
-      //   - Modal stays open with modified email preserved
-      // Result: PENDING
+      // Verified:
+      //   - Toast error: title "Erreur", message "Cet email est déjà utilisé"
+      //   - Modal stays open (heading "Modifier l'utilisateur" visible)
+      //   - Modified email preserved: "admin@budgetos.local" in email field
+      //   - Other data intact: Prenom="Sophie", Nom="Leroy", Groupe="Pinpin"
+      // Result: PASS
     })
 
     it('should show error when group operation fails during save', () => {
@@ -264,11 +277,10 @@ describe('AdminUsers - Conditional Group Management (UI)', () => {
       //   2. Click "Retirer du groupe" on a group
       //   3. Click "Enregistrer"
       //   4. Simulate server error on removeMember
-      // Expected:
-      //   - Toast error with server message
-      //   - Group may still appear in the list after re-opening
-      // Note: Hard to simulate server error in manual UI test
-      // Result: PENDING
+      // Note: Cannot be tested via manual UI — requires server-side error injection
+      //   to force removeMember API to fail. Covered by unit test instead
+      //   (AdminUsers.test.jsx: "shows toast error when removeMember fails during batch save")
+      // Result: SKIP (requires server-side error simulation)
     })
   })
 
@@ -277,36 +289,43 @@ describe('AdminUsers - Conditional Group Management (UI)', () => {
       // Steps:
       //   1. Click "Nouvel utilisateur"
       //   2. Switch role: User → Admin → Super Admin → User → Admin
-      // Expected:
-      //   - No errors or crashes
-      //   - Final state: "Admin" with "Groupes" section and "Ajouter" button
-      //   - Previously selected groups are cleared after Super Admin transition
-      // Result: PENDING
+      // Verified at each step:
+      //   - User → Admin: "Groupes" (plural) section + "Ajouter" button + "Aucun groupe" text
+      //   - Admin → Super Admin: group section disappears entirely (no Groupe/Groupes labels)
+      //   - Super Admin → User: "Groupe" (singular) + simple dropdown "Aucun groupe" (groups cleared)
+      //   - User → Admin: "Groupes" (plural) section + "Ajouter" button + "Aucun groupe" text
+      //   - No errors, no crashes, 5 rapid transitions successful
+      // Result: PASS
     })
 
     it('should preserve form data after API error on create', () => {
       // Steps:
       //   1. Click "Nouvel utilisateur"
-      //   2. Fill: Prenom=Test, Nom=Error, Email=admin@budgetos.local, Password=Test1234!
-      //   3. Click "Creer" (should fail: duplicate email)
-      // Expected:
-      //   - Toast error message
-      //   - Modal stays open
-      //   - All form fields retain their values
+      //   2. Fill: Prenom=Test, Nom=Error, Email=admin@budgetos.local, Password=Test1234!, Groupe=Pinpin
+      //   3. Click "Creer" (fails: duplicate email)
+      // Verified:
+      //   - Toast error: title "Erreur", message "Cet email est déjà utilisé"
+      //   - Modal stays open (heading "Nouvel utilisateur" visible)
+      //   - All fields preserved: Prenom="Test", Nom="Error", Email="admin@budgetos.local",
+      //     Password=masked, Role="Utilisateur", Langue="Francais", Devise="EUR", Groupe="Pinpin"
       //   - User can fix the email and retry
-      // Result: PENDING
+      // Result: PASS
     })
 
     it('should show "Aucun groupe" in user dropdown after removing group in edit', () => {
       // Steps:
-      //   1. Click "Modifier" on User with 1 group (Sophie Leroy)
+      //   1. Click "Modifier" on User with 1 group (Sophie Leroy, group "Pinpin")
       //   2. Change group dropdown to "Aucun groupe"
+      //      Note: Chrome MCP fill tool cannot select <option value=""> (empty value).
+      //      Use evaluate_script with nativeInputValueSetter + dispatchEvent('change') instead.
       //   3. Click "Enregistrer"
       //   4. Click "Modifier" again on same user
-      // Expected:
-      //   - Group dropdown shows "Aucun groupe" selected
-      //   - Group was removed from user
-      // Result: PENDING
+      // Verified:
+      //   - After save: toast "Utilisateur mis a jour" displayed
+      //   - Modal closes
+      //   - Re-opening edit modal: group dropdown shows "Aucun groupe" selected
+      //   - Group removal persisted to server (removeMember API called)
+      // Result: PASS
     })
   })
 })

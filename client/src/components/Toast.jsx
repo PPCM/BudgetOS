@@ -105,7 +105,7 @@ function ToastContainer({ toasts, onClose }) {
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
 
-  const addToast = useCallback(({ type = 'info', title, message, duration = 5000 }) => {
+  const addToast = useCallback(({ type = 'info', title, message, duration = 10000 }) => {
     const id = Date.now() + Math.random()
     const toast = { id, type, title, message }
 
@@ -126,7 +126,7 @@ export function ToastProvider({ children }) {
 
   const toast = useCallback({
     success: (message, title) => addToast({ type: 'success', message, title }),
-    error: (message, title = 'Erreur') => addToast({ type: 'error', message, title, duration: 8000 }),
+    error: (message, title = 'Erreur') => addToast({ type: 'error', message, title, duration: 15000 }),
     warning: (message, title) => addToast({ type: 'warning', message, title }),
     info: (message, title) => addToast({ type: 'info', message, title }),
   }, [addToast])

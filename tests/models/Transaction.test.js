@@ -40,6 +40,7 @@ vi.mock('../../src/database/connection.js', () => {
 
 // Import after mocking
 const { Transaction } = await import('../../src/models/Transaction.js')
+const { default: ImportService } = await import('../../src/services/importService.js')
 
 // Helper functions
 async function createTestUser(id = 'test-user-1', email = null) {
@@ -742,5 +743,169 @@ describe('Transaction.reconcile', () => {
     expect(tx1.isReconciled).toBe(true)
     expect(tx2.status).toBe('reconciled')
     expect(tx2.isReconciled).toBe(true)
+  })
+})
+
+describe('Transaction.findMatchCandidates', () => {
+  let userId
+  let accountId
+  let payeeId
+
+  beforeEach(async () => {
+    userId = await createTestUser()
+    accountId = await createTestAccount(userId)
+    payeeId = await createTestPayee(userId, 'payee-match-1', 'Restaurant ABC')
+  })
+
+  it('returns candidates with exact same absolute amount', async () => {
+    await createTestTransaction(userId, accountId, {
+      id: 'cand-1', amount: -50, date: '2026-01-10', description: 'Payment',
+    })
+    await createTestTransaction(userId, accountId, {
+      id: 'cand-2', amount: -75, date: '2026-01-10', description: 'Other',
+    })
+
+    const results = await Transaction.findMatchCandidates(userId, accountId, {
+      amount: -50, date: '2026-01-15',
+    })
+
+    expect(results).toHaveLength(1)
+    expect(results[0].id).toBe('cand-1')
+  })
+
+  it('sorts candidates by date proximity', async () => {
+    await createTestTransaction(userId, accountId, {
+      id: 'far', amount: -100, date: '2025-12-01', description: 'Far date',
+    })
+    await createTestTransaction(userId, accountId, {
+      id: 'close', amount: -100, date: '2026-01-14', description: 'Close date',
+    })
+
+    const results = await Transaction.findMatchCandidates(userId, accountId, {
+      amount: -100, date: '2026-01-15',
+    })
+
+    expect(results.length).toBe(2)
+    expect(results[0].id).toBe('close')
+    expect(results[1].id).toBe('far')
+  })
+
+  it('excludes reconciled transactions', async () => {
+    await createTestTransaction(userId, accountId, {
+      id: 'reconciled-tx', amount: -50, date: '2026-01-10',
+      description: 'Reconciled', isReconciled: 1, status: 'reconciled',
+    })
+    await createTestTransaction(userId, accountId, {
+      id: 'unreconciled-tx', amount: -50, date: '2026-01-10',
+      description: 'Unreconciled',
+    })
+
+    const results = await Transaction.findMatchCandidates(userId, accountId, {
+      amount: -50, date: '2026-01-15',
+    })
+
+    expect(results).toHaveLength(1)
+    expect(results[0].id).toBe('unreconciled-tx')
+  })
+
+  it('includes payeeName in results', async () => {
+    await createTestTransaction(userId, accountId, {
+      id: 'with-payee', amount: -50, date: '2026-01-10',
+      description: 'With Payee', payeeId,
+    })
+
+    const results = await Transaction.findMatchCandidates(userId, accountId, {
+      amount: -50, date: '2026-01-15',
+    })
+
+    expect(results).toHaveLength(1)
+    expect(results[0].payeeName).toBe('Restaurant ABC')
+  })
+
+  it('excludes void transactions', async () => {
+    await createTestTransaction(userId, accountId, {
+      id: 'void-tx', amount: -50, date: '2026-01-10',
+      description: 'Void', status: 'void',
+    })
+
+    const results = await Transaction.findMatchCandidates(userId, accountId, {
+      amount: -50, date: '2026-01-15',
+    })
+
+    expect(results).toHaveLength(0)
+  })
+
+  it('returns empty array when no candidates match', async () => {
+    await createTestTransaction(userId, accountId, {
+      id: 'no-match', amount: -999, date: '2026-01-10', description: 'Different amount',
+    })
+
+    const results = await Transaction.findMatchCandidates(userId, accountId, {
+      amount: -50, date: '2026-01-15',
+    })
+
+    expect(results).toHaveLength(0)
+  })
+})
+
+describe('ImportService.findMatches - excludes reconciled transactions', () => {
+  let userId
+  let accountId
+
+  beforeEach(async () => {
+    userId = await createTestUser()
+    accountId = await createTestAccount(userId)
+  })
+
+  it('excludes reconciled transactions from automatic matching', async () => {
+    // Create a reconciled transaction
+    await createTestTransaction(userId, accountId, {
+      id: 'reconciled-match', amount: -50, date: '2026-01-15',
+      description: 'Payment A', isReconciled: 1,
+    })
+    // Create an unreconciled transaction with same amount/date
+    await createTestTransaction(userId, accountId, {
+      id: 'unreconciled-match', amount: -50, date: '2026-01-15',
+      description: 'Payment B', isReconciled: 0,
+    })
+
+    const imported = [{ date: '2026-01-15', amount: -50, description: 'Payment', hash: 'unique-hash-1' }]
+    const results = await ImportService.findMatches(userId, accountId, imported)
+
+    expect(results).toHaveLength(1)
+    // Should match the unreconciled one, not the reconciled one
+    expect(results[0].matchType).not.toBe('new')
+    expect(results[0].matchedTransaction.id).toBe('unreconciled-match')
+  })
+
+  it('returns new when only reconciled transactions match', async () => {
+    await createTestTransaction(userId, accountId, {
+      id: 'only-reconciled', amount: -50, date: '2026-01-15',
+      description: 'Payment', isReconciled: 1,
+    })
+
+    const imported = [{ date: '2026-01-15', amount: -50, description: 'Payment', hash: 'unique-hash-2' }]
+    const results = await ImportService.findMatches(userId, accountId, imported)
+
+    expect(results).toHaveLength(1)
+    expect(results[0].matchType).toBe('new')
+    expect(results[0].matchedTransaction).toBeNull()
+  })
+
+  it('excludes reconciled transactions from duplicate detection', async () => {
+    const hash = 'dup-hash-reconciled'
+    await createTestTransaction(userId, accountId, {
+      id: 'reconciled-dup', amount: -50, date: '2026-01-15',
+      description: 'Payment', isReconciled: 1,
+    })
+    // Manually set import_hash on the reconciled tx
+    await testKnex('transactions').where('id', 'reconciled-dup').update({ import_hash: hash })
+
+    const imported = [{ date: '2026-01-15', amount: -50, description: 'Payment', hash }]
+    const results = await ImportService.findMatches(userId, accountId, imported)
+
+    expect(results).toHaveLength(1)
+    // Should NOT be detected as duplicate since the matching tx is reconciled
+    expect(results[0].matchType).toBe('new')
   })
 })

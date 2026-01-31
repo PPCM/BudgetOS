@@ -471,6 +471,38 @@ export class Transaction {
   }
 
   /**
+   * Find candidate transactions for manual import matching.
+   * Exact amount match, ±90 days range, sorted by date proximity.
+   */
+  static async findMatchCandidates(userId, accountId, criteria) {
+    const { amount, date } = criteria;
+
+    const transactions = await knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .leftJoin('accounts as a', 't.account_id', 'a.id')
+      .leftJoin('payees as p', 't.payee_id', 'p.id')
+      .where('t.user_id', userId)
+      .andWhere('t.account_id', accountId)
+      .andWhere('t.is_reconciled', false)
+      .andWhereNot('t.status', 'void')
+      .andWhereRaw('ABS(t.amount) = ABS(?)', [amount])
+      .andWhereRaw(dateHelpers.dateTolerance(knex, 't.date', date, 90).toString())
+      .select(
+        't.*',
+        'c.name as category_name',
+        'c.icon as category_icon',
+        'c.color as category_color',
+        'a.name as account_name',
+        'p.name as payee_name',
+        'p.image_url as payee_image_url'
+      )
+      .orderByRaw(dateHelpers.absDateDistance(knex, 't.date', date).toString() + ' ASC')
+      .limit(20);
+
+    return transactions.map(Transaction.format);
+  }
+
+  /**
    * Find transactions for reconciliation matching
    */
   static async findForReconciliation(userId, accountId, criteria) {

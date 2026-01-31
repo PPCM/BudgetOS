@@ -60,6 +60,9 @@ data/budgetos-e2e-test.db
 # Documentation (local changelogs)
 doc/changelog/
 
+# Examples (sample bank files)
+examples/
+
 # Misc
 *.bak
 *.tmp

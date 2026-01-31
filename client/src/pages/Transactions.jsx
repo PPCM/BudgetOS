@@ -5,14 +5,14 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue, Fragment } from 'react'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { transactionsApi, accountsApi, categoriesApi, payeesApi } from '../lib/api'
+import { transactionsApi, accountsApi, categoriesApi, payeesApi, creditCardsApi } from '../lib/api'
 import { formatCurrency, formatDate, getDatePeriod } from '../lib/utils'
 import { getIconComponent } from '../lib/iconMap'
 import {
   Plus, Search, TrendingUp, TrendingDown,
   ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2,
   CheckCircle2, Scale, ArrowUpDown, ArrowUp, ArrowDown,
-  ChevronDown, ChevronRight, RotateCcw
+  ChevronDown, ChevronRight, RotateCcw, CreditCard
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
@@ -102,7 +102,7 @@ const TransactionTypeIcon = ({ type, amount }) => {
  * @param {Function} props.onCreatePayee - Callback to create a new payee inline
  * @param {Function} props.onCreateCategory - Callback to create a new category inline
  */
-function TransactionModal({ transaction, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
+function TransactionModal({ transaction, accounts, categories, payees, creditCards, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
   const [formData, setFormData] = useState(transaction || {
     accountId: accounts?.[0]?.id || '',
     toAccountId: '',
@@ -113,6 +113,7 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
     date: new Date().toISOString().split('T')[0],
     type: 'expense',
     checkNumber: '',
+    creditCardId: '',
   })
 
   const handleSubmit = (e) => {
@@ -213,16 +214,69 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
           {formData.type !== 'transfer' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                N° de chèque (optionnel)
+                Moyen de paiement (optionnel)
               </label>
-              <input
-                type="text"
-                value={formData.checkNumber || ''}
-                onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value })}
-                className="input"
-                maxLength={50}
-                placeholder="Ex: 0001234"
-              />
+              {!formData.creditCardId && !formData.checkNumber ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, creditCardId: '__selecting__' })}
+                    className="flex-1 p-2 border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors flex items-center justify-center gap-2 text-sm text-gray-600"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Carte
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, checkNumber: '__selecting__' })}
+                    className="flex-1 p-2 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-sm text-gray-600"
+                  >
+                    <Tag className="w-4 h-4" />
+                    Chèque
+                  </button>
+                </div>
+              ) : formData.creditCardId ? (
+                <div className="flex gap-2">
+                  <select
+                    value={formData.creditCardId === '__selecting__' ? '' : formData.creditCardId}
+                    onChange={(e) => setFormData({ ...formData, creditCardId: e.target.value || '', checkNumber: '' })}
+                    className="input flex-1"
+                  >
+                    <option value="">Sélectionner une carte</option>
+                    {creditCards?.map((cc) => (
+                      <option key={cc.id} value={cc.id}>{cc.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, creditCardId: '' })}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Annuler"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.checkNumber === '__selecting__' ? '' : (formData.checkNumber || '')}
+                    onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value, creditCardId: '' })}
+                    className="input flex-1"
+                    maxLength={50}
+                    placeholder="Ex: 0001234"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, checkNumber: '' })}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Annuler"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -507,6 +561,11 @@ export default function Transactions() {
     queryFn: () => payeesApi.getAll().then(r => r.data.data),
   })
 
+  const { data: creditCardsData } = useQuery({
+    queryKey: ['creditCards'],
+    queryFn: () => creditCardsApi.getAll().then(r => r.data),
+  })
+
   const createPayeeMutation = useMutation({
     mutationFn: payeesApi.create,
     onSuccess: () => {
@@ -653,8 +712,15 @@ export default function Transactions() {
     if (formData.type === 'transfer') {
       cleanData.toAccountId = formData.toAccountId || null
       cleanData.checkNumber = null
+      cleanData.creditCardId = null
     } else {
-      cleanData.checkNumber = formData.checkNumber?.trim() || null
+      // Credit card and check number are mutually exclusive
+      const creditCardId = formData.creditCardId && formData.creditCardId !== '__selecting__'
+        ? formData.creditCardId : null
+      const checkNumber = formData.checkNumber && formData.checkNumber !== '__selecting__'
+        ? formData.checkNumber.trim() : null
+      cleanData.creditCardId = creditCardId ? creditCardId : null
+      cleanData.checkNumber = creditCardId ? null : (checkNumber || null)
     }
 
     if (editingTx) {
@@ -689,6 +755,7 @@ export default function Transactions() {
       date: tx.date.split('T')[0],
       accountId: sourceAccountId,
       toAccountId: destAccountId,
+      creditCardId: tx.creditCardId || '',
     })
     setModalOpen(true)
   }, [])
@@ -1069,6 +1136,7 @@ export default function Transactions() {
           accounts={accountsData?.data}
           categories={categoriesData}
           payees={payeesData}
+          creditCards={creditCardsData?.data?.creditCards || []}
           onClose={() => { setModalOpen(false); setEditingTx(null); }}
           onSave={handleSave}
           onCreatePayee={handleCreatePayee}

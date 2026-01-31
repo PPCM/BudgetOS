@@ -208,7 +208,7 @@ export class CreditCard {
       .whereNot('t.status', 'void')
       .groupBy('ccc.credit_card_id')
       .select('ccc.credit_card_id')
-      .sum(knex.raw('ABS(t.amount) as balance'));
+      .select(knex.raw('SUM(ABS(t.amount)) as balance'));
 
     const cycleBalances = {};
     for (const row of cycleRows) {

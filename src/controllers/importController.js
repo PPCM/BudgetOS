@@ -1,71 +1,33 @@
-import path from 'path';
-import fs from 'fs';
 import ImportService from '../services/importService.js';
 import knex from '../database/connection.js';
 import { BadRequestError } from '../utils/errors.js';
-import config from '../config/index.js';
+import Transaction from '../models/Transaction.js';
+import { matchCandidatesQuerySchema } from '../validators/import.js';
 
-export const uploadFile = async (req, res) => {
+export const analyzeImport = async (req, res) => {
   if (!req.file) throw new BadRequestError('Aucun fichier fourni');
 
-  const { accountId, fileType } = req.body;
-  const importId = await ImportService.createImport(req.user.id, accountId, req.file, fileType);
+  const { accountId, fileType, config: importConfig } = req.body;
+  if (!accountId) throw new BadRequestError('Compte de destination requis');
+  if (!fileType) throw new BadRequestError('Type de fichier requis');
 
-  res.status(201).json({
-    success: true,
-    data: { importId, filename: req.file.originalname },
-  });
-};
-
-export const previewImport = async (req, res) => {
-  if (!req.file) throw new BadRequestError('Aucun fichier fourni');
-
-  const { fileType, config: importConfig } = req.body;
   const parsedConfig = importConfig ? JSON.parse(importConfig) : {};
 
-  const transactions = await ImportService.parseFile(req.file.path, fileType, parsedConfig);
-  const preview = transactions.slice(0, parseInt(req.query.previewRows) || 10);
+  const result = await ImportService.analyzeImport(
+    req.user.id, accountId, req.file, fileType, parsedConfig
+  );
 
-  // Clean up temporary file
-  fs.unlinkSync(req.file.path);
-
-  res.json({
-    success: true,
-    data: { preview, totalRows: transactions.length },
-  });
+  res.json({ success: true, data: result });
 };
 
-export const processImport = async (req, res) => {
-  const { importId, accountId, fileType, config: importConfig, filePath } = req.body;
-  const parsedConfig = importConfig ? JSON.parse(importConfig) : {};
+export const confirmImport = async (req, res) => {
+  const { importId, actions, autoCategories = true } = req.body;
+  if (!importId) throw new BadRequestError('ID d\'import requis');
+  if (!actions) throw new BadRequestError('Actions requises');
 
-  // Parse the file
-  const transactions = await ImportService.parseFile(filePath, fileType, parsedConfig);
-
-  // Find matches
-  const matches = await ImportService.findMatches(req.user.id, accountId, transactions, {
-    dateTolerance: req.body.dateTolerance || 2,
-    amountTolerance: req.body.amountTolerance || 0.01,
-  });
-
-  res.json({
-    success: true,
-    data: {
-      importId,
-      transactions: matches,
-      summary: {
-        total: matches.length,
-        new: matches.filter(m => m.matchType === 'new').length,
-        duplicates: matches.filter(m => m.matchType === 'duplicate').length,
-        matches: matches.filter(m => ['exact', 'probable'].includes(m.matchType)).length,
-      },
-    },
-  });
-};
-
-export const validateImport = async (req, res) => {
-  const { importId, actions, autoCategories } = req.body;
-  const result = await ImportService.processImport(req.user.id, importId, actions, autoCategories);
+  const result = await ImportService.confirmImport(
+    req.user.id, importId, actions, autoCategories
+  );
 
   res.json({ success: true, data: result });
 };
@@ -89,9 +51,20 @@ export const getImportHistory = async (req, res) => {
       id: imp.id, accountId: imp.account_id, filename: imp.filename,
       fileType: imp.file_type, status: imp.status, totalRows: imp.total_rows,
       importedCount: imp.imported_count, duplicateCount: imp.duplicate_count,
+      matchedCount: imp.matched_count,
       errorCount: imp.error_count, createdAt: imp.created_at, completedAt: imp.completed_at,
     })),
   });
+};
+
+export const getMatchCandidates = async (req, res) => {
+  const { accountId, amount, date } = matchCandidatesQuerySchema.parse(req.query);
+
+  const candidates = await Transaction.findMatchCandidates(
+    req.user.id, accountId, { amount, date }
+  );
+
+  res.json({ success: true, data: candidates });
 };
 
 export const getImport = async (req, res) => {
@@ -107,6 +80,7 @@ export const getImport = async (req, res) => {
       id: imp.id, accountId: imp.account_id, filename: imp.filename,
       fileType: imp.file_type, status: imp.status, totalRows: imp.total_rows,
       importedCount: imp.imported_count, duplicateCount: imp.duplicate_count,
+      matchedCount: imp.matched_count,
       errorCount: imp.error_count, errorDetails: imp.error_details ? JSON.parse(imp.error_details) : [],
       config: imp.config ? JSON.parse(imp.config) : null,
       createdAt: imp.created_at, completedAt: imp.completed_at,

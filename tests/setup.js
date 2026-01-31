@@ -125,6 +125,7 @@ export async function resetTestDb() {
     'budgets',
     'category_learning',
     'attachments',
+    'payee_aliases',
     'categories',
     'payees',
     'user_settings',

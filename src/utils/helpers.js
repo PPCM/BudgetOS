@@ -200,7 +200,7 @@ export const normalizeDescription = (description) => {
  */
 export const calculateMatchScore = (tx1, tx2) => {
   let score = 0;
-  
+
   // Correspondance exacte du montant: +50 points
   if (tx1.amount === tx2.amount) {
     score += 50;
@@ -209,7 +209,7 @@ export const calculateMatchScore = (tx1, tx2) => {
     const amountDiff = Math.abs(tx1.amount - tx2.amount) / Math.abs(tx1.amount);
     if (amountDiff <= 0.01) score += 30;
   }
-  
+
   // Correspondance de date exacte: +30 points
   const date1 = formatDateISO(tx1.date);
   const date2 = formatDateISO(tx2.date);
@@ -221,7 +221,7 @@ export const calculateMatchScore = (tx1, tx2) => {
     if (daysDiff <= 2) score += 15;
     else if (daysDiff <= 5) score += 5;
   }
-  
+
   // Correspondance de description: +20 points
   const desc1 = normalizeDescription(tx1.description);
   const desc2 = normalizeDescription(tx2.description);
@@ -232,7 +232,17 @@ export const calculateMatchScore = (tx1, tx2) => {
       score += 10;
     }
   }
-  
+
+  // Bonus: same check number: +10 points
+  if (tx1.checkNumber && tx2.check_number && tx1.checkNumber === tx2.check_number) {
+    score += 10;
+  }
+
+  // Bonus: same suggested payee: +5 points
+  if (tx1.suggestedPayeeId && tx2.payee_id && tx1.suggestedPayeeId === tx2.payee_id) {
+    score += 5;
+  }
+
   return score;
 };
 

@@ -86,6 +86,7 @@ async function createTestTransaction(userId, accountId, data = {}) {
     amount: tx.amount, description: tx.description,
     date: tx.date, status: tx.status, type: tx.type,
     is_reconciled: tx.isReconciled,
+    check_number: tx.checkNumber || null,
   })
 
   return id
@@ -214,6 +215,16 @@ describe('Transaction.findByUser', () => {
 
       expect(result.data).toHaveLength(1)
       expect(result.data[0].description).toBe('Grocery shopping')
+    })
+
+    it('searches by check number', async () => {
+      await createTestTransaction(userId, accountId, { id: 'tx-1', description: 'Check payment', checkNumber: 'CHK-4567' })
+      await createTestTransaction(userId, accountId, { id: 'tx-2', description: 'Card payment' })
+
+      const result = await Transaction.findByUser(userId, { search: '4567' })
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].description).toBe('Check payment')
     })
   })
 

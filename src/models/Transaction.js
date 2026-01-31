@@ -191,7 +191,8 @@ export class Transaction {
     if (search) {
       baseQuery = baseQuery.andWhere(function () {
         this.where('t.description', 'like', `%${search}%`)
-          .orWhere('t.notes', 'like', `%${search}%`);
+          .orWhere('t.notes', 'like', `%${search}%`)
+          .orWhere('t.check_number', 'like', `%${search}%`);
       });
     }
 

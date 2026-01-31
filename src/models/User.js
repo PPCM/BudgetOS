@@ -47,6 +47,21 @@ const defaultCategories = [
  */
 export class User {
   /**
+   * Insert default categories and user_settings for a new user within a transaction
+   * @param {Object} trx - Knex transaction
+   * @param {string} userId - User ID
+   */
+  static async _insertDefaults(trx, userId) {
+    await trx('user_settings').insert({ id: generateId(), user_id: userId });
+    const categories = defaultCategories.map((cat, index) => ({
+      id: generateId(), user_id: userId,
+      name: cat.name, type: cat.type,
+      icon: cat.icon, color: cat.color, sort_order: index,
+    }));
+    await trx('categories').insert(categories);
+  }
+
+  /**
    * Create a new user with default categories and settings
    */
   static async create(data) {
@@ -67,14 +82,7 @@ export class User {
         locale, currency,
       });
 
-      await trx('user_settings').insert({ id: generateId(), user_id: id });
-
-      const categories = defaultCategories.map((cat, index) => ({
-        id: generateId(), user_id: id,
-        name: cat.name, type: cat.type,
-        icon: cat.icon, color: cat.color, sort_order: index,
-      }));
-      await trx('categories').insert(categories);
+      await User._insertDefaults(trx, id);
     });
 
     return User.findById(id);
@@ -239,15 +247,7 @@ export class User {
         role: role || 'user',
       });
 
-      await trx('user_settings').insert({ id: generateId(), user_id: id });
-
-      // Create default categories for the new user
-      const categories = defaultCategories.map((cat, index) => ({
-        id: generateId(), user_id: id,
-        name: cat.name, type: cat.type,
-        icon: cat.icon, color: cat.color, sort_order: index,
-      }));
-      await trx('categories').insert(categories);
+      await User._insertDefaults(trx, id);
     });
 
     return User.findById(id);
@@ -290,26 +290,11 @@ export class User {
         .where('group_members.group_id', groupId);
     }
 
-    const users = await query.orderBy('users.created_at', 'desc').limit(limit).offset(offset);
-
-    let countQuery = knex('users').count('* as count');
-    if (role) countQuery = countQuery.where('role', role);
-    if (status === 'active') countQuery = countQuery.where('is_active', true);
-    else if (status === 'suspended') countQuery = countQuery.where('is_active', false);
-    if (search) {
-      const term = `%${search}%`;
-      countQuery = countQuery.where(function () {
-        this.where('email', 'like', term)
-          .orWhere('first_name', 'like', term)
-          .orWhere('last_name', 'like', term);
-      });
-    }
-    if (groupId) {
-      countQuery = countQuery
-        .join('group_members', 'users.id', 'group_members.user_id')
-        .where('group_members.group_id', groupId);
-    }
-    const totalResult = await countQuery.first();
+    // Run count and data queries in parallel; count reuses filters via clone
+    const [users, totalResult] = await Promise.all([
+      query.clone().orderBy('users.created_at', 'desc').limit(limit).offset(offset),
+      query.clone().clearSelect().clearOrder().count('* as count').first(),
+    ]);
     const total = totalResult?.count || 0;
 
     return {

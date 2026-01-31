@@ -76,12 +76,11 @@ export class Group {
       query = query.where('groups.name', 'like', `%${search}%`);
     }
 
-    const groups = await query.orderBy('groups.created_at', 'desc').limit(limit).offset(offset);
-
-    let countQuery = knex('groups').count('* as count');
-    if (isActive !== undefined) countQuery = countQuery.where('is_active', isActive);
-    if (search) countQuery = countQuery.where('name', 'like', `%${search}%`);
-    const totalResult = await countQuery.first();
+    // Run count and data queries in parallel; count reuses filters via clone
+    const [groups, totalResult] = await Promise.all([
+      query.clone().orderBy('groups.created_at', 'desc').limit(limit).offset(offset),
+      query.clone().clearSelect().clearOrder().count('* as count').first(),
+    ]);
     const total = totalResult?.count || 0;
 
     return {
@@ -253,11 +252,11 @@ export class Group {
       query = query.where('group_members.role', role);
     }
 
-    const members = await query.orderBy('group_members.joined_at', 'asc').limit(limit).offset(offset);
-
-    let countQuery = knex('group_members').where('group_id', groupId).count('* as count');
-    if (role) countQuery = countQuery.where('role', role);
-    const totalResult = await countQuery.first();
+    // Run count and data queries in parallel; count reuses filters via clone
+    const [members, totalResult] = await Promise.all([
+      query.clone().orderBy('group_members.joined_at', 'asc').limit(limit).offset(offset),
+      query.clone().clearSelect().clearOrder().count('* as count').first(),
+    ]);
     const total = totalResult?.count || 0;
 
     return {

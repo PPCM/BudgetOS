@@ -2,22 +2,36 @@ import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
 import logger from '../utils/logger.js';
 
 /**
+ * Build req.user from session data.
+ * @param {Object} session - Express session
+ * @returns {Object} User object for req.user
+ */
+const buildReqUser = (session) => ({
+  id: session.userId,
+  email: session.email,
+  role: session.role || 'user',
+  locale: session.locale,
+  currency: session.currency,
+});
+
+/**
+ * Throws UnauthorizedError if session has no userId.
+ * Populates req.user from session.
+ * @param {Object} req - Express request
+ */
+const ensureAuthenticated = (req) => {
+  if (!req.session?.userId) {
+    throw new UnauthorizedError('Authentification requise');
+  }
+  req.user = buildReqUser(req.session);
+};
+
+/**
  * Middleware requiring authentication.
  * Populates req.user from session data.
  */
 export const requireAuth = (req, res, next) => {
-  if (!req.session?.userId) {
-    throw new UnauthorizedError('Authentification requise');
-  }
-
-  req.user = {
-    id: req.session.userId,
-    email: req.session.email,
-    role: req.session.role || 'user',
-    locale: req.session.locale,
-    currency: req.session.currency,
-  };
-
+  ensureAuthenticated(req);
   next();
 };
 
@@ -25,25 +39,15 @@ export const requireAuth = (req, res, next) => {
  * Middleware requiring admin or super_admin role
  */
 export const requireAdmin = (req, res, next) => {
-  if (!req.session?.userId) {
-    throw new UnauthorizedError('Authentification requise');
-  }
+  ensureAuthenticated(req);
 
-  if (req.session.role !== 'admin' && req.session.role !== 'super_admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
     logger.warn('Unauthorized admin access attempt', {
-      userId: req.session.userId,
+      userId: req.user.id,
       path: req.path,
     });
     throw new ForbiddenError('Accès administrateur requis');
   }
-
-  req.user = {
-    id: req.session.userId,
-    email: req.session.email,
-    role: req.session.role,
-    locale: req.session.locale,
-    currency: req.session.currency,
-  };
 
   next();
 };
@@ -52,25 +56,15 @@ export const requireAdmin = (req, res, next) => {
  * Middleware requiring super_admin role
  */
 export const requireSuperAdmin = (req, res, next) => {
-  if (!req.session?.userId) {
-    throw new UnauthorizedError('Authentification requise');
-  }
+  ensureAuthenticated(req);
 
-  if (req.session.role !== 'super_admin') {
+  if (req.user.role !== 'super_admin') {
     logger.warn('Unauthorized super admin access attempt', {
-      userId: req.session.userId,
+      userId: req.user.id,
       path: req.path,
     });
     throw new ForbiddenError('Accès super administrateur requis');
   }
-
-  req.user = {
-    id: req.session.userId,
-    email: req.session.email,
-    role: req.session.role,
-    locale: req.session.locale,
-    currency: req.session.currency,
-  };
 
   next();
 };
@@ -80,20 +74,10 @@ export const requireSuperAdmin = (req, res, next) => {
  * Uses dynamic import to avoid circular dependency with Group model.
  */
 export const requireGroupAdmin = async (req, res, next) => {
-  if (!req.session?.userId) {
-    throw new UnauthorizedError('Authentification requise');
-  }
-
-  req.user = {
-    id: req.session.userId,
-    email: req.session.email,
-    role: req.session.role || 'user',
-    locale: req.session.locale,
-    currency: req.session.currency,
-  };
+  ensureAuthenticated(req);
 
   // Super admins always have access
-  if (req.session.role === 'super_admin') {
+  if (req.user.role === 'super_admin') {
     return next();
   }
 
@@ -104,11 +88,11 @@ export const requireGroupAdmin = async (req, res, next) => {
 
   // Dynamic import to avoid circular dependency
   const { Group } = await import('../models/Group.js');
-  const isAdmin = await Group.isGroupAdmin(req.session.userId, groupId);
+  const isAdmin = await Group.isGroupAdmin(req.user.id, groupId);
 
   if (!isAdmin) {
     logger.warn('Unauthorized group admin access attempt', {
-      userId: req.session.userId,
+      userId: req.user.id,
       groupId,
       path: req.path,
     });
@@ -122,25 +106,15 @@ export const requireGroupAdmin = async (req, res, next) => {
  * Middleware requiring admin or super_admin role (without group check)
  */
 export const requireAdminOrSuperAdmin = (req, res, next) => {
-  if (!req.session?.userId) {
-    throw new UnauthorizedError('Authentification requise');
-  }
+  ensureAuthenticated(req);
 
-  if (req.session.role !== 'admin' && req.session.role !== 'super_admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
     logger.warn('Unauthorized admin access attempt', {
-      userId: req.session.userId,
+      userId: req.user.id,
       path: req.path,
     });
     throw new ForbiddenError('Accès administrateur requis');
   }
-
-  req.user = {
-    id: req.session.userId,
-    email: req.session.email,
-    role: req.session.role,
-    locale: req.session.locale,
-    currency: req.session.currency,
-  };
 
   next();
 };
@@ -150,18 +124,7 @@ export const requireAdminOrSuperAdmin = (req, res, next) => {
  * Populates req.user if authenticated, otherwise sets it to null.
  */
 export const optionalAuth = (req, res, next) => {
-  if (req.session?.userId) {
-    req.user = {
-      id: req.session.userId,
-      email: req.session.email,
-      role: req.session.role || 'user',
-      locale: req.session.locale,
-      currency: req.session.currency,
-    };
-  } else {
-    req.user = null;
-  }
-
+  req.user = req.session?.userId ? buildReqUser(req.session) : null;
   next();
 };
 

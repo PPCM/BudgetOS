@@ -12,7 +12,7 @@ import {
   Plus, Search, TrendingUp, TrendingDown,
   ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2,
   CheckCircle2, Scale, ArrowUpDown, ArrowUp, ArrowDown,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, RotateCcw
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
@@ -385,6 +385,19 @@ export default function Transactions() {
   /** @type {React.RefObject} Reference for infinite scroll trigger element */
   const loadMoreRef = useRef(null)
 
+  // Check if any filter or search is active
+  const hasActiveFilters = useMemo(() => {
+    return searchInput || filters.accountId || filters.categoryId ||
+      filters.type || filters.isReconciled || filters.startDate || filters.endDate
+  }, [searchInput, filters])
+
+  // Reset all filters and search
+  const resetAllFilters = useCallback(() => {
+    setSearchInput('')
+    setFilters({ accountId: '', categoryId: '', type: '', isReconciled: '', startDate: '', endDate: '' })
+    setQuickPeriod('')
+  }, [])
+
   // Combine filters with deferred search for API call
   const queryFilters = useMemo(() => ({
     ...filters,
@@ -724,8 +737,17 @@ export default function Transactions() {
                 placeholder="Rechercher..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="input pl-10"
+                className="input pl-10 pr-9"
               />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                  title="Effacer la recherche"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
           <div className="w-48">
@@ -775,6 +797,16 @@ export default function Transactions() {
               <option value="false">Non rapprochées</option>
             </select>
           </div>
+          {hasActiveFilters && (
+            <button
+              onClick={resetAllFilters}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+              title="Réinitialiser tous les filtres"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">Réinitialiser</span>
+            </button>
+          )}
         </div>
         
         {/* Filtres de date */}

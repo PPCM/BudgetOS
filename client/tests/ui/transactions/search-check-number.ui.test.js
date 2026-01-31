@@ -34,7 +34,7 @@ describe('Transactions - Search by Check Number (UI)', () => {
       //   - The transaction with check number "CHK-0042" appears in the list
       //   - The row has a chevron icon (expandable details)
       //   - Expanding the row shows "N° de chèque : CHK-0042"
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
@@ -46,7 +46,7 @@ describe('Transactions - Search by Check Number (UI)', () => {
       // Expected:
       //   - The transaction with check number "CHK-0042" appears in the results
       //   - Transactions without matching check numbers are filtered out
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
@@ -58,7 +58,7 @@ describe('Transactions - Search by Check Number (UI)', () => {
       // Expected:
       //   - Transactions matching "chèque" in description are shown
       //   - Transactions matching "chèque" in check_number would also be shown (OR logic)
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
   })
@@ -72,7 +72,7 @@ describe('Transactions - Search by Check Number (UI)', () => {
       // Expected:
       //   - The transaction list is empty
       //   - An empty state message is displayed
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
 
@@ -84,7 +84,7 @@ describe('Transactions - Search by Check Number (UI)', () => {
       //   4. Wait for the transaction list to refresh
       // Expected:
       //   - All transactions are shown again (no filter applied)
-      // Verified: PENDING
+      // Verified: PASS (Chrome MCP 2026-01-31)
       expect(true).toBe(true)
     })
   })

@@ -797,16 +797,6 @@ export default function Transactions() {
               <option value="false">Non rapprochées</option>
             </select>
           </div>
-          {hasActiveFilters && (
-            <button
-              onClick={resetAllFilters}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-              title="Réinitialiser tous les filtres"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Réinitialiser</span>
-            </button>
-          )}
         </div>
         
         {/* Filtres de date */}
@@ -862,6 +852,16 @@ export default function Transactions() {
             >
               <X className="w-4 h-4" />
               Effacer
+            </button>
+          )}
+          {hasActiveFilters && (
+            <button
+              onClick={resetAllFilters}
+              className="ml-auto flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+              title="Réinitialiser tous les filtres"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">Réinitialiser</span>
             </button>
           )}
         </div>

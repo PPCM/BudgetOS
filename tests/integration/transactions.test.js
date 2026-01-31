@@ -184,6 +184,43 @@ describe('Transactions - Pagination', () => {
   })
 })
 
+describe('Transactions - Check Number', () => {
+  it('should create a transaction with checkNumber', async () => {
+    const res = await agent
+      .post('/api/v1/transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send(makeTx({ checkNumber: 'CHK-001' }))
+
+    expect(res.status).toBe(201)
+    expect(res.body.data.transaction.checkNumber).toBe('CHK-001')
+  })
+
+  it('should update checkNumber on a transaction', async () => {
+    const createRes = await agent.post('/api/v1/transactions').set('X-CSRF-Token', csrfToken).send(makeTx())
+    const id = createRes.body.data.transaction.id
+
+    const res = await agent
+      .put(`/api/v1/transactions/${id}`)
+      .set('X-CSRF-Token', csrfToken)
+      .send({ checkNumber: 'CHK-UPD' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.transaction.checkNumber).toBe('CHK-UPD')
+  })
+
+  it('should return checkNumber in GET response', async () => {
+    const createRes = await agent
+      .post('/api/v1/transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send(makeTx({ checkNumber: 'CHK-GET' }))
+    const id = createRes.body.data.transaction.id
+
+    const res = await agent.get(`/api/v1/transactions/${id}`)
+    expect(res.status).toBe(200)
+    expect(res.body.data.transaction.checkNumber).toBe('CHK-GET')
+  })
+})
+
 describe('Transactions - Validation', () => {
   it('should reject transaction without description', async () => {
     const res = await agent

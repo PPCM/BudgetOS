@@ -3,7 +3,7 @@
  * Provides CRUD operations with filtering, search, and infinite scroll
  */
 
-import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue, Fragment } from 'react'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { formatCurrency, formatDate, getDatePeriod } from '../lib/utils'
@@ -11,13 +11,15 @@ import { getIconComponent } from '../lib/iconMap'
 import {
   Plus, Search, TrendingUp, TrendingDown,
   ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2,
-  CheckCircle2, Scale, ArrowUpDown, ArrowUp, ArrowDown
+  CheckCircle2, Scale, ArrowUpDown, ArrowUp, ArrowDown,
+  ChevronDown, ChevronRight
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
 import { useToast } from '../components/Toast'
 import { findKnownLogo } from '../lib/knownLogos'
 import { useAuth } from '../contexts/AuthContext'
+import TransactionExpandedRow, { hasExpandableDetails } from '../components/TransactionExpandedRow'
 
 /**
  * Sort icon component for table headers
@@ -110,6 +112,7 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
     description: '',
     date: new Date().toISOString().split('T')[0],
     type: 'expense',
+    checkNumber: '',
   })
 
   const handleSubmit = (e) => {
@@ -202,6 +205,22 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
               required
             />
           </div>
+
+          {formData.type !== 'transfer' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                N° de chèque (optionnel)
+              </label>
+              <input
+                type="text"
+                value={formData.checkNumber || ''}
+                onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value })}
+                className="input"
+                maxLength={50}
+                placeholder="Ex: 0001234"
+              />
+            </div>
+          )}
 
           {/* Comptes - affichage différent pour les virements */}
           {formData.type === 'transfer' ? (
@@ -341,6 +360,8 @@ export default function Transactions() {
   const toast = useToast()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
+  /** @type {Set<string>} Set of expanded transaction IDs */
+  const [expandedRows, setExpandedRows] = useState(new Set())
   /** @type {boolean} Whether reconciliation mode is active */
   const [reconcileMode, setReconcileMode] = useState(false)
   /** @type {string} Search input value (immediate) */
@@ -401,6 +422,21 @@ export default function Transactions() {
         return { sortBy: column, sortOrder: 'asc' }
       }
       return { sortBy: 'date', sortOrder: 'desc' }
+    })
+  }, [])
+
+  /**
+   * Toggles the expanded state of a transaction row
+   */
+  const toggleExpand = useCallback((txId) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev)
+      if (next.has(txId)) {
+        next.delete(txId)
+      } else {
+        next.add(txId)
+      }
+      return next
     })
   }, [])
 
@@ -599,6 +635,9 @@ export default function Transactions() {
     // Pour les virements, ajouter le compte destination
     if (formData.type === 'transfer') {
       cleanData.toAccountId = formData.toAccountId || null
+      cleanData.checkNumber = null
+    } else {
+      cleanData.checkNumber = formData.checkNumber?.trim() || null
     }
 
     if (editingTx) {
@@ -808,7 +847,7 @@ export default function Transactions() {
               <table className="w-full table-fixed">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-2 py-3 w-10"></th>
+                    <th className="px-2 py-3 w-14"></th>
                     <th
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24 cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort('date')}
@@ -867,88 +906,110 @@ export default function Transactions() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {transactions.map((tx) => (
-                    <tr
-                      key={tx.id}
-                      className={`group transition-colors ${
-                        tx.isReconciled
-                          ? 'bg-green-50 hover:bg-green-100'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <td className="px-2 py-3">
-                        <TransactionTypeIcon type={tx.type} amount={tx.amount} />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(tx.date)}</td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{tx.description}</p>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {tx.payeeName ? (
-                          <div className="flex items-center gap-2">
-                            {tx.payeeImageUrl ? (
-                              <img 
-                                src={tx.payeeImageUrl} 
-                                alt={tx.payeeName}
-                                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-                              />
+                  {transactions.map((tx) => {
+                    const expandable = hasExpandableDetails(tx)
+                    return (
+                    <Fragment key={tx.id}>
+                      <tr
+                        className={`group transition-colors ${
+                          expandable ? 'cursor-pointer' : ''
+                        } ${
+                          tx.isReconciled
+                            ? 'bg-green-50 hover:bg-green-100'
+                            : 'hover:bg-gray-50'
+                        }`}
+                        onClick={(e) => {
+                          if (expandable && !e.target.closest('button')) {
+                            toggleExpand(tx.id)
+                          }
+                        }}
+                      >
+                        <td className="px-2 py-3">
+                          <div className="flex items-center gap-1.5">
+                            {expandable ? (
+                              expandedRows.has(tx.id)
+                                ? <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                                : <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                <Users className="w-3 h-3 text-gray-400" />
-                              </div>
+                              <span className="w-4 h-4 flex-shrink-0" />
                             )}
-                            <span>{tx.payeeName}</span>
+                            <TransactionTypeIcon type={tx.type} amount={tx.amount} />
                           </div>
-                        ) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {tx.categoryName ? (
-                          <div className="flex items-center gap-2">
-                            <CategoryIcon icon={tx.categoryIcon} color={tx.categoryColor} />
-                            <span>{tx.categoryName}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{formatDate(tx.date)}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{tx.description}</p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {tx.payeeName ? (
+                            <div className="flex items-center gap-2">
+                              {tx.payeeImageUrl ? (
+                                <img
+                                  src={tx.payeeImageUrl}
+                                  alt={tx.payeeName}
+                                  className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                  <Users className="w-3 h-3 text-gray-400" />
+                                </div>
+                              )}
+                              <span>{tx.payeeName}</span>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {tx.categoryName ? (
+                            <div className="flex items-center gap-2">
+                              <CategoryIcon icon={tx.categoryIcon} color={tx.categoryColor} />
+                              <span>{tx.categoryName}</span>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {tx.accountName}
+                        </td>
+                        <td className={`px-4 py-3 text-right font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-center gap-1 h-7 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            {reconcileMode ? (
+                              <button
+                                onClick={() => handleToggleReconcile(tx)}
+                                className={`p-1.5 rounded transition-colors ${
+                                  tx.isReconciled
+                                    ? 'text-green-600 hover:text-red-600 hover:bg-red-50'
+                                    : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                                }`}
+                                title={tx.isReconciled ? 'Annuler le rapprochement' : 'Marquer comme rapproché'}
+                              >
+                                <CheckCircle2 className={`w-4 h-4 ${tx.isReconciled ? 'fill-green-100' : ''}`} />
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleEdit(tx)}
+                                  className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(tx)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
                           </div>
-                        ) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {tx.accountName}
-                      </td>
-                      <td className={`px-4 py-3 text-right font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-center gap-1 h-7 items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          {reconcileMode ? (
-                            <button
-                              onClick={() => handleToggleReconcile(tx)}
-                              className={`p-1.5 rounded transition-colors ${
-                                tx.isReconciled
-                                  ? 'text-green-600 hover:text-red-600 hover:bg-red-50'
-                                  : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                              }`}
-                              title={tx.isReconciled ? 'Annuler le rapprochement' : 'Marquer comme rapproché'}
-                            >
-                              <CheckCircle2 className={`w-4 h-4 ${tx.isReconciled ? 'fill-green-100' : ''}`} />
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleEdit(tx)}
-                                className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(tx)}
-                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                      {expandable && expandedRows.has(tx.id) && (
+                        <TransactionExpandedRow tx={tx} colSpan={8} />
+                      )}
+                    </Fragment>
+                  )})}
                 </tbody>
               </table>
             </div>

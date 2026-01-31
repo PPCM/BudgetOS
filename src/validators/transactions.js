@@ -44,6 +44,7 @@ const baseTransactionSchema = {
   }),
   status: z.enum(transactionStatuses).default('pending'),
   tags: z.array(z.string().max(50)).max(10).optional(),
+  checkNumber: z.string().max(50).nullable().optional(),
 };
 
 /**

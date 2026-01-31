@@ -14,10 +14,13 @@ import PlannedTransactions from './pages/PlannedTransactions'
 import Rules from './pages/Rules'
 import Settings from './pages/Settings'
 import Payees from './pages/Payees'
+import AdminUsers from './pages/AdminUsers'
+import AdminGroups from './pages/AdminGroups'
+import AdminSettings from './pages/AdminSettings'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -25,8 +28,25 @@ function PrivateRoute({ children }) {
       </div>
     )
   }
-  
+
   return user ? children : <Navigate to="/login" />
+}
+
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (!user) return <Navigate to="/login" />
+  if (user.role !== 'super_admin') return <Navigate to="/" />
+
+  return children
 }
 
 function App() {
@@ -46,6 +66,9 @@ function App() {
         <Route path="rules" element={<Rules />} />
         <Route path="payees" element={<Payees />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+        <Route path="admin/groups" element={<AdminRoute><AdminGroups /></AdminRoute>} />
+        <Route path="admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
       </Route>
     </Routes>
   )

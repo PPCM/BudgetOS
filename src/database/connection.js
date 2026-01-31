@@ -23,6 +23,10 @@ const buildKnexConfig = () => {
     sortDirsSeparately: true,
   };
 
+  const seedsConfig = {
+    directory: path.resolve(__dirname, 'seeds'),
+  };
+
   switch (dbType) {
     case 'mysql':
     case 'mariadb':
@@ -39,6 +43,7 @@ const buildKnexConfig = () => {
         },
         pool: { min: 2, max: 10 },
         migrations: migrationsConfig,
+        seeds: seedsConfig,
       };
 
     case 'postgres':
@@ -54,6 +59,7 @@ const buildKnexConfig = () => {
         },
         pool: { min: 2, max: 10 },
         migrations: migrationsConfig,
+        seeds: seedsConfig,
       };
 
     case 'sqlite':
@@ -74,6 +80,7 @@ const buildKnexConfig = () => {
           },
         },
         migrations: migrationsConfig,
+        seeds: seedsConfig,
       };
     }
   }

@@ -37,6 +37,34 @@ export const createUserSchema = z.object({
 });
 
 /**
+ * Schema for updating a user via admin (partial update)
+ */
+export const updateUserSchema = z.object({
+  email: z
+    .string()
+    .email('Email invalide')
+    .max(255, 'Email trop long')
+    .toLowerCase()
+    .trim()
+    .optional(),
+  firstName: z
+    .string()
+    .min(1, 'Prénom requis')
+    .max(100, 'Prénom trop long')
+    .trim()
+    .optional(),
+  lastName: z
+    .string()
+    .min(1, 'Nom requis')
+    .max(100, 'Nom trop long')
+    .trim()
+    .optional(),
+  role: z.enum(['user', 'admin', 'super_admin']).optional(),
+  locale: z.enum(['fr', 'en']).optional(),
+  currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).optional(),
+});
+
+/**
  * Schema for updating user role
  */
 export const updateRoleSchema = z.object({

@@ -81,13 +81,26 @@ export class User {
   }
 
   /**
-   * Find user by ID
+   * Find user by ID (active users only)
    */
   static async findById(id) {
     const user = await knex('users')
       .select('id', 'email', 'first_name', 'last_name', 'role', 'locale', 'currency', 'timezone',
         'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
       .where({ id, is_active: true })
+      .first();
+
+    return user ? User.format(user) : null;
+  }
+
+  /**
+   * Find user by ID regardless of active status (for admin operations)
+   */
+  static async findByIdAny(id) {
+    const user = await knex('users')
+      .select('id', 'email', 'first_name', 'last_name', 'role', 'locale', 'currency', 'timezone',
+        'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
+      .where({ id })
       .first();
 
     return user ? User.format(user) : null;
@@ -159,7 +172,7 @@ export class User {
     const user = await knex('users').where('id', id).first();
     if (!user) throw new NotFoundError('Utilisateur non trouvé');
     await knex('users').where('id', id).update({ is_active: true });
-    return User.findById(id);
+    return User.findByIdAny(id);
   }
 
   /**
@@ -171,7 +184,35 @@ export class User {
     const user = await knex('users').where('id', id).first();
     if (!user) throw new NotFoundError('Utilisateur non trouvé');
     await knex('users').where('id', id).update({ role });
-    return User.findById(id);
+    return User.findByIdAny(id);
+  }
+
+  /**
+   * Update a user via admin (partial update)
+   * @param {string} id - User ID
+   * @param {Object} data - Fields to update (email, firstName, lastName, role, locale, currency)
+   * @returns {Promise<Object>} Updated user
+   */
+  static async adminUpdate(id, data) {
+    const user = await User.findByIdAny(id);
+    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+
+    // Check email uniqueness if changed
+    if (data.email && data.email !== user.email) {
+      const existing = await knex('users').where('email', data.email).whereNot('id', id).first();
+      if (existing) {
+        throw new ConflictError('Cet email est déjà utilisé', 'EMAIL_EXISTS');
+      }
+    }
+
+    const allowedFields = ['email', 'first_name', 'last_name', 'role', 'locale', 'currency'];
+    const updates = buildUpdates(data, allowedFields);
+
+    if (Object.keys(updates).length > 0) {
+      await knex('users').where('id', id).update(updates);
+    }
+
+    return User.findByIdAny(id);
   }
 
   /**
@@ -221,7 +262,7 @@ export class User {
    * @param {string} [options.groupId] - Filter by group membership
    */
   static async findAll(options = {}) {
-    const { page = 1, limit = 50, role, groupId } = options;
+    const { page = 1, limit = 50, role, groupId, search, status } = options;
     const offset = (page - 1) * limit;
 
     let query = knex('users')
@@ -230,6 +271,18 @@ export class User {
         'users.last_login_at', 'users.created_at');
 
     if (role) query = query.where('users.role', role);
+
+    if (status === 'active') query = query.where('users.is_active', true);
+    else if (status === 'suspended') query = query.where('users.is_active', false);
+
+    if (search) {
+      const term = `%${search}%`;
+      query = query.where(function () {
+        this.where('users.email', 'like', term)
+          .orWhere('users.first_name', 'like', term)
+          .orWhere('users.last_name', 'like', term);
+      });
+    }
 
     if (groupId) {
       query = query
@@ -241,6 +294,16 @@ export class User {
 
     let countQuery = knex('users').count('* as count');
     if (role) countQuery = countQuery.where('role', role);
+    if (status === 'active') countQuery = countQuery.where('is_active', true);
+    else if (status === 'suspended') countQuery = countQuery.where('is_active', false);
+    if (search) {
+      const term = `%${search}%`;
+      countQuery = countQuery.where(function () {
+        this.where('email', 'like', term)
+          .orWhere('first_name', 'like', term)
+          .orWhere('last_name', 'like', term);
+      });
+    }
     if (groupId) {
       countQuery = countQuery
         .join('group_members', 'users.id', 'group_members.user_id')
@@ -300,6 +363,7 @@ export class User {
       currency: user.currency,
       timezone: user.timezone,
       isActive: Boolean(user.is_active),
+      status: Boolean(user.is_active) ? 'active' : 'suspended',
       emailVerified: Boolean(user.email_verified),
       lastLoginAt: user.last_login_at,
       createdAt: user.created_at,

@@ -243,4 +243,53 @@ export const uploadsApi = {
   deletePayeeImage: (imageUrl) => api.delete('/uploads/payee-image', { data: { imageUrl } }),
 }
 
+/**
+ * Admin API endpoints (super_admin only)
+ * @namespace adminApi
+ */
+export const adminApi = {
+  /** @param {Object} params - Filter params (search, role, status) */
+  getUsers: (params) => api.get('/admin/users', { params: cleanParams(params || {}) }),
+  /** @param {string} id - User UUID */
+  getUser: (id) => api.get(`/admin/users/${id}`),
+  /** @param {Object} data - User data (email, password, firstName, lastName, role) */
+  createUser: (data) => api.post('/admin/users', data),
+  /** @param {string} id - User UUID */
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  /** @param {string} id - User UUID */
+  suspendUser: (id) => api.put(`/admin/users/${id}/suspend`),
+  /** @param {string} id - User UUID */
+  reactivateUser: (id) => api.put(`/admin/users/${id}/reactivate`),
+  /** @param {string} id - User UUID */
+  updateUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
+  getSettings: () => api.get('/admin/settings'),
+  /** @param {Object} data - Settings data (publicRegistration, defaultGroupId) */
+  updateSettings: (data) => api.put('/admin/settings', data),
+}
+
+/**
+ * Groups API endpoints
+ * @namespace groupsApi
+ */
+export const groupsApi = {
+  /** @param {Object} params - Filter params (search, status) */
+  getAll: (params) => api.get('/groups', { params: cleanParams(params || {}) }),
+  /** @param {string} id - Group UUID */
+  getOne: (id) => api.get(`/groups/${id}`),
+  /** @param {Object} data - Group data (name, description) */
+  create: (data) => api.post('/groups', data),
+  /** @param {string} id - Group UUID */
+  update: (id, data) => api.put(`/groups/${id}`, data),
+  /** @param {string} id - Group UUID */
+  delete: (id) => api.delete(`/groups/${id}`),
+  /** @param {string} groupId - Group UUID */
+  getMembers: (groupId, params) => api.get(`/groups/${groupId}/members`, { params: cleanParams(params || {}) }),
+  /** @param {string} groupId - Group UUID */
+  addMember: (groupId, data) => api.post(`/groups/${groupId}/members`, data),
+  /** @param {string} groupId - Group UUID */
+  updateMember: (groupId, userId, role) => api.put(`/groups/${groupId}/members/${userId}`, { role }),
+  /** @param {string} groupId - Group UUID */
+  removeMember: (groupId, userId) => api.delete(`/groups/${groupId}/members/${userId}`),
+}
+
 export default api

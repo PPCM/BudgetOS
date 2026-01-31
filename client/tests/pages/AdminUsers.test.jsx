@@ -1135,6 +1135,415 @@ describe('AdminUsers', () => {
     })
   })
 
+  describe('error handling - create mode', () => {
+    it('shows toast error when createUser API fails with server message', async () => {
+      adminApi.createUser.mockRejectedValue({
+        response: { data: { error: { message: 'Email deja utilise' } } },
+      })
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
+      })
+
+      fireEvent.change(document.querySelector('input[type="email"]'), { target: { value: 'dup@test.com' } })
+      fireEvent.change(document.querySelector('input[type="password"]'), { target: { value: 'Password1' } })
+
+      const modal = document.querySelector('.fixed.inset-0')
+      await act(async () => {
+        fireEvent.submit(modal.querySelector('form'))
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Email deja utilise')
+      })
+    })
+
+    it('shows toast error with fallback message when API fails without server message', async () => {
+      adminApi.createUser.mockRejectedValue(new Error('Network Error'))
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
+      })
+
+      fireEvent.change(document.querySelector('input[type="email"]'), { target: { value: 'new@test.com' } })
+      fireEvent.change(document.querySelector('input[type="password"]'), { target: { value: 'Password1' } })
+
+      const modal = document.querySelector('.fixed.inset-0')
+      await act(async () => {
+        fireEvent.submit(modal.querySelector('form'))
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Network Error')
+      })
+    })
+
+    it('strips empty firstName and lastName before sending to API', async () => {
+      adminApi.createUser.mockResolvedValue({ data: { data: { user: { id: 'new' } } } })
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
+      })
+
+      // Leave firstName and lastName empty, only fill required fields
+      fireEvent.change(document.querySelector('input[type="email"]'), { target: { value: 'minimal@test.com' } })
+      fireEvent.change(document.querySelector('input[type="password"]'), { target: { value: 'Password1' } })
+
+      const modal = document.querySelector('.fixed.inset-0')
+      await act(async () => {
+        fireEvent.submit(modal.querySelector('form'))
+      })
+
+      await waitFor(() => {
+        expect(adminApi.createUser).toHaveBeenCalled()
+      })
+
+      const callArgs = adminApi.createUser.mock.calls[0][0]
+      // Empty strings should be stripped (not sent as "")
+      expect(callArgs.firstName).toBeUndefined()
+      expect(callArgs.lastName).toBeUndefined()
+    })
+
+    it('shows toast error when addMember fails after user creation', async () => {
+      adminApi.createUser.mockResolvedValue({
+        data: { data: { user: { id: 'new-user-id' } } },
+      })
+      groupsApi.addMember.mockRejectedValue(new Error('Group not found'))
+
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Groupe')).toBeInTheDocument()
+      })
+
+      const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
+      const form = modalOverlay.querySelector('form')
+      fireEvent.change(form.querySelector('input[type="email"]'), { target: { value: 'admin@new.com' } })
+      fireEvent.change(form.querySelector('input[type="password"]'), { target: { value: 'Password1' } })
+
+      // Switch to admin and add a group
+      const roleLabel = within(form).getByText('Role')
+      const roleSelectEl = roleLabel.closest('div').querySelector('select')
+      fireEvent.change(roleSelectEl, { target: { value: 'admin' } })
+
+      await waitFor(() => {
+        expect(screen.getByText('Ajouter')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Ajouter'))
+      await waitFor(() => {
+        expect(screen.getByText('Choisir...')).toBeInTheDocument()
+      })
+      const addGroupSelect = screen.getByText('Choisir...').closest('select')
+      fireEvent.change(addGroupSelect, { target: { value: 'g1' } })
+      fireEvent.click(screen.getByText('OK'))
+
+      await act(async () => {
+        fireEvent.submit(form)
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Group not found')
+      })
+    })
+  })
+
+  describe('error handling - edit mode', () => {
+    it('shows toast error when updateUser API fails', async () => {
+      adminApi.updateUser.mockRejectedValue({
+        response: { data: { error: { message: 'Donnees de requete invalides' } } },
+      })
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getAllByText('Modifier')[1])
+
+      await waitFor(() => {
+        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+      })
+
+      // Change first name
+      const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
+      const form = modalOverlay.querySelector('form')
+      const firstNameInput = form.querySelectorAll('input[type="text"]')[0]
+      fireEvent.change(firstNameInput, { target: { value: 'Changed' } })
+
+      await act(async () => {
+        fireEvent.submit(form)
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Donnees de requete invalides')
+      })
+    })
+
+    it('closes modal without API call when no changes made in edit mode', async () => {
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getAllByText('Modifier')[1])
+
+      await waitFor(() => {
+        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+      })
+
+      // Submit without changing anything
+      const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
+      const form = modalOverlay.querySelector('form')
+      await act(async () => {
+        fireEvent.submit(form)
+      })
+
+      // Should close modal without calling updateUser
+      expect(adminApi.updateUser).not.toHaveBeenCalled()
+      await waitFor(() => {
+        expect(screen.queryByText("Modifier l'utilisateur")).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows toast error when removeMember fails during batch save', async () => {
+      const adminUser = { ...mockUsers[1], role: 'admin' }
+      adminApi.getUser.mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            user: adminUser,
+            groups: [{ id: 'g1', name: 'Group A', role: 'member' }],
+          },
+        },
+      })
+      adminApi.getUsers.mockResolvedValue({ data: { data: [mockUsers[0], adminUser, mockUsers[2]] } })
+      groupsApi.removeMember.mockRejectedValue({
+        response: { data: { error: { message: 'Cannot remove last admin' } } },
+      })
+
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getAllByText('Modifier')[1])
+
+      await waitFor(() => {
+        expect(screen.getByText('Group A')).toBeInTheDocument()
+      })
+
+      // Remove the group
+      const removeBtn = screen.getByTitle('Retirer du groupe')
+      await act(async () => {
+        fireEvent.click(removeBtn)
+      })
+
+      // Submit
+      const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
+      const form = modalOverlay.querySelector('form')
+      await act(async () => {
+        fireEvent.submit(form)
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Cannot remove last admin')
+      })
+    })
+  })
+
+  describe('error handling - suspend and reactivate', () => {
+    it('shows toast error when suspendUser API fails', async () => {
+      adminApi.suspendUser.mockRejectedValue({
+        response: { data: { error: { message: 'Cannot suspend super admin' } } },
+      })
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByText('Suspendre')[0])
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Cannot suspend super admin')
+      })
+
+      window.confirm.mockRestore()
+    })
+
+    it('shows toast error when reactivateUser API fails', async () => {
+      adminApi.reactivateUser.mockRejectedValue(new Error('Server error'))
+
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Reactiver'))
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Server error')
+      })
+    })
+  })
+
+  describe('error handling - role change', () => {
+    it('shows toast error when updateUserRole API fails', async () => {
+      adminApi.updateUserRole.mockRejectedValue({
+        response: { data: { error: { message: 'Role invalide' } } },
+      })
+
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      const tableBody = document.querySelector('tbody')
+      const superAdminBadge = within(tableBody).getByText('Super Admin')
+      fireEvent.click(superAdminBadge.closest('button'))
+
+      await waitFor(() => {
+        const dropdownMenu = document.querySelector('.absolute.right-0')
+        expect(dropdownMenu).toBeInTheDocument()
+      })
+
+      const dropdownMenu = document.querySelector('.absolute.right-0')
+      const adminOption = within(dropdownMenu).getByText('Admin')
+
+      await act(async () => {
+        fireEvent.click(adminOption)
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith('Role invalide')
+      })
+    })
+  })
+
+  describe('edge cases', () => {
+    it('sends locale and currency when creating a user', async () => {
+      adminApi.createUser.mockResolvedValue({ data: { data: { user: { id: 'new' } } } })
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
+      })
+
+      fireEvent.change(document.querySelector('input[type="email"]'), { target: { value: 'new@test.com' } })
+      fireEvent.change(document.querySelector('input[type="password"]'), { target: { value: 'Password1' } })
+
+      const modal = document.querySelector('.fixed.inset-0')
+      await act(async () => {
+        fireEvent.submit(modal.querySelector('form'))
+      })
+
+      await waitFor(() => {
+        expect(adminApi.createUser).toHaveBeenCalled()
+      })
+
+      const callArgs = adminApi.createUser.mock.calls[0][0]
+      expect(callArgs.locale).toBe('fr')
+      expect(callArgs.currency).toBe('EUR')
+    })
+
+    it('has required attribute on email input in create mode', async () => {
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
+      })
+
+      // Verify email field is marked as required
+      expect(document.querySelector('input[type="email"]').required).toBe(true)
+    })
+
+    it('has required attribute and minLength on password input in create mode', async () => {
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(document.querySelector('input[type="password"]')).toBeInTheDocument()
+      })
+
+      // Verify password field is marked as required with minLength
+      const passwordInput = document.querySelector('input[type="password"]')
+      expect(passwordInput.required).toBe(true)
+      expect(passwordInput.minLength).toBe(8)
+    })
+
+    it('handles getUsers API failure gracefully', async () => {
+      adminApi.getUsers.mockRejectedValue(new Error('Server error'))
+      renderWithProviders(<AdminUsers />)
+
+      // Should not crash, shows loading then empty
+      await waitFor(() => {
+        expect(screen.queryByText('admin@test.com')).not.toBeInTheDocument()
+      })
+    })
+
+    it('handles getUser API failure gracefully in edit mode', async () => {
+      adminApi.getUser.mockRejectedValue(new Error('User not found'))
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getAllByText('Modifier')[1])
+
+      await waitFor(() => {
+        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+      })
+
+      // Modal should still render with data from the users list
+      const emailInput = document.querySelector('input[type="email"]')
+      expect(emailInput.value).toBe('john@test.com')
+    })
+
+    it('keeps modal open after create API error', async () => {
+      adminApi.createUser.mockRejectedValue({
+        response: { data: { error: { message: 'Validation failed' } } },
+      })
+      renderWithProviders(<AdminUsers />)
+      await waitForUsersLoaded()
+
+      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+
+      await waitFor(() => {
+        expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
+      })
+
+      fireEvent.change(document.querySelector('input[type="email"]'), { target: { value: 'new@test.com' } })
+      fireEvent.change(document.querySelector('input[type="password"]'), { target: { value: 'Password1' } })
+
+      const modal = document.querySelector('.fixed.inset-0')
+      await act(async () => {
+        fireEvent.submit(modal.querySelector('form'))
+      })
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalled()
+      })
+
+      // Modal should still be open so user can fix the error
+      expect(screen.getByRole('heading', { name: 'Nouvel utilisateur' })).toBeInTheDocument()
+      expect(document.querySelector('input[type="email"]').value).toBe('new@test.com')
+    })
+  })
+
   describe('role dropdown', () => {
     it('shows role options when clicking the role badge button', async () => {
       renderWithProviders(<AdminUsers />)

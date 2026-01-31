@@ -186,4 +186,127 @@ describe('AdminUsers - Conditional Group Management (UI)', () => {
       // Result: PASS
     })
   })
+
+  describe('error cases - create mode', () => {
+    it('should show validation error when creating user with only email (no password)', () => {
+      // Steps:
+      //   1. Click "Nouvel utilisateur"
+      //   2. Fill only Email field
+      //   3. Click "Creer"
+      // Expected:
+      //   - Form is NOT submitted (HTML required validation on password)
+      //   - No toast message, no API call
+      //   - Modal stays open
+      // Result: PENDING
+    })
+
+    it('should show API error for duplicate email', () => {
+      // Steps:
+      //   1. Click "Nouvel utilisateur"
+      //   2. Fill: Email=admin@budgetos.local (existing), Password=Test1234!
+      //   3. Click "Creer"
+      // Expected:
+      //   - Toast error with server message (e.g. "Email deja utilise")
+      //   - Modal stays open with form data preserved
+      // Result: PENDING
+    })
+
+    it('should create user successfully without Prenom, Nom, or Groupe', () => {
+      // Steps:
+      //   1. Click "Nouvel utilisateur"
+      //   2. Fill only Email and Password (leave Prenom, Nom empty, no group)
+      //   3. Click "Creer"
+      // Expected:
+      //   - "Utilisateur cree avec succes" toast
+      //   - Empty firstName/lastName are stripped (not sent as "")
+      //   - User appears in list with "-" as name
+      // Result: PENDING
+    })
+
+    it('should show API error for weak password', () => {
+      // Steps:
+      //   1. Click "Nouvel utilisateur"
+      //   2. Fill: Email=weak@test.com, Password=abc (too short / no uppercase)
+      //   3. Click "Creer"
+      // Expected:
+      //   - Toast error with validation message from backend
+      //   - Modal stays open
+      // Result: PENDING
+    })
+  })
+
+  describe('error cases - edit mode', () => {
+    it('should close modal without API call when no changes made', () => {
+      // Steps:
+      //   1. Click "Modifier" on any user
+      //   2. Click "Enregistrer" immediately (no changes)
+      // Expected:
+      //   - Modal closes
+      //   - No API call made (no toast success/error)
+      //   - No network request to PUT /admin/users/:id
+      // Result: PENDING
+    })
+
+    it('should show API error when updating to duplicate email', () => {
+      // Steps:
+      //   1. Click "Modifier" on Sophie Leroy
+      //   2. Change email to admin@budgetos.local (existing)
+      //   3. Click "Enregistrer"
+      // Expected:
+      //   - Toast error with server message
+      //   - Modal stays open with modified email preserved
+      // Result: PENDING
+    })
+
+    it('should show error when group operation fails during save', () => {
+      // Steps:
+      //   1. Click "Modifier" on Admin user (e.g. Test AdminGroups)
+      //   2. Click "Retirer du groupe" on a group
+      //   3. Click "Enregistrer"
+      //   4. Simulate server error on removeMember
+      // Expected:
+      //   - Toast error with server message
+      //   - Group may still appear in the list after re-opening
+      // Note: Hard to simulate server error in manual UI test
+      // Result: PENDING
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle rapid role switching in create mode', () => {
+      // Steps:
+      //   1. Click "Nouvel utilisateur"
+      //   2. Switch role: User → Admin → Super Admin → User → Admin
+      // Expected:
+      //   - No errors or crashes
+      //   - Final state: "Admin" with "Groupes" section and "Ajouter" button
+      //   - Previously selected groups are cleared after Super Admin transition
+      // Result: PENDING
+    })
+
+    it('should preserve form data after API error on create', () => {
+      // Steps:
+      //   1. Click "Nouvel utilisateur"
+      //   2. Fill: Prenom=Test, Nom=Error, Email=admin@budgetos.local, Password=Test1234!
+      //   3. Click "Creer" (should fail: duplicate email)
+      // Expected:
+      //   - Toast error message
+      //   - Modal stays open
+      //   - All form fields retain their values
+      //   - User can fix the email and retry
+      // Result: PENDING
+    })
+
+    it('should show "Aucun groupe" in user dropdown after removing group in edit', () => {
+      // Steps:
+      //   1. Click "Modifier" on User with 1 group (Sophie Leroy)
+      //   2. Change group dropdown to "Aucun groupe"
+      //   3. Click "Enregistrer"
+      //   4. Click "Modifier" again on same user
+      // Expected:
+      //   - Group dropdown shows "Aucun groupe" selected
+      //   - Group was removed from user
+      // Result: PENDING
+    })
+  })
 })

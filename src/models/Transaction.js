@@ -101,6 +101,7 @@ export class Transaction {
         recurring_id: data.recurringId || null,
         tags: data.tags ? JSON.stringify(data.tags) : null,
         check_number: data.checkNumber || null,
+        import_hash: data.importHash || null,
       });
 
       // Update source account balance

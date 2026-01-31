@@ -156,21 +156,21 @@ export class ImportService {
       .leftJoin('payees as p', 't.payee_id', 'p.id')
       .where({ 't.user_id': userId, 't.account_id': accountId })
       .whereNot('t.status', 'void')
-      .where('t.is_reconciled', false)
       .where('t.date', '>=', rangeStart)
       .where('t.date', '<=', rangeEnd)
       .select('t.*', 'p.name as payee_name')
       .orderBy('t.date', 'desc');
 
     return importedTxs.map(imported => {
-      // Check for exact duplicate by hash
+      // Check for exact duplicate by hash (includes reconciled transactions)
       const duplicate = existingTxs.find(tx => tx.import_hash === imported.hash);
       if (duplicate) {
         return { ...imported, matchType: 'duplicate', matchedTransaction: ImportService.formatExistingTx(duplicate) };
       }
 
-      // Find potential matches within tolerances
+      // Find potential matches within tolerances (excludes reconciled transactions)
       const candidates = existingTxs.filter(tx => {
+        if (tx.is_reconciled) return false;
         const daysDiff = Math.abs((new Date(imported.date) - new Date(tx.date)) / 86400000);
         const importAbs = Math.abs(imported.amount);
         const txAbs = Math.abs(tx.amount);
@@ -284,6 +284,12 @@ export class ImportService {
             importId,
             importHash: txData.hash,
           });
+
+          // Mark imported transaction as reconciled
+          if (newTx) {
+            await knex('transactions').where({ id: newTx.id, user_id: userId })
+              .update({ is_reconciled: true, reconciled_at: knex.fn.now() });
+          }
 
           // Assign to credit card cycle if deferred card
           const ccId = action.creditCardId || txData.creditCardId;

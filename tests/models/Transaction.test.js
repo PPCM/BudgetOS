@@ -892,7 +892,7 @@ describe('ImportService.findMatches - excludes reconciled transactions', () => {
     expect(results[0].matchedTransaction).toBeNull()
   })
 
-  it('excludes reconciled transactions from duplicate detection', async () => {
+  it('detects duplicates by hash even on reconciled transactions', async () => {
     const hash = 'dup-hash-reconciled'
     await createTestTransaction(userId, accountId, {
       id: 'reconciled-dup', amount: -50, date: '2026-01-15',
@@ -905,7 +905,7 @@ describe('ImportService.findMatches - excludes reconciled transactions', () => {
     const results = await ImportService.findMatches(userId, accountId, imported)
 
     expect(results).toHaveLength(1)
-    // Should NOT be detected as duplicate since the matching tx is reconciled
-    expect(results[0].matchType).toBe('new')
+    // Hash-based duplicate detection works even on reconciled transactions
+    expect(results[0].matchType).toBe('duplicate')
   })
 })

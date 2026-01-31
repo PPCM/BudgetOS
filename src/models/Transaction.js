@@ -69,6 +69,7 @@ export class Transaction {
         is_recurring: !!data.isRecurring,
         recurring_id: data.recurringId || null,
         tags: data.tags ? JSON.stringify(data.tags) : null,
+        check_number: data.checkNumber || null,
       });
 
       // Update source account balance
@@ -294,7 +295,7 @@ export class Transaction {
 
     const allowedFields = [
       'account_id', 'category_id', 'payee_id', 'credit_card_id', 'amount', 'description',
-      'notes', 'date', 'value_date', 'purchase_date', 'status', 'type', 'tags'
+      'notes', 'date', 'value_date', 'purchase_date', 'status', 'type', 'tags', 'check_number'
     ];
 
     // Fields that should be synced to linked transaction
@@ -605,6 +606,7 @@ export class Transaction {
       linkedAccountId: tx.linked_account_id,
       linkedAccountName: tx.linked_account_name,
       hasAttachments: Boolean(tx.has_attachments),
+      checkNumber: tx.check_number || null,
       tags: tx.tags ? JSON.parse(tx.tags) : [],
       createdAt: tx.created_at,
       updatedAt: tx.updated_at,

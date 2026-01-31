@@ -475,6 +475,81 @@ describe('Transaction.toggleReconcile', () => {
   })
 })
 
+describe('Transaction - check_number', () => {
+  let userId
+  let accountId
+
+  beforeEach(async () => {
+    userId = await createTestUser()
+    accountId = await createTestAccount(userId)
+  })
+
+  it('creates expense with checkNumber', async () => {
+    const tx = await Transaction.create(userId, {
+      accountId,
+      amount: -50,
+      description: 'Check payment',
+      date: '2026-01-15',
+      type: 'expense',
+      checkNumber: '001234',
+    })
+
+    expect(tx.checkNumber).toBe('001234')
+  })
+
+  it('creates income with checkNumber', async () => {
+    const tx = await Transaction.create(userId, {
+      accountId,
+      amount: 200,
+      description: 'Check received',
+      date: '2026-01-15',
+      type: 'income',
+      checkNumber: '005678',
+    })
+
+    expect(tx.checkNumber).toBe('005678')
+  })
+
+  it('creates transaction without checkNumber defaults to null', async () => {
+    const tx = await Transaction.create(userId, {
+      accountId,
+      amount: -30,
+      description: 'No check',
+      date: '2026-01-15',
+      type: 'expense',
+    })
+
+    expect(tx.checkNumber).toBeNull()
+  })
+
+  it('updates checkNumber on existing transaction', async () => {
+    const tx = await Transaction.create(userId, {
+      accountId,
+      amount: -50,
+      description: 'To update',
+      date: '2026-01-15',
+      type: 'expense',
+    })
+
+    const updated = await Transaction.update(tx.id, userId, { checkNumber: '999' })
+    expect(updated.checkNumber).toBe('999')
+  })
+
+  it('clears checkNumber by setting to null', async () => {
+    const tx = await Transaction.create(userId, {
+      accountId,
+      amount: -50,
+      description: 'Clear check',
+      date: '2026-01-15',
+      type: 'expense',
+      checkNumber: '111',
+    })
+
+    const updated = await Transaction.update(tx.id, userId, { checkNumber: null })
+    expect(updated.checkNumber).toBeNull()
+  })
+})
+
 describe('Transaction.format', () => {
   it('formats database row to API response', () => {
     const dbRow = {
@@ -492,6 +567,7 @@ describe('Transaction.format', () => {
       is_split: 0, parent_transaction_id: null,
       linked_transaction_id: null, linked_account_id: null, linked_account_name: null,
       has_attachments: 0, tags: '["food","weekly"]',
+      check_number: '001234',
       created_at: '2026-01-15', updated_at: '2026-01-15',
     }
 
@@ -506,6 +582,15 @@ describe('Transaction.format', () => {
     expect(formatted.isReconciled).toBe(true)
     expect(formatted.isRecurring).toBe(false)
     expect(formatted.tags).toEqual(['food', 'weekly'])
+    expect(formatted.checkNumber).toBe('001234')
+  })
+
+  it('formats check_number as null when not set', () => {
+    const dbRow = {
+      id: 'test-id', check_number: null, tags: null,
+    }
+    const formatted = Transaction.format(dbRow)
+    expect(formatted.checkNumber).toBeNull()
   })
 
   it('handles null tags', () => {

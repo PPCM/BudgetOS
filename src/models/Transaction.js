@@ -6,6 +6,37 @@ import Account from './Account.js';
 import { buildUpdates, paginationMeta } from '../utils/modelHelpers.js';
 
 /**
+ * Insert a linked (destination) transaction for a transfer and update the main transaction link.
+ * @param {Object} trx - Knex transaction
+ * @param {string} sourceId - Source transaction ID
+ * @param {string} userId - User ID
+ * @param {string} toAccountId - Destination account ID
+ * @param {Object} data - Incoming update data
+ * @param {Object} tx - Existing transaction being updated
+ * @param {number|null} newAmount - New signed amount (or null to keep existing)
+ */
+async function insertLinkedTransaction(trx, sourceId, userId, toAccountId, data, tx, newAmount) {
+  const newLinkedId = generateId();
+  const amount = newAmount !== null ? Math.abs(newAmount) : Math.abs(tx.amount);
+  await trx('transactions').insert({
+    id: newLinkedId,
+    user_id: userId,
+    account_id: toAccountId,
+    category_id: data.categoryId !== undefined ? data.categoryId : tx.categoryId,
+    payee_id: data.payeeId !== undefined ? data.payeeId : tx.payeeId,
+    amount,
+    description: data.description || tx.description,
+    notes: data.notes !== undefined ? data.notes : tx.notes,
+    date: data.date || tx.date,
+    status: data.status || tx.status,
+    type: 'transfer',
+    linked_transaction_id: sourceId,
+  });
+  await trx('transactions').where('id', sourceId).update({ linked_transaction_id: newLinkedId });
+  await Account.updateBalance(toAccountId, userId, trx);
+}
+
+/**
  * Transaction model
  */
 export class Transaction {
@@ -140,65 +171,53 @@ export class Transaction {
       page = 1, limit = 50, sortBy = 'date', sortOrder = 'desc'
     } = options;
 
-    let baseQuery = knex('transactions as t')
-      .leftJoin('categories as c', 't.category_id', 'c.id')
-      .leftJoin('accounts as a', 't.account_id', 'a.id')
-      .leftJoin('payees as p', 't.payee_id', 'p.id')
-      .leftJoin('transactions as linked_tx', 't.linked_transaction_id', 'linked_tx.id')
-      .leftJoin('accounts as linked_a', 'linked_tx.account_id', 'linked_a.id')
-      .where('t.user_id', userId);
+    // Build filter function to apply identical WHERE clauses to both count and data queries
+    const applyFilters = (query) => {
+      if (accountId) query = query.andWhere('t.account_id', accountId);
+      if (categoryId) query = query.andWhere('t.category_id', categoryId);
+      if (creditCardId) query = query.andWhere('t.credit_card_id', creditCardId);
+      if (type) query = query.andWhere('t.type', type);
+      if (status) query = query.andWhere('t.status', status);
+      if (isReconciled !== undefined) query = query.andWhere('t.is_reconciled', isReconciled === 'true');
+      if (startDate) query = query.andWhere('t.date', '>=', startDate);
+      if (endDate) query = query.andWhere('t.date', '<=', endDate);
+      if (minAmount !== undefined) query = query.andWhereRaw('ABS(t.amount) >= ?', [minAmount]);
+      if (maxAmount !== undefined) query = query.andWhereRaw('ABS(t.amount) <= ?', [maxAmount]);
+      if (search) {
+        query = query.andWhere(function () {
+          this.where('t.description', 'like', `%${search}%`)
+            .orWhere('t.notes', 'like', `%${search}%`)
+            .orWhere('t.check_number', 'like', `%${search}%`);
+        });
+      }
+      return query;
+    };
 
-    if (accountId) {
-      baseQuery = baseQuery.andWhere('t.account_id', accountId);
-    }
-
-    if (categoryId) {
-      baseQuery = baseQuery.andWhere('t.category_id', categoryId);
-    }
-
-    if (creditCardId) {
-      baseQuery = baseQuery.andWhere('t.credit_card_id', creditCardId);
-    }
-
-    if (type) {
-      baseQuery = baseQuery.andWhere('t.type', type);
-    }
-
-    if (status) {
-      baseQuery = baseQuery.andWhere('t.status', status);
-    }
-
-    if (isReconciled !== undefined) {
-      baseQuery = baseQuery.andWhere('t.is_reconciled', isReconciled === 'true');
-    }
-
-    if (startDate) {
-      baseQuery = baseQuery.andWhere('t.date', '>=', startDate);
-    }
-
-    if (endDate) {
-      baseQuery = baseQuery.andWhere('t.date', '<=', endDate);
-    }
-
-    if (minAmount !== undefined) {
-      baseQuery = baseQuery.andWhereRaw('ABS(t.amount) >= ?', [minAmount]);
-    }
-
-    if (maxAmount !== undefined) {
-      baseQuery = baseQuery.andWhereRaw('ABS(t.amount) <= ?', [maxAmount]);
-    }
-
-    if (search) {
-      baseQuery = baseQuery.andWhere(function () {
-        this.where('t.description', 'like', `%${search}%`)
-          .orWhere('t.notes', 'like', `%${search}%`)
-          .orWhere('t.check_number', 'like', `%${search}%`);
-      });
-    }
-
-    // Count total using clone
-    const countResult = await baseQuery.clone().count('* as count').first();
+    // Count query: no JOINs needed, only filters on the transactions table
+    const countQuery = applyFilters(knex('transactions as t').where('t.user_id', userId));
+    const countResult = await countQuery.count('* as count').first();
     const total = countResult?.count || 0;
+
+    // Data query: needs JOINs for category, account, payee and linked transaction names
+    let dataQuery = applyFilters(
+      knex('transactions as t')
+        .leftJoin('categories as c', 't.category_id', 'c.id')
+        .leftJoin('accounts as a', 't.account_id', 'a.id')
+        .leftJoin('payees as p', 't.payee_id', 'p.id')
+        .leftJoin('transactions as linked_tx', 't.linked_transaction_id', 'linked_tx.id')
+        .leftJoin('accounts as linked_a', 'linked_tx.account_id', 'linked_a.id')
+        .where('t.user_id', userId)
+    ).select(
+      't.*',
+      'c.name as category_name',
+      'c.icon as category_icon',
+      'c.color as category_color',
+      'a.name as account_name',
+      'p.name as payee_name',
+      'p.image_url as payee_image_url',
+      'linked_tx.account_id as linked_account_id',
+      'linked_a.name as linked_account_name'
+    );
 
     // Sorting and pagination
     const allowedSortFields = {
@@ -214,18 +233,6 @@ export class Transaction {
     const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     const isNullableField = ['payee', 'category', 'account'].includes(sortBy);
-
-    let dataQuery = baseQuery.clone().select(
-      't.*',
-      'c.name as category_name',
-      'c.icon as category_icon',
-      'c.color as category_color',
-      'a.name as account_name',
-      'p.name as payee_name',
-      'p.image_url as payee_image_url',
-      'linked_tx.account_id as linked_account_id',
-      'linked_a.name as linked_account_name'
-    );
 
     if (isNullableField) {
       dataQuery = dataQuery.orderByRaw(dateHelpers.nullsLast(knex, sortField, direction).toString());
@@ -352,53 +359,13 @@ export class Transaction {
         }
         // Case 2: toAccountId changed to a different account - delete old, create new
         else if (hasToAccountIdInner && newToAccountId && linkedTx && newToAccountId !== linkedTx.account_id) {
-          // Delete old linked transaction
           await trx('transactions').where('id', linkedTx.id).del();
           await Account.updateBalance(linkedTx.account_id, userId, trx);
-
-          // Create new linked transaction
-          const newLinkedId = generateId();
-          const amount = newAmount !== null ? Math.abs(newAmount) : Math.abs(tx.amount);
-          await trx('transactions').insert({
-            id: newLinkedId,
-            user_id: userId,
-            account_id: newToAccountId,
-            category_id: data.categoryId !== undefined ? data.categoryId : tx.categoryId,
-            payee_id: data.payeeId !== undefined ? data.payeeId : tx.payeeId,
-            amount,
-            description: data.description || tx.description,
-            notes: data.notes !== undefined ? data.notes : tx.notes,
-            date: data.date || tx.date,
-            status: data.status || tx.status,
-            type: 'transfer',
-            linked_transaction_id: id,
-          });
-
-          // Update main transaction link
-          await trx('transactions').where('id', id).update({ linked_transaction_id: newLinkedId });
-          await Account.updateBalance(newToAccountId, userId, trx);
+          await insertLinkedTransaction(trx, id, userId, newToAccountId, data, tx, newAmount);
         }
         // Case 3: toAccountId provided but no linked transaction exists - create new
         else if (hasToAccountIdInner && newToAccountId && !linkedTx) {
-          const newLinkedId = generateId();
-          const amount = newAmount !== null ? Math.abs(newAmount) : Math.abs(tx.amount);
-          await trx('transactions').insert({
-            id: newLinkedId,
-            user_id: userId,
-            account_id: newToAccountId,
-            category_id: data.categoryId !== undefined ? data.categoryId : tx.categoryId,
-            payee_id: data.payeeId !== undefined ? data.payeeId : tx.payeeId,
-            amount,
-            description: data.description || tx.description,
-            notes: data.notes !== undefined ? data.notes : tx.notes,
-            date: data.date || tx.date,
-            status: data.status || tx.status,
-            type: 'transfer',
-            linked_transaction_id: id,
-          });
-
-          await trx('transactions').where('id', id).update({ linked_transaction_id: newLinkedId });
-          await Account.updateBalance(newToAccountId, userId, trx);
+          await insertLinkedTransaction(trx, id, userId, newToAccountId, data, tx, newAmount);
         }
         // Case 4: Linked transaction exists and no account change - just update it
         else if (linkedTx && Object.keys(linkedUpdatesObj).length > 0) {

@@ -150,8 +150,7 @@ export class ReportService {
         .first();
     };
 
-    const data1 = await getMonthData(month1);
-    const data2 = await getMonthData(month2);
+    const [data1, data2] = await Promise.all([getMonthData(month1), getMonthData(month2)]);
 
     const calcChange = (v1, v2) => v1 && v1 !== 0 ? roundAmount(((v2 - v1) / v1) * 100) : 0;
 

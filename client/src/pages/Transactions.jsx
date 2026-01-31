@@ -130,11 +130,15 @@ function TransactionModal({ transaction, accounts, categories, payees, onClose, 
     onSave(formData)
   }
 
-  // Filtrer les catégories par type
-  const filteredCategories = categories?.filter(c => c.type === formData.type || c.type === 'transfer')
-    .sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
+  // Filter categories by selected type, memoized to avoid re-sorting on every render
+  const filteredCategories = useMemo(() =>
+    categories?.filter(c => c.type === formData.type || c.type === 'transfer')
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
+  , [categories, formData.type])
 
-  const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
+  const sortedPayees = useMemo(() =>
+    payees ? [...payees].sort((a, b) => a.name.localeCompare(b.name, 'fr')) : []
+  , [payees])
 
   return (
     <Modal onClose={onClose}>
@@ -484,8 +488,8 @@ export default function Transactions() {
     return () => observer.disconnect()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // Aplatir les pages de transactions
-  const transactions = data?.pages?.flatMap(page => page.data) || []
+  // Flatten paginated transaction data
+  const transactions = useMemo(() => data?.pages?.flatMap(page => page.data) || [], [data])
   const totalCount = data?.pages?.[0]?.pagination?.total || 0
 
   const { data: accountsData } = useQuery({

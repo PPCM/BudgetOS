@@ -2,7 +2,8 @@
  * Integration tests for /api/v1/credit-cards endpoints
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { createTestApp, createAuthenticatedAgent, setupTestDb, closeTestDb, resetTestDb } from './helpers.js'
+import { v4 as uuidv4 } from 'uuid'
+import { createTestApp, createAuthenticatedAgent, setupTestDb, getTestDb, closeTestDb, resetTestDb } from './helpers.js'
 
 let app
 
@@ -123,5 +124,67 @@ describe('Credit Cards - Deferred debit', () => {
 
     expect(res.status).toBe(201)
     expect(res.body.data.creditCard.debitType).toBe('deferred')
+  })
+
+  it('should return currentCycleBalance for deferred card with transactions in open cycle', async () => {
+    // Create a deferred card
+    const createRes = await agent
+      .post('/api/v1/credit-cards')
+      .set('X-CSRF-Token', csrfToken)
+      .send(makeCard({ debitType: 'deferred', debitDay: 5 }))
+    expect(createRes.status).toBe(201)
+    const cardId = createRes.body.data.creditCard.id
+    const userId = createRes.body.data.creditCard.userId
+
+    // Insert an open cycle and a transaction linked to it directly in DB
+    const db = getTestDb()
+    const cycleId = uuidv4()
+    await db('credit_card_cycles').insert({
+      id: cycleId,
+      credit_card_id: cardId,
+      cycle_start_date: '2026-01-01',
+      cycle_end_date: '2026-01-31',
+      debit_date: '2026-02-05',
+      total_amount: 0,
+      status: 'open',
+    })
+
+    const txId = uuidv4()
+    await db('transactions').insert({
+      id: txId,
+      user_id: userId,
+      account_id: accountId,
+      amount: -42.50,
+      description: 'Test CC purchase',
+      date: '2026-01-15',
+      type: 'expense',
+      status: 'pending',
+      credit_card_id: cardId,
+      credit_card_cycle_id: cycleId,
+    })
+
+    // GET /credit-cards should return the balance
+    const listRes = await agent.get('/api/v1/credit-cards')
+    expect(listRes.status).toBe(200)
+    const card = listRes.body.data.creditCards.find(c => c.id === cardId)
+    expect(card).toBeDefined()
+    expect(card.currentCycleBalance).toBe(42.50)
+    expect(card.pendingDebitAmount).toBe(0)
+  })
+
+  it('should return currentCycleBalance 0 for deferred card with no transactions', async () => {
+    const createRes = await agent
+      .post('/api/v1/credit-cards')
+      .set('X-CSRF-Token', csrfToken)
+      .send(makeCard({ debitType: 'deferred', debitDay: 5 }))
+    expect(createRes.status).toBe(201)
+    const cardId = createRes.body.data.creditCard.id
+
+    const listRes = await agent.get('/api/v1/credit-cards')
+    expect(listRes.status).toBe(200)
+    const card = listRes.body.data.creditCards.find(c => c.id === cardId)
+    expect(card).toBeDefined()
+    expect(card.currentCycleBalance).toBe(0)
+    expect(card.pendingDebitAmount).toBe(0)
   })
 })

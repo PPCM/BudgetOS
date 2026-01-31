@@ -292,4 +292,29 @@ export const groupsApi = {
   removeMember: (groupId, userId) => api.delete(`/groups/${groupId}/members/${userId}`),
 }
 
+/**
+ * Import API endpoints
+ * @namespace importApi
+ */
+export const importApi = {
+  /**
+   * Analyze a bank file: upload, parse, enrich, find matches
+   * @param {FormData} formData - File + accountId + fileType + config
+   */
+  analyze: (formData) => api.post('/import/analyze', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  /**
+   * Confirm import with user-defined actions
+   * @param {Object} data - { importId, actions, autoCategories }
+   */
+  confirm: (data) => api.post('/import/confirm', data),
+  /** @param {Object} params - Filter params (accountId, status, page, limit) */
+  getHistory: (params) => api.get('/import/history', { params: cleanParams(params || {}) }),
+  /** @param {string} id - Import UUID */
+  getOne: (id) => api.get(`/import/${id}`),
+  /** @param {Object} params - { accountId, amount, date } */
+  getMatchCandidates: (params) => api.get('/import/match-candidates', { params }),
+}
+
 export default api

@@ -10,7 +10,7 @@ import { generateId } from '../utils/helpers.js';
 
 const router = Router();
 
-// Configuration Multer pour les uploads
+// Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, config.paths.uploads),
   filename: (req, file, cb) => {
@@ -32,10 +32,10 @@ const upload = multer({
 
 router.use(requireAuth);
 
-router.post('/upload', uploadRateLimiter, upload.single('file'), asyncHandler(importController.uploadFile));
-router.post('/preview', upload.single('file'), asyncHandler(importController.previewImport));
-router.post('/process', asyncHandler(importController.processImport));
-router.post('/validate', asyncHandler(importController.validateImport));
+// New unified routes: analyze (upload + parse + match) and confirm
+router.post('/analyze', uploadRateLimiter, upload.single('file'), asyncHandler(importController.analyzeImport));
+router.post('/confirm', asyncHandler(importController.confirmImport));
+router.get('/match-candidates', asyncHandler(importController.getMatchCandidates));
 router.get('/history', asyncHandler(importController.getImportHistory));
 router.get('/:id', asyncHandler(importController.getImport));
 

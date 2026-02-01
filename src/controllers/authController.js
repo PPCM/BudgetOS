@@ -193,3 +193,10 @@ export const getSettings = async (req, res) => {
     data: { settings },
   });
 };
+
+export const getSetupStatus = async (req, res) => {
+  const { default: knex } = await import('../database/connection.js');
+  const userCount = await knex('users').count('* as count').first();
+  const needsSetup = Number(userCount?.count || 0) === 0;
+  res.json({ success: true, data: { needsSetup } });
+};

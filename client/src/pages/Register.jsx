@@ -15,7 +15,7 @@ export default function Register() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { register } = useAuth()
+  const { register, needsSetup } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
 
@@ -61,8 +61,12 @@ export default function Register() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 mb-4">
               <span className="text-2xl font-bold text-primary-600">B</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Créer un compte</h1>
-            <p className="text-gray-600 mt-2">Commencez à gérer vos finances</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {needsSetup ? 'Bienvenue sur BudgetOS' : 'Créer un compte'}
+            </h1>
+            <p className="text-gray-600 mt-2">
+              {needsSetup ? 'Créez votre compte administrateur pour commencer' : 'Commencez à gérer vos finances'}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -172,12 +176,14 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
-            Déjà un compte ?{' '}
-            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-              Se connecter
-            </Link>
-          </p>
+          {!needsSetup && (
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Déjà un compte ?{' '}
+              <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                Se connecter
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>

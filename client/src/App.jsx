@@ -19,7 +19,7 @@ import AdminGroups from './pages/AdminGroups'
 import AdminSettings from './pages/AdminSettings'
 
 function PrivateRoute({ children }) {
-  const { user, loading } = useAuth()
+  const { user, needsSetup, loading } = useAuth()
 
   if (loading) {
     return (
@@ -29,7 +29,11 @@ function PrivateRoute({ children }) {
     )
   }
 
-  return user ? children : <Navigate to="/login" />
+  if (!user) {
+    return needsSetup ? <Navigate to="/register" /> : <Navigate to="/login" />
+  }
+
+  return children
 }
 
 function AdminRoute({ children }) {
@@ -49,10 +53,27 @@ function AdminRoute({ children }) {
   return children
 }
 
+function LoginRoute() {
+  const { user, needsSetup, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (user) return <Navigate to="/" />
+  if (needsSetup) return <Navigate to="/register" />
+
+  return <Login />
+}
+
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<LoginRoute />} />
       <Route path="/register" element={<Register />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />

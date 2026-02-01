@@ -124,13 +124,6 @@ export default function Login() {
             </Link>
           </p>
 
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-500 text-center">
-              <strong>Compte démo :</strong><br />
-              admin@budgetos.local / Admin123!
-            </p>
-          </div>
         </div>
       </div>
     </div>

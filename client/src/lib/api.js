@@ -89,6 +89,7 @@ export const authApi = {
   register: (data) => api.post('/auth/register', data),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
+  getSetupStatus: () => api.get('/auth/setup-status'),
   getSettings: () => api.get('/auth/settings'),
   /** @param {Object} data - Settings data (weekStartDay, dateFormat, etc.) */
   updateSettings: (data) => api.put('/auth/settings', data),

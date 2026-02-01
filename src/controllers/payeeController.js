@@ -25,10 +25,10 @@ export const createPayee = async (req, res, next) => {
   try {
     const data = createPayeeSchema.parse(req.body);
 
-    // Vérifier si un tiers avec ce nom existe déjà
+    // Check if a payee with this name already exists
     const existing = await Payee.findByName(data.name, req.user.id);
     if (existing) {
-      throw new ValidationError('Un tiers avec ce nom existe déjà');
+      throw new ValidationError('A payee with this name already exists', 'PAYEE_NAME_EXISTS');
     }
 
     const payee = await Payee.create(req.user.id, data);
@@ -42,11 +42,11 @@ export const updatePayee = async (req, res, next) => {
   try {
     const data = updatePayeeSchema.parse(req.body);
 
-    // Si le nom change, vérifier qu'il n'existe pas déjà
+    // If the name changes, check it doesn't already exist
     if (data.name) {
       const existing = await Payee.findByName(data.name, req.user.id);
       if (existing && existing.id !== req.params.id) {
-        throw new ValidationError('Un tiers avec ce nom existe déjà');
+        throw new ValidationError('A payee with this name already exists', 'PAYEE_NAME_EXISTS');
       }
     }
 

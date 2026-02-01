@@ -61,7 +61,7 @@ export const confirmActionSchema = z.object({
  * Confirm import schema
  */
 export const confirmImportSchema = z.object({
-  importId: z.string().uuid('ID d\'import invalide'),
+  importId: z.string().uuid('Invalid import ID'),
   actions: z.record(z.string(), confirmActionSchema),
   autoCategories: z.boolean().default(true),
 });
@@ -79,7 +79,7 @@ export const matchCandidatesQuerySchema = z.object({
  * URL parameter schema for import ID
  */
 export const importIdParamSchema = z.object({
-  id: z.string().uuid('ID d\'import invalide'),
+  id: z.string().uuid('Invalid import ID'),
 });
 
 /**

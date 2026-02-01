@@ -142,7 +142,7 @@ describe('Account.findByIdOrFail', () => {
 
   it('throws NotFoundError when account not found', async () => {
     await expect(Account.findByIdOrFail('non-existent', userId))
-      .rejects.toThrow('Compte non trouvé')
+      .rejects.toThrow('Account not found')
   })
 })
 
@@ -238,7 +238,7 @@ describe('Account.update', () => {
 
   it('throws NotFoundError for non-existent account', async () => {
     await expect(Account.update('non-existent', userId, { name: 'Test' }))
-      .rejects.toThrow('Compte non trouvé')
+      .rejects.toThrow('Account not found')
   })
 })
 
@@ -371,7 +371,7 @@ describe('Account.delete', () => {
 
   it('throws NotFoundError for non-existent account', async () => {
     await expect(Account.delete('non-existent', userId))
-      .rejects.toThrow('Compte non trouvé')
+      .rejects.toThrow('Account not found')
   })
 })
 

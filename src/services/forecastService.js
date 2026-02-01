@@ -56,7 +56,7 @@ export class ForecastService {
       futureTransactions.push({
         date: debit.debit_date,
         amount: -debit.total_amount,
-        description: `Prélèvement ${debit.card_name}`,
+        description: `Debit ${debit.card_name}`,
         type: 'deferred_debit',
       });
     }

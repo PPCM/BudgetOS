@@ -1,5 +1,5 @@
 /**
- * Classe de base pour les erreurs applicatives
+ * Base class for application errors
  */
 export class AppError extends Error {
   constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {
@@ -7,89 +7,89 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.code = code;
     this.isOperational = true;
-    
+
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
 /**
- * Erreur 400 - Requête invalide
+ * 400 - Bad request
  */
 export class BadRequestError extends AppError {
-  constructor(message = 'Requête invalide', code = 'BAD_REQUEST') {
+  constructor(message = 'Bad request', code = 'BAD_REQUEST') {
     super(message, 400, code);
   }
 }
 
 /**
- * Erreur 401 - Non authentifié
+ * 401 - Unauthorized
  */
 export class UnauthorizedError extends AppError {
-  constructor(message = 'Non authentifié', code = 'UNAUTHORIZED') {
+  constructor(message = 'Unauthorized', code = 'UNAUTHORIZED') {
     super(message, 401, code);
   }
 }
 
 /**
- * Erreur 403 - Accès interdit
+ * 403 - Forbidden
  */
 export class ForbiddenError extends AppError {
-  constructor(message = 'Accès interdit', code = 'FORBIDDEN') {
+  constructor(message = 'Forbidden', code = 'FORBIDDEN') {
     super(message, 403, code);
   }
 }
 
 /**
- * Erreur 404 - Ressource non trouvée
+ * 404 - Not found
  */
 export class NotFoundError extends AppError {
-  constructor(message = 'Ressource non trouvée', code = 'NOT_FOUND') {
+  constructor(message = 'Resource not found', code = 'NOT_FOUND') {
     super(message, 404, code);
   }
 }
 
 /**
- * Erreur 409 - Conflit
+ * 409 - Conflict
  */
 export class ConflictError extends AppError {
-  constructor(message = 'Conflit de ressources', code = 'CONFLICT') {
+  constructor(message = 'Resource conflict', code = 'CONFLICT') {
     super(message, 409, code);
   }
 }
 
 /**
- * Erreur 422 - Entité non traitable (validation)
+ * 422 - Unprocessable entity (validation)
  */
 export class ValidationError extends AppError {
-  constructor(message = 'Données invalides', errors = [], code = 'VALIDATION_ERROR') {
+  constructor(message = 'Invalid data', errors = [], code = 'VALIDATION_ERROR') {
     super(message, 422, code);
     this.errors = errors;
   }
 }
 
 /**
- * Erreur 429 - Trop de requêtes
+ * 429 - Too many requests
  */
 export class TooManyRequestsError extends AppError {
-  constructor(message = 'Trop de requêtes', code = 'TOO_MANY_REQUESTS') {
+  constructor(message = 'Too many requests', code = 'TOO_MANY_REQUESTS') {
     super(message, 429, code);
   }
 }
 
 /**
- * Erreur 500 - Erreur serveur
+ * 500 - Internal server error
  */
 export class InternalError extends AppError {
-  constructor(message = 'Erreur interne du serveur', code = 'INTERNAL_ERROR') {
+  constructor(message = 'Internal server error', code = 'INTERNAL_ERROR') {
     super(message, 500, code);
   }
 }
 
 /**
- * Erreur de base de données
+ * Database error
  */
 export class DatabaseError extends AppError {
-  constructor(message = 'Erreur de base de données', code = 'DATABASE_ERROR') {
+  constructor(message = 'Database error', code = 'DATABASE_ERROR') {
     super(message, 500, code);
   }
 }

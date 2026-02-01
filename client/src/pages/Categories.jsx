@@ -1,20 +1,16 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { categoriesApi } from '../lib/api'
+import { translateError } from '../lib/errorHelper'
 import * as LucideIcons from 'lucide-react'
-import { 
-  Tag, TrendingUp, TrendingDown, ArrowLeftRight, Plus, 
+import {
+  Tag, TrendingUp, TrendingDown, ArrowLeftRight, Plus,
   Pencil, Trash2, X, Download, Upload, Check
 } from 'lucide-react'
 import Modal from '../components/Modal'
 
-const typeConfig = {
-  income: { label: 'Revenus', icon: TrendingUp, color: 'green', bg: 'bg-green-100', text: 'text-green-600' },
-  expense: { label: 'Dépenses', icon: TrendingDown, color: 'red', bg: 'bg-red-100', text: 'text-red-600' },
-  transfer: { label: 'Virements', icon: ArrowLeftRight, color: 'blue', bg: 'bg-blue-100', text: 'text-blue-600' },
-}
-
-// Icônes disponibles pour les catégories
+// Available icons for categories
 const availableIcons = [
   'Tag', 'Briefcase', 'Gift', 'ArrowLeft', 'PlusCircle', 'Home', 'Zap', 'Droplet',
   'Wifi', 'Phone', 'Fuel', 'Train', 'Car', 'Bus', 'Plane', 'Ship',
@@ -28,7 +24,7 @@ const availableIcons = [
   'Sun', 'Moon', 'Cloud', 'Umbrella', 'Snowflake', 'Flame', 'Leaf',
 ]
 
-// Fonction pour obtenir le composant icône par nom
+// Get icon component by name
 const getIconComponent = (iconName) => {
   const IconComponent = LucideIcons[iconName]
   return IconComponent || Tag
@@ -41,7 +37,23 @@ const defaultColors = [
   '#EC4899', '#F43F5E', '#78716C', '#6B7280', '#64748B',
 ]
 
+/**
+ * Build type configuration with translated labels
+ * @param {Function} t - Translation function
+ * @returns {Object} Type configuration with labels, icons, and colors
+ */
+function getTypeConfig(t) {
+  return {
+    income: { label: t('categories.types.income'), icon: TrendingUp, color: 'green', bg: 'bg-green-100', text: 'text-green-600' },
+    expense: { label: t('categories.types.expense'), icon: TrendingDown, color: 'red', bg: 'bg-red-100', text: 'text-red-600' },
+    transfer: { label: t('categories.types.transfer'), icon: ArrowLeftRight, color: 'blue', bg: 'bg-blue-100', text: 'text-blue-600' },
+  }
+}
+
 function CategoryModal({ category, onClose, onSave }) {
+  const { t } = useTranslation()
+  const typeConfig = getTypeConfig(t)
+
   const [formData, setFormData] = useState(category || {
     name: '',
     type: 'expense',
@@ -59,7 +71,7 @@ function CategoryModal({ category, onClose, onSave }) {
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">
-            {category ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+            {category ? t('categories.editCategory') : t('categories.newCategoryTitle')}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -67,19 +79,19 @@ function CategoryModal({ category, onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')}</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="input"
-              placeholder="Ex: Alimentation, Salaire..."
+              placeholder={t('categories.namePlaceholder')}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.type')}</label>
             <div className="flex gap-2">
               {Object.entries(typeConfig).map(([type, config]) => (
                 <button
@@ -87,8 +99,8 @@ function CategoryModal({ category, onClose, onSave }) {
                   type="button"
                   onClick={() => setFormData({ ...formData, type })}
                   className={`flex-1 p-3 rounded-lg border-2 transition-colors flex flex-col items-center gap-1 ${
-                    formData.type === type 
-                      ? `border-${config.color}-500 ${config.bg}` 
+                    formData.type === type
+                      ? `border-${config.color}-500 ${config.bg}`
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -100,7 +112,7 @@ function CategoryModal({ category, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Couleur</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('common.color')}</label>
             <div className="flex flex-wrap gap-2">
               {defaultColors.map((color) => (
                 <button
@@ -119,7 +131,7 @@ function CategoryModal({ category, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Icône</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('common.icon')}</label>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg">
               {availableIcons.map((iconName) => {
                 const IconComp = getIconComponent(iconName)
@@ -129,8 +141,8 @@ function CategoryModal({ category, onClose, onSave }) {
                     type="button"
                     onClick={() => setFormData({ ...formData, icon: iconName.toLowerCase() })}
                     className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                      formData.icon === iconName.toLowerCase() 
-                        ? 'bg-primary-100 text-primary-600 ring-2 ring-primary-500' 
+                      formData.icon === iconName.toLowerCase()
+                        ? 'bg-primary-100 text-primary-600 ring-2 ring-primary-500'
                         : 'hover:bg-gray-100 text-gray-600'
                     }`}
                     title={iconName}
@@ -144,10 +156,10 @@ function CategoryModal({ category, onClose, onSave }) {
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {category ? 'Modifier' : 'Créer'}
+              {category ? t('common.edit') : t('common.create')}
             </button>
           </div>
         </form>
@@ -157,6 +169,9 @@ function CategoryModal({ category, onClose, onSave }) {
 }
 
 export default function Categories() {
+  const { t } = useTranslation()
+  const typeConfig = getTypeConfig(t)
+
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const fileInputRef = useRef()
@@ -174,7 +189,7 @@ export default function Categories() {
       setModalOpen(false)
       setEditingCategory(null)
     },
-    onError: (err) => alert('Erreur: ' + (err.response?.data?.error?.message || err.message)),
+    onError: (err) => alert(translateError(err)),
   })
 
   const updateMutation = useMutation({
@@ -184,13 +199,13 @@ export default function Categories() {
       setModalOpen(false)
       setEditingCategory(null)
     },
-    onError: (err) => alert('Erreur: ' + (err.response?.data?.error?.message || err.message)),
+    onError: (err) => alert(translateError(err)),
   })
 
   const deleteMutation = useMutation({
     mutationFn: categoriesApi.delete,
     onSuccess: () => queryClient.invalidateQueries(['categories']),
-    onError: (err) => alert('Erreur: ' + (err.response?.data?.error?.message || err.message)),
+    onError: (err) => alert(translateError(err)),
   })
 
   const handleSave = (formData) => {
@@ -207,7 +222,7 @@ export default function Categories() {
   }
 
   const handleDelete = (category) => {
-    if (confirm(`Supprimer la catégorie "${category.name}" ?`)) {
+    if (confirm(t('categories.confirmDelete', { name: category.name }))) {
       deleteMutation.mutate(category.id)
     }
   }
@@ -233,32 +248,32 @@ export default function Categories() {
       try {
         const categories = JSON.parse(event.target.result)
         if (!Array.isArray(categories)) {
-          throw new Error('Format invalide')
+          throw new Error(t('categories.invalidFormat'))
         }
-        
+
         let created = 0, updated = 0
         for (const cat of categories) {
-          // Chercher si une catégorie avec le même nom existe
+          // Check if a category with the same name exists
           const existing = data?.find(c => c.name === cat.name && c.type === cat.type)
-          
+
           try {
             if (existing) {
-              // Mettre à jour la catégorie existante
+              // Update existing category
               await updateMutation.mutateAsync({ id: existing.id, data: cat })
               updated++
             } else {
-              // Créer une nouvelle catégorie
+              // Create new category
               await createMutation.mutateAsync(cat)
               created++
             }
           } catch (err) {
-            console.warn('Erreur import:', cat.name, err)
+            console.warn('Import error:', cat.name, err)
           }
         }
-        alert(`Import terminé: ${created} créée(s), ${updated} mise(s) à jour`)
+        alert(t('categories.importDone', { created, updated }))
         queryClient.invalidateQueries(['categories'])
       } catch (err) {
-        alert('Erreur lors de l\'import: ' + err.message)
+        alert(t('categories.importError') + ': ' + err.message)
       }
     }
     reader.readAsText(file)
@@ -272,7 +287,7 @@ export default function Categories() {
   }
 
   const sortByName = (a, b) => a.name.localeCompare(b.name, 'fr')
-  
+
   const groupedCategories = {
     income: data?.filter(c => c.type === 'income').sort(sortByName) || [],
     expense: data?.filter(c => c.type === 'expense').sort(sortByName) || [],
@@ -283,8 +298,8 @@ export default function Categories() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Catégories</h1>
-          <p className="text-gray-600">Organisez vos transactions</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('categories.title')}</h1>
+          <p className="text-gray-600">{t('categories.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <input
@@ -294,26 +309,26 @@ export default function Categories() {
             onChange={handleImport}
             className="hidden"
           />
-          <button 
-            onClick={() => fileInputRef.current?.click()} 
+          <button
+            onClick={() => fileInputRef.current?.click()}
             className="btn btn-secondary flex items-center gap-2"
           >
             <Upload className="w-4 h-4" />
-            Importer
+            {t('common.import')}
           </button>
-          <button 
-            onClick={handleExport} 
+          <button
+            onClick={handleExport}
             className="btn btn-secondary flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
-            Exporter
+            {t('common.export')}
           </button>
-          <button 
-            onClick={() => { setEditingCategory(null); setModalOpen(true); }} 
+          <button
+            onClick={() => { setEditingCategory(null); setModalOpen(true); }}
             className="btn btn-primary flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            Nouvelle
+            {t('categories.newCategory')}
           </button>
         </div>
       </div>
@@ -335,11 +350,11 @@ export default function Categories() {
               {groupedCategories[type].map((category) => {
                 const IconComp = getIconComponent(category.icon?.charAt(0).toUpperCase() + category.icon?.slice(1) || 'Tag')
                 return (
-                <div 
-                  key={category.id} 
+                <div
+                  key={category.id}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
                 >
-                  <div 
+                  <div
                     className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: category.color + '20', color: category.color }}
                   >
@@ -364,7 +379,7 @@ export default function Categories() {
               )})}
 
               {groupedCategories[type].length === 0 && (
-                <p className="text-gray-400 text-center py-4">Aucune catégorie</p>
+                <p className="text-gray-400 text-center py-4">{t('categories.noCategories')}</p>
               )}
             </div>
           </div>

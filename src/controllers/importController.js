@@ -5,11 +5,11 @@ import Transaction from '../models/Transaction.js';
 import { matchCandidatesQuerySchema } from '../validators/import.js';
 
 export const analyzeImport = async (req, res) => {
-  if (!req.file) throw new BadRequestError('Aucun fichier fourni');
+  if (!req.file) throw new BadRequestError('No file provided', 'FILE_REQUIRED');
 
   const { accountId, fileType, config: importConfig } = req.body;
-  if (!accountId) throw new BadRequestError('Compte de destination requis');
-  if (!fileType) throw new BadRequestError('Type de fichier requis');
+  if (!accountId) throw new BadRequestError('Destination account required', 'ACCOUNT_ID_REQUIRED');
+  if (!fileType) throw new BadRequestError('File type required', 'FILE_TYPE_REQUIRED');
 
   const parsedConfig = importConfig ? JSON.parse(importConfig) : {};
 
@@ -22,8 +22,8 @@ export const analyzeImport = async (req, res) => {
 
 export const confirmImport = async (req, res) => {
   const { importId, actions, autoCategories = true } = req.body;
-  if (!importId) throw new BadRequestError('ID d\'import requis');
-  if (!actions) throw new BadRequestError('Actions requises');
+  if (!importId) throw new BadRequestError('Import ID required', 'IMPORT_ID_REQUIRED');
+  if (!actions) throw new BadRequestError('Actions required', 'ACTIONS_REQUIRED');
 
   const result = await ImportService.confirmImport(
     req.user.id, importId, actions, autoCategories
@@ -72,7 +72,7 @@ export const getImport = async (req, res) => {
     .where({ id: req.params.id, user_id: req.user.id })
     .first();
 
-  if (!imp) throw new BadRequestError('Import non trouvé');
+  if (!imp) throw new BadRequestError('Import not found', 'IMPORT_NOT_FOUND');
 
   res.json({
     success: true,

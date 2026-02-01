@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Opérateurs de condition
+ * Condition operators
  */
 export const conditionOperators = [
   'equals',
@@ -17,7 +17,7 @@ export const conditionOperators = [
 ];
 
 /**
- * Champs disponibles pour les conditions
+ * Available fields for conditions
  */
 export const conditionFields = [
   'description',
@@ -27,7 +27,7 @@ export const conditionFields = [
 ];
 
 /**
- * Schéma d'une condition de règle
+ * Rule condition schema
  */
 export const ruleConditionSchema = z.object({
   field: z.enum(conditionFields),
@@ -37,38 +37,38 @@ export const ruleConditionSchema = z.object({
 });
 
 /**
- * Schéma de base pour règle
+ * Base rule schema
  */
 const ruleBaseSchema = z.object({
-  name: z.string().min(1, 'Nom requis').max(100, 'Nom trop long').trim(),
+  name: z.string().min(1, 'Name required').max(100, 'Name too long').trim(),
   priority: z.number().int().min(0).max(100).default(0),
   isActive: z.boolean().default(true),
-  conditions: z.array(ruleConditionSchema).min(1, 'Au moins une condition requise'),
+  conditions: z.array(ruleConditionSchema).min(1, 'At least one condition required'),
   conditionLogic: z.enum(['and', 'or']).default('and'),
-  actionCategoryId: z.string().uuid('ID de catégorie invalide').nullable().optional(),
+  actionCategoryId: z.string().uuid('Invalid category ID').nullable().optional(),
   actionTags: z.array(z.string().max(50)).max(10).optional(),
   actionNotes: z.string().max(500).optional(),
 });
 
 /**
- * Schéma de création de règle
+ * Rule creation schema
  */
 export const createRuleSchema = ruleBaseSchema;
 
 /**
- * Schéma de mise à jour de règle
+ * Rule update schema
  */
 export const updateRuleSchema = ruleBaseSchema.partial();
 
 /**
- * Schéma de paramètres d'URL
+ * URL parameters schema
  */
 export const ruleIdParamSchema = z.object({
-  id: z.string().uuid('ID de règle invalide'),
+  id: z.string().uuid('Invalid rule ID'),
 });
 
 /**
- * Schéma de requête pour la liste des règles
+ * Query schema for rule list
  */
 export const listRulesQuerySchema = z.object({
   isActive: z
@@ -80,7 +80,7 @@ export const listRulesQuerySchema = z.object({
 });
 
 /**
- * Schéma pour tester une règle
+ * Schema for testing a rule
  */
 export const testRuleSchema = z.object({
   description: z.string().max(255).optional(),

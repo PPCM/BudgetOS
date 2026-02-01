@@ -34,5 +34,5 @@ export const testRule = async (req, res) => {
 export const applyRuleToTransaction = async (req, res) => {
   const { transactionId } = req.body;
   await Rule.applyRule(req.user.id, transactionId, req.params.id);
-  res.json({ success: true, message: 'Règle appliquée' });
+  res.json({ success: true, message: 'Rule applied' });
 };

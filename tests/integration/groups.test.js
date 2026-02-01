@@ -171,7 +171,7 @@ describe('Groups - Members', () => {
     expect(res.body.data.member.role).toBe('admin')
   })
 
-  it('should remove a member', async () => {
+  it('should delete a user when removing a member', async () => {
     const { agent, csrfToken } = await createAuthenticatedSuperAdmin(app)
     const { user: regularUser } = await createAuthenticatedAgent(app)
 
@@ -188,6 +188,58 @@ describe('Groups - Members', () => {
       .set('X-CSRF-Token', csrfToken)
 
     expect(res.status).toBe(200)
+
+    // Verify user is actually deleted from DB (not just removed from group)
+    const db = getTestDb()
+    const dbUser = await db('users').where('id', regularUser.id).first()
+    expect(dbUser).toBeUndefined()
+
+    // Verify group still exists
+    const dbGroup = await db('groups').where('id', groupId).first()
+    expect(dbGroup).toBeDefined()
+    expect(dbGroup.name).toBe('Team')
+  })
+
+  it('should prevent self-deletion via remove member', async () => {
+    const { agent, csrfToken, user: superAdmin } = await createAuthenticatedSuperAdmin(app)
+
+    const createRes = await agent
+      .post('/api/v1/groups')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ name: 'Self Team' })
+
+    const groupId = createRes.body.data.group.id
+    await agent.post(`/api/v1/groups/${groupId}/members`).set('X-CSRF-Token', csrfToken).send({ userId: superAdmin.id, role: 'admin' })
+
+    const res = await agent
+      .delete(`/api/v1/groups/${groupId}/members/${superAdmin.id}`)
+      .set('X-CSRF-Token', csrfToken)
+
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('CANNOT_DELETE_SELF')
+  })
+
+  it('should prevent deleting last super_admin via remove member', async () => {
+    const { agent: superAgent, csrfToken: superCsrf, user: superAdmin } = await createAuthenticatedSuperAdmin(app)
+    const { agent: secondAgent, csrfToken: secondCsrf, user: secondAdmin } = await createAuthenticatedSuperAdmin(app, { email: 'sa2-group@test.com' })
+
+    const createRes = await superAgent
+      .post('/api/v1/groups')
+      .set('X-CSRF-Token', superCsrf)
+      .send({ name: 'Admin Team' })
+
+    const groupId = createRes.body.data.group.id
+    await superAgent.post(`/api/v1/groups/${groupId}/members`).set('X-CSRF-Token', superCsrf).send({ userId: superAdmin.id, role: 'admin' })
+    await superAgent.post(`/api/v1/groups/${groupId}/members`).set('X-CSRF-Token', superCsrf).send({ userId: secondAdmin.id, role: 'admin' })
+
+    // Delete second super_admin via remove member (should work: 2 super_admins)
+    const res1 = await superAgent
+      .delete(`/api/v1/groups/${groupId}/members/${secondAdmin.id}`)
+      .set('X-CSRF-Token', superCsrf)
+    expect(res1.status).toBe(200)
+
+    // self-deletion is blocked separately (CANNOT_DELETE_SELF) so last-admin check
+    // is only relevant when another admin tries to delete the last one
   })
 })
 

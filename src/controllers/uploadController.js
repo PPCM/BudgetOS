@@ -11,23 +11,23 @@ const __dirname = path.dirname(__filename);
 
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_IMAGE_DIMENSION = 256; // Taille max en pixels
+const MAX_IMAGE_DIMENSION = 256; // Max dimension in pixels
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif'];
 const UPLOAD_BASE_DIR = path.join(__dirname, '../../client/public/uploads/payees');
 
-// Créer le dossier de base s'il n'existe pas
+// Create the base directory if it doesn't exist
 if (!fs.existsSync(UPLOAD_BASE_DIR)) {
   fs.mkdirSync(UPLOAD_BASE_DIR, { recursive: true });
 }
 
-// Configuration Multer pour stockage en mémoire
+// Multer configuration for in-memory storage
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new ValidationError('Format non supporté. Utilisez PNG, JPEG ou GIF.'), false);
+    cb(new ValidationError('Unsupported format. Use PNG, JPEG, or GIF.', 'UNSUPPORTED_FORMAT'), false);
   }
 };
 
@@ -38,21 +38,21 @@ export const upload = multer({
 });
 
 /**
- * Génère un nom de fichier unique basé sur le pseudo, MD5 et date
+ * Generate a unique filename based on username, MD5 and timestamp
  */
 function generateFileName(username, buffer) {
   const md5Hash = crypto.createHash('md5').update(buffer).digest('hex');
   const timestamp = Date.now().toString();
   const combined = `${username}_${md5Hash}_${timestamp}`;
   
-  // Hash final sur 32 caractères
+  // Final hash of 32 characters
   const finalHash = crypto.createHash('md5').update(combined).digest('hex');
   return finalHash;
 }
 
 /**
- * Crée la structure de dossiers hiérarchique
- * ab/cd/ef/gh/fichier.png
+ * Create hierarchical directory structure
+ * ab/cd/ef/gh/file.png
  */
 function createDirectoryPath(fileName) {
   const parts = [
@@ -72,12 +72,12 @@ function createDirectoryPath(fileName) {
 }
 
 /**
- * Upload et traitement d'une image de tiers
+ * Upload and process a payee image
  */
 export const uploadPayeeImage = async (req, res, next) => {
   try {
     if (!req.file) {
-      throw new ValidationError('Aucun fichier fourni');
+      throw new ValidationError('No file provided', 'FILE_REQUIRED');
     }
 
     const username = req.user.username || req.user.id;
@@ -86,7 +86,7 @@ export const uploadPayeeImage = async (req, res, next) => {
     const outputFileName = `${fileName}.png`;
     const outputPath = path.join(dirPath, outputFileName);
 
-    // Redimensionner et convertir en PNG avec sharp
+    // Resize and convert to PNG with sharp
     await sharp(req.file.buffer)
       .resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, {
         fit: 'cover',
@@ -95,7 +95,7 @@ export const uploadPayeeImage = async (req, res, next) => {
       .png({ quality: 90 })
       .toFile(outputPath);
 
-    // Construire le chemin relatif pour le frontend
+    // Build relative path for the frontend
     const relativePath = `/uploads/payees/${fileName.substring(0, 2)}/${fileName.substring(2, 4)}/${fileName.substring(4, 6)}/${fileName.substring(6, 8)}/${outputFileName}`;
 
     res.json({
@@ -111,14 +111,14 @@ export const uploadPayeeImage = async (req, res, next) => {
 };
 
 /**
- * Supprime une image de tiers
+ * Delete a payee image
  */
 export const deletePayeeImage = async (req, res, next) => {
   try {
     const { imageUrl } = req.body;
     
     if (!imageUrl || !imageUrl.startsWith('/uploads/payees/')) {
-      throw new ValidationError('URL d\'image invalide');
+      throw new ValidationError('Invalid image URL', 'INVALID_IMAGE_URL');
     }
 
     const filePath = path.join(__dirname, '../../client/public', imageUrl);
@@ -126,7 +126,7 @@ export const deletePayeeImage = async (req, res, next) => {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       
-      // Nettoyer les dossiers vides
+      // Clean up empty directories
       let dirPath = path.dirname(filePath);
       for (let i = 0; i < 4; i++) {
         if (fs.existsSync(dirPath) && fs.readdirSync(dirPath).length === 0) {

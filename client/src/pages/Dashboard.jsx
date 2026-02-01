@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { reportsApi, accountsApi } from '../lib/api'
-import { formatCurrency, formatDateRelative } from '../lib/utils'
-import { 
-  Wallet, TrendingUp, TrendingDown, ArrowUpRight, 
+import { useFormatters } from '../hooks/useFormatters'
+import {
+  Wallet, TrendingUp, TrendingDown, ArrowUpRight,
   ArrowDownRight, Clock, PieChart
 } from 'lucide-react'
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
 
-function StatCard({ title, value, icon: Icon, trend, color = 'primary' }) {
+function StatCard({ title, value, icon: Icon, trend, color = 'primary', t }) {
   const colorClasses = {
     primary: 'bg-primary-50 text-primary-600',
     green: 'bg-green-50 text-green-600',
@@ -25,7 +26,7 @@ function StatCard({ title, value, icon: Icon, trend, color = 'primary' }) {
           {trend !== undefined && (
             <p className={`text-sm mt-2 flex items-center gap-1 ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {trend >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-              {Math.abs(trend).toFixed(1)}% vs mois dernier
+              {t('common.vsLastMonth', { value: Math.abs(trend).toFixed(1) })}
             </p>
           )}
         </div>
@@ -37,9 +38,9 @@ function StatCard({ title, value, icon: Icon, trend, color = 'primary' }) {
   )
 }
 
-function RecentTransactions({ transactions }) {
+function RecentTransactions({ transactions, t, formatCurrency, formatDateRelative }) {
   if (!transactions?.length) {
-    return <p className="text-gray-500 text-center py-8">Aucune transaction récente</p>
+    return <p className="text-gray-500 text-center py-8">{t('dashboard.noTransactions')}</p>
   }
 
   return (
@@ -55,7 +56,7 @@ function RecentTransactions({ transactions }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-gray-900 truncate">{tx.description}</p>
-            <p className="text-sm text-gray-500">{tx.categoryName || 'Non catégorisé'}</p>
+            <p className="text-sm text-gray-500">{tx.categoryName || t('dashboard.uncategorized')}</p>
           </div>
           <div className="text-right">
             <p className={`font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -70,6 +71,9 @@ function RecentTransactions({ transactions }) {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation()
+  const { formatCurrency, formatDateRelative } = useFormatters()
+
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => reportsApi.getDashboard().then(r => r.data.data),
@@ -102,42 +106,46 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
-        <p className="text-gray-600">Vue d'ensemble de vos finances</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+        <p className="text-gray-600">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Solde total"
+          title={t('dashboard.totalBalance')}
           value={formatCurrency(dashboard?.totalBalance || 0)}
           icon={Wallet}
           color="primary"
+          t={t}
         />
         <StatCard
-          title="Revenus du mois"
+          title={t('dashboard.monthlyIncome')}
           value={formatCurrency(dashboard?.monthlyIncome || 0)}
           icon={TrendingUp}
           color="green"
+          t={t}
         />
         <StatCard
-          title="Dépenses du mois"
+          title={t('dashboard.monthlyExpenses')}
           value={formatCurrency(dashboard?.monthlyExpenses || 0)}
           icon={TrendingDown}
           color="red"
+          t={t}
         />
         <StatCard
-          title="Flux net"
+          title={t('dashboard.netFlow')}
           value={formatCurrency(dashboard?.monthlyNetFlow || 0)}
           icon={Clock}
           color={dashboard?.monthlyNetFlow >= 0 ? 'green' : 'red'}
+          t={t}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Accounts */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Mes comptes</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.myAccounts')}</h2>
           <div className="space-y-3">
             {accounts?.data?.map((account) => (
               <div key={account.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -163,7 +171,7 @@ export default function Dashboard() {
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <PieChart className="w-5 h-5" />
-            Dépenses par catégorie
+            {t('dashboard.expensesByCategory')}
           </h2>
           {pieData.length > 0 ? (
             <div className="h-48">
@@ -187,7 +195,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">Aucune donnée</p>
+            <p className="text-gray-500 text-center py-8">{t('common.noData')}</p>
           )}
           <div className="mt-4 space-y-2">
             {pieData.slice(0, 4).map((item, i) => (
@@ -202,8 +210,8 @@ export default function Dashboard() {
 
         {/* Recent transactions */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Transactions récentes</h2>
-          <RecentTransactions transactions={dashboard?.recentTransactions} />
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.recentTransactions')}</h2>
+          <RecentTransactions transactions={dashboard?.recentTransactions} t={t} formatCurrency={formatCurrency} formatDateRelative={formatDateRelative} />
         </div>
       </div>
     </div>

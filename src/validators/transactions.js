@@ -1,46 +1,46 @@
 import { z } from 'zod';
 
 /**
- * Types de transactions
+ * Transaction types
  */
 export const transactionTypes = ['income', 'expense', 'transfer'];
 
 /**
- * Statuts de transactions
+ * Transaction statuses
  */
 export const transactionStatuses = ['pending', 'cleared', 'reconciled', 'void'];
 
 /**
- * Schéma de base pour une transaction
+ * Base transaction schema
  */
 const baseTransactionSchema = {
-  accountId: z.string().uuid('ID de compte invalide'),
-  categoryId: z.string().uuid('ID de catégorie invalide').nullable().optional(),
-  payeeId: z.string().uuid('ID de tiers invalide').nullable().optional(),
-  creditCardId: z.string().uuid('ID de carte invalide').nullable().optional(),
+  accountId: z.string().uuid('Invalid account ID'),
+  categoryId: z.string().uuid('Invalid category ID').nullable().optional(),
+  payeeId: z.string().uuid('Invalid payee ID').nullable().optional(),
+  creditCardId: z.string().uuid('Invalid card ID').nullable().optional(),
   amount: z
     .number()
-    .finite('Montant invalide')
-    .refine((val) => val !== 0, 'Le montant ne peut pas être nul'),
+    .finite('Invalid amount')
+    .refine((val) => val !== 0, 'Amount cannot be zero'),
   description: z
     .string()
-    .min(1, 'Description requise')
-    .max(255, 'Description trop longue')
+    .min(1, 'Description required')
+    .max(255, 'Description too long')
     .trim(),
   notes: z.string().max(1000).optional(),
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide (YYYY-MM-DD)'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
   valueDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format')
     .optional(),
   purchaseDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format')
     .optional(),
   type: z.enum(transactionTypes, {
-    errorMap: () => ({ message: 'Type de transaction invalide' }),
+    errorMap: () => ({ message: 'Invalid transaction type' }),
   }),
   status: z.enum(transactionStatuses).default('pending'),
   tags: z.array(z.string().max(50)).max(10).optional(),
@@ -48,14 +48,14 @@ const baseTransactionSchema = {
 };
 
 /**
- * Schéma de création de transaction
+ * Transaction creation schema
  */
 export const createTransactionSchema = z.object({
   ...baseTransactionSchema,
   // accountId can be null for transfers with external source
-  accountId: z.string().uuid('ID de compte invalide').nullable(),
-  // Pour les virements (can be null or undefined)
-  toAccountId: z.string().uuid('ID de compte destination invalide').nullable().optional(),
+  accountId: z.string().uuid('Invalid account ID').nullable(),
+  // For transfers (can be null or undefined)
+  toAccountId: z.string().uuid('Invalid destination account ID').nullable().optional(),
 }).refine((data) => {
   // For non-transfers, accountId is required
   if (data.type !== 'transfer' && !data.accountId) {
@@ -67,55 +67,55 @@ export const createTransactionSchema = z.object({
   }
   return true
 }, {
-  message: 'Un compte est requis',
+  message: 'An account is required',
   path: ['accountId'],
 });
 
 /**
- * Schéma de mise à jour de transaction
+ * Transaction update schema
  */
 export const updateTransactionSchema = z.object({
   ...baseTransactionSchema,
   // accountId can be null for transfers with external source
-  accountId: z.string().uuid('ID de compte invalide').nullable().optional(),
+  accountId: z.string().uuid('Invalid account ID').nullable().optional(),
   amount: baseTransactionSchema.amount.optional(),
   description: z
     .string()
-    .min(1, 'Description requise')
-    .max(255, 'Description trop longue')
+    .min(1, 'Description required')
+    .max(255, 'Description too long')
     .trim()
     .optional(),
   date: baseTransactionSchema.date.optional(),
   type: z.enum(transactionTypes).optional(),
   // For transfers: destination account (can be added, changed, or removed)
-  toAccountId: z.string().uuid('ID de compte destination invalide').nullable().optional(),
+  toAccountId: z.string().uuid('Invalid destination account ID').nullable().optional(),
 }).partial();
 
 /**
- * Schéma pour les splits (ventilation)
+ * Split transaction schema
  */
 export const transactionSplitSchema = z.object({
-  categoryId: z.string().uuid('ID de catégorie invalide').nullable(),
-  amount: z.number().finite('Montant invalide'),
+  categoryId: z.string().uuid('Invalid category ID').nullable(),
+  amount: z.number().finite('Invalid amount'),
   description: z.string().max(255).optional(),
 });
 
 /**
- * Schéma de création de transaction avec splits
+ * Split transaction creation schema
  */
 export const createSplitTransactionSchema = z.object({
   ...baseTransactionSchema,
-  splits: z.array(transactionSplitSchema).min(2, 'Au moins 2 ventilations requises'),
+  splits: z.array(transactionSplitSchema).min(2, 'At least 2 splits required'),
 }).refine((data) => {
   const totalSplits = data.splits.reduce((sum, split) => sum + Math.abs(split.amount), 0);
   return Math.abs(totalSplits - Math.abs(data.amount)) < 0.01;
 }, {
-  message: 'La somme des ventilations doit égaler le montant total',
+  message: 'Split amounts must equal the total amount',
   path: ['splits'],
 });
 
 /**
- * Schéma de requête pour la liste des transactions
+ * Query schema for transaction list
  */
 export const listTransactionsQuerySchema = z.object({
   accountId: z.string().uuid().optional(),
@@ -142,18 +142,18 @@ export const listTransactionsQuerySchema = z.object({
 });
 
 /**
- * Schéma de paramètres d'URL
+ * URL parameters schema
  */
 export const transactionIdParamSchema = z.object({
-  id: z.string().uuid('ID de transaction invalide'),
+  id: z.string().uuid('Invalid transaction ID'),
 });
 
 /**
- * Schéma pour le rapprochement
+ * Reconciliation schema
  */
 export const reconcileTransactionsSchema = z.object({
-  transactionIds: z.array(z.string().uuid()).min(1, 'Au moins une transaction requise'),
+  transactionIds: z.array(z.string().uuid()).min(1, 'At least one transaction required'),
   reconcileDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
 });

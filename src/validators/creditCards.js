@@ -1,20 +1,20 @@
 import { z } from 'zod';
 
 /**
- * Types de débit
+ * Debit types
  */
 export const debitTypes = ['immediate', 'deferred'];
 
 /**
- * Schéma de base pour carte de crédit
+ * Base credit card schema
  */
 const creditCardBaseSchema = z.object({
-  accountId: z.string().uuid('ID de compte invalide'),
-  linkedAccountId: z.string().uuid('ID de compte lié invalide').nullable().optional(),
-  name: z.string().min(1, 'Nom requis').max(100, 'Nom trop long').trim(),
-  cardNumberLast4: z.string().length(4).regex(/^\d{4}$/, 'Format invalide').optional(),
-  expirationDate: z.string().min(1, 'Date d\'expiration requise').regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Format invalide (MM/AA)'),
-  debitType: z.enum(debitTypes, { errorMap: () => ({ message: 'Type de débit invalide' }) }),
+  accountId: z.string().uuid('Invalid account ID'),
+  linkedAccountId: z.string().uuid('Invalid linked account ID').nullable().optional(),
+  name: z.string().min(1, 'Name required').max(100, 'Name too long').trim(),
+  cardNumberLast4: z.string().length(4).regex(/^\d{4}$/, 'Invalid format').optional(),
+  expirationDate: z.string().min(1, 'Expiration date required').regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Invalid format (MM/YY)'),
+  debitType: z.enum(debitTypes, { errorMap: () => ({ message: 'Invalid debit type' }) }),
   cycleStartDay: z.number().int().min(1).max(28).default(1),
   debitDay: z.number().int().min(1).max(28).nullable().optional(),
   debitDaysBeforeEnd: z.number().int().min(0).max(10).nullable().optional(),
@@ -26,29 +26,29 @@ const creditCardBaseSchema = z.object({
 });
 
 /**
- * Schéma de création de carte de crédit
+ * Credit card creation schema
  */
 export const createCreditCardSchema = creditCardBaseSchema.refine((data) => {
   if (data.debitType === 'deferred') {
     return data.debitDay != null || data.debitDaysBeforeEnd != null;
   }
   return true;
-}, { message: 'Pour le débit différé, spécifiez le jour de prélèvement ou J-X', path: ['debitDay'] });
+}, { message: 'For deferred debit, specify the debit day or D-X', path: ['debitDay'] });
 
 /**
- * Schéma de mise à jour de carte de crédit
+ * Credit card update schema
  */
 export const updateCreditCardSchema = creditCardBaseSchema.omit({ accountId: true }).partial();
 
 /**
- * Schéma de paramètres d'URL
+ * URL parameters schema
  */
 export const creditCardIdParamSchema = z.object({
-  id: z.string().uuid('ID de carte invalide'),
+  id: z.string().uuid('Invalid card ID'),
 });
 
 /**
- * Schéma de requête pour les cycles
+ * Query schema for cycles
  */
 export const listCyclesQuerySchema = z.object({
   status: z.enum(['open', 'pending', 'debited']).optional(),

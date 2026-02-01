@@ -1,36 +1,40 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, categoriesApi, payeesApi } from '../lib/api'
-import { formatCurrency, formatDate } from '../lib/utils'
+import { translateError } from '../lib/errorHelper'
+import { useFormatters } from '../hooks/useFormatters'
 import * as LucideIcons from 'lucide-react'
-import { 
+import {
   Plus, Calendar, Clock, Repeat, Trash2, X, Pencil, Tag,
-  TrendingUp, TrendingDown, ArrowLeftRight, Play, Users 
+  TrendingUp, TrendingDown, ArrowLeftRight, Play, Users
 } from 'lucide-react'
 import axios from 'axios'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
 
-// Fonction pour obtenir le composant icône par nom
+// Get icon component by name
 const getIconComponent = (iconName) => {
   if (!iconName) return Tag
   const formattedName = iconName.charAt(0).toUpperCase() + iconName.slice(1)
   return LucideIcons[formattedName] || Tag
 }
 
-const frequencies = [
-  { value: 'once', label: 'Une fois' },
-  { value: 'daily', label: 'Quotidien' },
-  { value: 'weekly', label: 'Hebdomadaire' },
-  { value: 'biweekly', label: 'Bi-hebdomadaire' },
-  { value: 'monthly', label: 'Mensuel' },
-  { value: 'bimonthly', label: 'Bimestriel' },
-  { value: 'quarterly', label: 'Trimestriel' },
-  { value: 'semiannual', label: 'Semestriel' },
-  { value: 'annual', label: 'Annuel' },
-]
-
 function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
+  const { t } = useTranslation()
+
+  const frequencies = [
+    { value: 'once', label: t('planned.frequencies.once') },
+    { value: 'daily', label: t('planned.frequencies.daily') },
+    { value: 'weekly', label: t('planned.frequencies.weekly') },
+    { value: 'biweekly', label: t('planned.frequencies.biweekly') },
+    { value: 'monthly', label: t('planned.frequencies.monthly') },
+    { value: 'bimonthly', label: t('planned.frequencies.bimonthly') },
+    { value: 'quarterly', label: t('planned.frequencies.quarterly') },
+    { value: 'semiannual', label: t('planned.frequencies.semiannual') },
+    { value: 'annual', label: t('planned.frequencies.annual') },
+  ]
+
   const [formData, setFormData] = useState(planned || {
     accountId: accounts?.[0]?.id || '',
     toAccountId: '',
@@ -45,13 +49,13 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
     executeBeforeHoliday: false,
     deleteOnEnd: false,
   })
-  
+
   const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
 
   const handleSubmit = (e) => {
     e.preventDefault()
     const amount = parseFloat(formData.amount)
-    // Filtrer les données pour n'envoyer que les champs nécessaires
+    // Filter data to only send required fields
     const data = {
       accountId: formData.accountId,
       categoryId: formData.categoryId || null,
@@ -65,10 +69,10 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
       executeBeforeHoliday: formData.executeBeforeHoliday || false,
       deleteOnEnd: formData.deleteOnEnd || false,
     }
-    // Pour les virements, ajouter le compte destination (exclusif avec tiers)
+    // For transfers, add destination account (exclusive with payee)
     if (formData.type === 'transfer' && formData.toAccountId) {
       data.toAccountId = formData.toAccountId
-      data.payeeId = null // Pas de tiers si compte destination
+      data.payeeId = null // No payee if destination account
     }
     onSave(data)
   }
@@ -78,7 +82,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
       <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
           <h2 className="text-lg font-semibold">
-            {planned ? 'Modifier' : 'Nouvelle transaction récurrente'}
+            {planned ? t('planned.editPlanned') : t('planned.newPlannedTitle')}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -88,17 +92,17 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
           {/* Type */}
           <div className="flex gap-2">
             {[
-              { value: 'expense', label: 'Dépense', icon: TrendingDown, color: 'red' },
-              { value: 'income', label: 'Revenu', icon: TrendingUp, color: 'green' },
-              { value: 'transfer', label: 'Virement', icon: ArrowLeftRight, color: 'blue' },
+              { value: 'expense', label: t('transactions.types.expense'), icon: TrendingDown, color: 'red' },
+              { value: 'income', label: t('transactions.types.income'), icon: TrendingUp, color: 'green' },
+              { value: 'transfer', label: t('transactions.types.transfer'), icon: ArrowLeftRight, color: 'blue' },
             ].map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setFormData({ ...formData, type: value })}
                 className={`flex-1 p-3 rounded-lg border-2 transition-colors flex flex-col items-center gap-1 ${
-                  formData.type === value 
-                    ? `border-${color}-500 bg-${color}-50` 
+                  formData.type === value
+                    ? `border-${color}-500 bg-${color}-50`
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -109,7 +113,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Montant</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.amount')}</label>
             <input
               type="number"
               step="0.01"
@@ -122,29 +126,29 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.description')}</label>
             <input
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="input"
-              placeholder="Ex: Loyer, Salaire..."
+              placeholder={t('planned.descriptionPlaceholder')}
               required
             />
           </div>
 
-          {/* Comptes - affichage différent pour les virements */}
+          {/* Accounts - different layout for transfers */}
           {formData.type === 'transfer' ? (
             <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Compte source (débit)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('planned.sourceAccount')}</label>
                 <select
                   value={formData.accountId}
                   onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
                   className="input"
                   required
                 >
-                  <option value="">Sélectionner le compte source</option>
+                  <option value="">{t('planned.selectSource')}</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id} disabled={a.id === formData.toAccountId}>
                       {a.name}
@@ -157,8 +161,8 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Compte destination (crédit) - optionnel
-                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">(désactivé car tiers sélectionné)</span>}
+                  {t('planned.destAccount')}
+                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">({t('planned.disabledPayee')})</span>}
                 </label>
                 <select
                   value={formData.toAccountId}
@@ -166,7 +170,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
                   className="input"
                   disabled={!!formData.payeeId}
                 >
-                  <option value="">Aucun (virement externe)</option>
+                  <option value="">{t('planned.noDestExternal')}</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id} disabled={a.id === formData.accountId}>
                       {a.name}
@@ -178,21 +182,21 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
           ) : (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Compte</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('transactions.account')}</label>
                 <select
                   value={formData.accountId}
                   onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
                   className="input"
                   required
                 >
-                  <option value="">Sélectionner</option>
+                  <option value="">{t('common.select')}</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('planned.frequency')}</label>
                 <select
                   value={formData.frequency}
                   onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
@@ -206,10 +210,10 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
             </div>
           )}
 
-          {/* Fréquence (pour les virements, affiché séparément) */}
+          {/* Frequency (for transfers, displayed separately) */}
           {formData.type === 'transfer' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('planned.frequency')}</label>
               <select
                 value={formData.frequency}
                 onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
@@ -224,7 +228,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('planned.startDate')}</label>
               <input
                 type="date"
                 value={formData.startDate}
@@ -234,7 +238,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin (optionnel)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('planned.endDate')}</label>
               <input
                 type="date"
                 value={formData.endDate || ''}
@@ -246,16 +250,16 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('transactions.category')}</label>
             <SearchableSelect
               value={formData.categoryId}
               onChange={(id) => setFormData({ ...formData, categoryId: id })}
               options={categories?.filter(c => c.type === formData.type || c.type === 'transfer')
                 .sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []}
-              placeholder="Tapez pour rechercher..."
-              emptyMessage="Aucune catégorie trouvée"
+              placeholder={t('transactions.searchCategories')}
+              emptyMessage={t('transactions.noCategory')}
               allowCreate={!!onCreateCategory}
-              createLabel="Créer la catégorie"
+              createLabel={t('transactions.createCategory')}
               onCreate={(name) => onCreateCategory(name, formData.type)}
               renderOption={(cat) => {
                 const IconComp = getIconComponent(cat.icon)
@@ -273,19 +277,19 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tiers (optionnel)
+              {t('transactions.payeeOptional')}
               {formData.type === 'transfer' && formData.toAccountId && (
-                <span className="text-xs text-amber-600 ml-2">(désactivé car compte destination sélectionné)</span>
+                <span className="text-xs text-amber-600 ml-2">({t('planned.disabledDestAccount')})</span>
               )}
             </label>
             <SearchableSelect
               value={formData.payeeId}
               onChange={(id) => setFormData({ ...formData, payeeId: id })}
               options={sortedPayees}
-              placeholder="Tapez pour rechercher..."
-              emptyMessage="Aucun tiers trouvé"
+              placeholder={t('transactions.searchPayees')}
+              emptyMessage={t('transactions.noPayee')}
               allowCreate={!!onCreatePayee}
-              createLabel="Créer le tiers"
+              createLabel={t('transactions.createPayee')}
               onCreate={onCreatePayee}
               disabled={formData.type === 'transfer' && !!formData.toAccountId}
               renderOption={(p) => (
@@ -306,11 +310,11 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
               className="rounded border-gray-300"
             />
             <label htmlFor="executeBeforeHoliday" className="text-sm text-gray-700">
-              Exécution le dernier jour ouvré avant échéance
+              {t('planned.executeBeforeHoliday')}
             </label>
           </div>
 
-          {/* Option de suppression à la date de fin */}
+          {/* Delete on end date option */}
           {formData.endDate && (
             <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
               <input
@@ -321,17 +325,17 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
                 className="rounded border-amber-400"
               />
               <label htmlFor="deleteOnEnd" className="text-sm text-amber-800">
-                Supprimer automatiquement cette récurrence à la date de fin
+                {t('planned.deleteOnEnd')}
               </label>
             </div>
           )}
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {planned ? 'Modifier' : 'Créer'}
+              {planned ? t('common.edit') : t('common.create')}
             </button>
           </div>
         </form>
@@ -341,9 +345,24 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
 }
 
 export default function PlannedTransactions() {
+  const { t } = useTranslation()
+  const { formatCurrency, formatDate } = useFormatters()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPlanned, setEditingPlanned] = useState(null)
   const queryClient = useQueryClient()
+
+  // Build frequencies lookup for display in the list
+  const frequencyLabels = {
+    once: t('planned.frequencies.once'),
+    daily: t('planned.frequencies.daily'),
+    weekly: t('planned.frequencies.weekly'),
+    biweekly: t('planned.frequencies.biweekly'),
+    monthly: t('planned.frequencies.monthly'),
+    bimonthly: t('planned.frequencies.bimonthly'),
+    quarterly: t('planned.frequencies.quarterly'),
+    semiannual: t('planned.frequencies.semiannual'),
+    annual: t('planned.frequencies.annual'),
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['planned-transactions'],
@@ -375,13 +394,13 @@ export default function PlannedTransactions() {
     queryKey: ['payees'],
     queryFn: () => payeesApi.getAll().then(r => r.data.data),
   })
-  
+
   const accounts = accountsData?.data
   const categories = categoriesData
   const payees = payeesData
   const dataReady = !accountsLoading && !categoriesLoading && accounts?.length > 0
 
-  // Mutations pour créer tiers et catégories à la volée
+  // Mutations for inline payee and category creation
   const createPayeeMutation = useMutation({
     mutationFn: payeesApi.create,
     onSuccess: () => {
@@ -401,22 +420,22 @@ export default function PlannedTransactions() {
       const result = await createPayeeMutation.mutateAsync({ name })
       return result.data.data
     } catch (err) {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
       return null
     }
   }
 
   const handleCreateCategory = async (name, type) => {
     try {
-      const result = await createCategoryMutation.mutateAsync({ 
-        name, 
+      const result = await createCategoryMutation.mutateAsync({
+        name,
         type: type || 'expense',
         icon: 'tag',
         color: '#6B7280'
       })
       return result.data.data.category
     } catch (err) {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
       return null
     }
   }
@@ -435,7 +454,7 @@ export default function PlannedTransactions() {
       setModalOpen(false)
     },
     onError: (err) => {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     },
   })
 
@@ -454,7 +473,7 @@ export default function PlannedTransactions() {
       setEditingPlanned(null)
     },
     onError: (err) => {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     },
   })
 
@@ -498,7 +517,7 @@ export default function PlannedTransactions() {
 
   if (error) {
     return <div className="text-center py-12 text-red-600">
-      Erreur: {error.message}
+      {t('common.error')}: {error.message}
     </div>
   }
 
@@ -506,15 +525,15 @@ export default function PlannedTransactions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transactions récurrentes</h1>
-          <p className="text-gray-600">Gérez vos opérations automatiques</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('planned.title')}</h1>
+          <p className="text-gray-600">{t('planned.subtitle')}</p>
         </div>
-        <button 
-          onClick={() => setModalOpen(true)} 
+        <button
+          onClick={() => setModalOpen(true)}
           className="btn btn-primary flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
-          Nouvelle
+          {t('planned.newPlanned')}
         </button>
       </div>
 
@@ -523,14 +542,14 @@ export default function PlannedTransactions() {
         <div className="card">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary-600" />
-            À venir (30 jours)
+            {t('planned.upcoming')}
           </h2>
           {upcoming?.length > 0 ? (
             <div className="space-y-3">
               {upcoming.slice(0, 10).map((tx, i) => (
                 <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
                   <div className={`p-2 rounded-full ${
-                    tx.type === 'income' ? 'bg-green-100' : 
+                    tx.type === 'income' ? 'bg-green-100' :
                     tx.type === 'transfer' ? 'bg-blue-100' : 'bg-red-100'
                   }`}>
                     {tx.type === 'income' ? (
@@ -547,7 +566,7 @@ export default function PlannedTransactions() {
                       {tx.nextOccurrence ? formatDate(tx.nextOccurrence) : '-'}
                       {tx.payeeName && (
                         <span className="ml-1 inline-flex items-center gap-1">
-                          • 
+                          •
                           {tx.payeeImageUrl ? (
                             <img src={tx.payeeImageUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover inline" />
                           ) : (
@@ -562,7 +581,7 @@ export default function PlannedTransactions() {
                     </p>
                   </div>
                   <span className={`font-semibold text-sm ${
-                    tx.type === 'income' ? 'text-green-600' : 
+                    tx.type === 'income' ? 'text-green-600' :
                     tx.type === 'transfer' ? 'text-blue-600' : 'text-red-600'
                   }`}>
                     {formatCurrency(Math.abs(tx.amount))}
@@ -571,7 +590,7 @@ export default function PlannedTransactions() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">Aucune transaction à venir</p>
+            <p className="text-gray-500 text-center py-4">{t('planned.noUpcoming')}</p>
           )}
         </div>
 
@@ -579,12 +598,12 @@ export default function PlannedTransactions() {
         <div className="lg:col-span-2 card">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Repeat className="w-5 h-5 text-primary-600" />
-            Liste des transactions récurrentes
+            {t('planned.listTitle')}
           </h2>
           {data?.data?.length > 0 ? (
             <div className="space-y-3">
               {data.data.map((tx) => {
-                // Considérer comme terminée si isActive=false OU si la date de fin est dans le passé
+                // Consider ended if isActive=false OR if end date is in the past
                 const isEnded = !tx.isActive || (tx.endDate && new Date(tx.endDate) < new Date(new Date().toDateString()))
                 return (
                 <div key={tx.id} className={`flex items-center gap-4 p-4 border rounded-xl hover:shadow-sm transition-shadow group ${
@@ -592,7 +611,7 @@ export default function PlannedTransactions() {
                 }`}>
                   <div className={`p-3 rounded-xl ${
                     isEnded ? 'bg-gray-300' :
-                    tx.type === 'income' ? 'bg-green-100' : 
+                    tx.type === 'income' ? 'bg-green-100' :
                     tx.type === 'transfer' ? 'bg-blue-100' : 'bg-red-100'
                   }`}>
                     {tx.type === 'income' ? (
@@ -607,11 +626,11 @@ export default function PlannedTransactions() {
                     <p className={`font-semibold flex items-center gap-2 ${isEnded ? 'text-gray-400' : 'text-gray-900'}`}>
                       {tx.description}
                       {isEnded && (
-                        <span className="text-xs px-2 py-0.5 bg-gray-400 text-gray-100 rounded-full">Terminée</span>
+                        <span className="text-xs px-2 py-0.5 bg-gray-400 text-gray-100 rounded-full">{t('planned.ended')}</span>
                       )}
                     </p>
                     <div className={`flex items-center gap-2 text-sm ${isEnded ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <span>{frequencies.find(f => f.value === tx.frequency)?.label || tx.frequency}</span>
+                      <span>{frequencyLabels[tx.frequency] || tx.frequency}</span>
                       {tx.type === 'transfer' && (
                         <>
                           <span>•</span>
@@ -658,14 +677,14 @@ export default function PlannedTransactions() {
                       {tx.nextOccurrence && (
                         <>
                           <span>•</span>
-                          <span>Prochaine: {formatDate(tx.nextOccurrence)}</span>
+                          <span>{t('planned.next')} {formatDate(tx.nextOccurrence)}</span>
                         </>
                       )}
                     </div>
                   </div>
                   <span className={`text-lg font-bold ${
                     isEnded ? 'text-gray-400' :
-                    tx.type === 'income' ? 'text-green-600' : 
+                    tx.type === 'income' ? 'text-green-600' :
                     tx.type === 'transfer' ? 'text-blue-600' : 'text-red-600'
                   }`}>
                     {formatCurrency(Math.abs(tx.amount))}
@@ -679,7 +698,7 @@ export default function PlannedTransactions() {
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`Supprimer "${tx.description}" ?`)) {
+                        if (confirm(t('planned.confirmDelete', { description: tx.description }))) {
                           deleteMutation.mutate(tx.id)
                         }
                       }}
@@ -692,7 +711,7 @@ export default function PlannedTransactions() {
               )})}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">Aucune transaction récurrente</p>
+            <p className="text-gray-500 text-center py-8">{t('planned.noPlanned')}</p>
           )}
         </div>
       </div>
@@ -714,12 +733,12 @@ export default function PlannedTransactions() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-8 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Chargement des données...</p>
-              <button 
-                onClick={() => setModalOpen(false)} 
+              <p className="text-gray-600">{t('planned.loadingData')}</p>
+              <button
+                onClick={() => setModalOpen(false)}
                 className="btn btn-secondary mt-4"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
             </div>
           </div>

@@ -3,10 +3,9 @@ import logger from '../utils/logger.js';
 import config from '../config/index.js';
 
 /**
- * Gestionnaire d'erreurs global
+ * Global error handler
  */
 export const errorHandler = (err, req, res, next) => {
-  // Log de l'erreur
   const logContext = {
     method: req.method,
     path: req.path,
@@ -14,16 +13,13 @@ export const errorHandler = (err, req, res, next) => {
     userId: req.session?.userId,
     userAgent: req.get('User-Agent'),
   };
-  
+
   if (err instanceof AppError && err.isOperational) {
-    // Erreurs opérationnelles (prévues)
     logger.warn(err.message, { ...logContext, code: err.code, ...(err.errors && { details: err.errors }) });
   } else {
-    // Erreurs inattendues
     logger.error(err.message, { ...logContext, stack: err.stack });
   }
-  
-  // Réponse d'erreur
+
   if (err instanceof AppError) {
     const response = {
       success: false,
@@ -32,56 +28,54 @@ export const errorHandler = (err, req, res, next) => {
         code: err.code,
       },
     };
-    
-    // Ajouter les détails de validation si applicable
+
     if (err instanceof ValidationError && err.errors?.length > 0) {
       response.error.details = err.errors;
     }
-    
-    // Ajouter le stack en développement
+
     if (config.isDev) {
       response.error.stack = err.stack;
     }
-    
+
     return res.status(err.statusCode).json(response);
   }
-  
-  // Erreur Zod de validation
+
+  // Zod validation error
   if (err.name === 'ZodError') {
     const errors = err.errors.map(e => ({
       field: e.path.join('.'),
       message: e.message,
     }));
-    
+
     return res.status(422).json({
       success: false,
       error: {
-        message: 'Données invalides',
+        message: 'Invalid data',
         code: 'VALIDATION_ERROR',
         details: errors,
       },
     });
   }
-  
-  // Erreur SQLite
+
+  // SQLite error
   if (err.code?.startsWith('SQLITE_')) {
     logger.error('Database error', { ...logContext, sqliteCode: err.code });
-    
+
     return res.status(500).json({
       success: false,
       error: {
-        message: 'Erreur de base de données',
+        message: 'Database error',
         code: 'DATABASE_ERROR',
         ...(config.isDev && { details: err.message }),
       },
     });
   }
-  
-  // Erreur générique
+
+  // Generic error
   return res.status(500).json({
     success: false,
     error: {
-      message: config.isProd ? 'Erreur interne du serveur' : err.message,
+      message: config.isProd ? 'Internal server error' : err.message,
       code: 'INTERNAL_ERROR',
       ...(config.isDev && { stack: err.stack }),
     },
@@ -89,22 +83,21 @@ export const errorHandler = (err, req, res, next) => {
 };
 
 /**
- * Gestionnaire pour les routes non trouvées
+ * Handler for routes not found
  */
 export const notFoundHandler = (req, res) => {
   res.status(404).json({
     success: false,
     error: {
-      message: 'Route non trouvée',
-      code: 'NOT_FOUND',
+      message: 'Route not found',
+      code: 'ROUTE_NOT_FOUND',
       path: req.path,
     },
   });
 };
 
 /**
- * Wrapper async pour les contrôleurs
- * Capture automatiquement les erreurs des fonctions async
+ * Async wrapper for controllers
  */
 export const asyncHandler = (fn) => {
   return (req, res, next) => {

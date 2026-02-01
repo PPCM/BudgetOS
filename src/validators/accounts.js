@@ -1,40 +1,40 @@
 import { z } from 'zod';
 
 /**
- * Types de comptes valides
+ * Valid account types
  */
 export const accountTypes = ['checking', 'savings', 'cash', 'investment', 'external', 'credit_card'];
 
 /**
- * Schéma de création de compte
+ * Account creation schema
  */
 export const createAccountSchema = z.object({
   name: z
     .string()
-    .min(1, 'Nom requis')
-    .max(100, 'Nom trop long')
+    .min(1, 'Name required')
+    .max(100, 'Name too long')
     .trim(),
   type: z.enum(accountTypes, {
-    errorMap: () => ({ message: 'Type de compte invalide' }),
+    errorMap: () => ({ message: 'Invalid account type' }),
   }),
   institution: z
     .string()
-    .max(100, 'Nom d\'établissement trop long')
+    .max(100, 'Institution name too long')
     .trim()
     .optional(),
   accountNumber: z
     .string()
-    .max(50, 'Numéro de compte trop long')
+    .max(50, 'Account number too long')
     .trim()
     .optional(),
   initialBalance: z
     .number()
-    .finite('Montant invalide')
+    .finite('Invalid amount')
     .default(0),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).default('EUR'),
   color: z
     .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, 'Format de couleur invalide')
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format')
     .default('#3B82F6'),
   icon: z
     .string()
@@ -45,12 +45,12 @@ export const createAccountSchema = z.object({
 });
 
 /**
- * Schéma de mise à jour de compte
+ * Account update schema
  */
 export const updateAccountSchema = createAccountSchema.partial();
 
 /**
- * Schéma des paramètres de requête pour la liste des comptes
+ * Query parameters schema for account list
  */
 export const listAccountsQuerySchema = z.object({
   type: z.enum(accountTypes).optional(),
@@ -65,8 +65,8 @@ export const listAccountsQuerySchema = z.object({
 });
 
 /**
- * Schéma de paramètres d'URL
+ * URL parameters schema
  */
 export const accountIdParamSchema = z.object({
-  id: z.string().uuid('ID de compte invalide'),
+  id: z.string().uuid('Invalid account ID'),
 });

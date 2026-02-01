@@ -25,7 +25,7 @@ export class Rule {
 
   static async findByIdOrFail(id, userId) {
     const rule = await Rule.findById(id, userId);
-    if (!rule) throw new NotFoundError('Règle non trouvée');
+    if (!rule) throw new NotFoundError('Rule not found', 'RULE_NOT_FOUND');
     return rule;
   }
 

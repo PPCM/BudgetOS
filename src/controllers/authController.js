@@ -17,7 +17,7 @@ export const register = async (req, res) => {
     // Check if public registration is enabled
     const allowRegistration = await SystemSetting.get('allow_public_registration');
     if (allowRegistration !== 'true') {
-      throw new ForbiddenError('L\'inscription publique est désactivée');
+      throw new ForbiddenError('Public registration is disabled', 'REGISTRATION_DISABLED');
     }
   }
 
@@ -68,19 +68,19 @@ export const login = async (req, res) => {
 
   const user = await User.findByEmail(email);
   if (!user) {
-    throw new UnauthorizedError('Email ou mot de passe incorrect');
+    throw new UnauthorizedError('Invalid email or password', 'INVALID_CREDENTIALS');
   }
 
   // Check if user account is active
   if (!user.isActive) {
     logger.warn('Login attempt on suspended account', { email });
-    throw new ForbiddenError('Ce compte a été suspendu');
+    throw new ForbiddenError('This account has been suspended', 'ACCOUNT_SUSPENDED');
   }
 
   const isValid = await User.verifyPassword(password, user.passwordHash);
   if (!isValid) {
     logger.warn('Failed login attempt', { email });
-    throw new UnauthorizedError('Email ou mot de passe incorrect');
+    throw new UnauthorizedError('Invalid email or password', 'INVALID_CREDENTIALS');
   }
 
   // Regenerate session to prevent fixation
@@ -121,14 +121,14 @@ export const logout = async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Déconnexion réussie',
+    message: 'Logged out successfully',
   });
 };
 
 export const getMe = async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) {
-    throw new UnauthorizedError('Utilisateur non trouvé');
+    throw new UnauthorizedError('User not found', 'USER_NOT_FOUND');
   }
 
   const settings = await User.getSettings(req.user.id);
@@ -163,7 +163,7 @@ export const changePassword = async (req, res) => {
   const isValid = await User.verifyPassword(currentPassword, user.passwordHash);
 
   if (!isValid) {
-    throw new BadRequestError('Mot de passe actuel incorrect');
+    throw new BadRequestError('Invalid current password', 'INVALID_CREDENTIALS');
   }
 
   await User.changePassword(req.user.id, newPassword);
@@ -172,7 +172,7 @@ export const changePassword = async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Mot de passe modifié avec succès',
+    message: 'Password changed successfully',
   });
 };
 

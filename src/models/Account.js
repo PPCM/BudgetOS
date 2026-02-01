@@ -43,7 +43,7 @@ export class Account {
    */
   static async findByIdOrFail(id, userId) {
     const account = await Account.findById(id, userId);
-    if (!account) throw new NotFoundError('Compte non trouvé');
+    if (!account) throw new NotFoundError('Account not found', 'ACCOUNT_NOT_FOUND');
     return account;
   }
 

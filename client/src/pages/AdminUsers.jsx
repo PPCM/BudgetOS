@@ -4,34 +4,17 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, groupsApi } from '../lib/api'
-import { formatDate } from '../lib/utils'
+import { translateError } from '../lib/errorHelper'
+import { useFormatters } from '../hooks/useFormatters'
 import {
-  Plus, Search, X, UserCheck, UserX, Shield,
+  Plus, Search, X, Shield,
   ChevronDown, Pencil, Trash2, UserPlus
 } from 'lucide-react'
 import Modal from '../components/Modal'
 import { useToast } from '../components/Toast'
-
-/** Role display configuration */
-const roleBadges = {
-  super_admin: { label: 'Super Admin', classes: 'bg-purple-100 text-purple-700' },
-  admin: { label: 'Admin', classes: 'bg-blue-100 text-blue-700' },
-  user: { label: 'Utilisateur', classes: 'bg-gray-100 text-gray-700' },
-}
-
-/** Group role display configuration */
-const groupRoleBadges = {
-  admin: { label: 'Admin', classes: 'bg-blue-100 text-blue-700' },
-  member: { label: 'Membre', classes: 'bg-gray-100 text-gray-700' },
-}
-
-/** Status display configuration */
-const statusBadges = {
-  active: { label: 'Actif', classes: 'bg-green-100 text-green-700' },
-  suspended: { label: 'Suspendu', classes: 'bg-red-100 text-red-700' },
-}
 
 /**
  * Modal form for creating or editing a user
@@ -44,7 +27,8 @@ const statusBadges = {
  * @param {Function} props.onSave - Save callback with form data (includes groupChanges in edit mode)
  * @param {Array} props.groups - Available groups list
  */
-function UserModal({ user, userGroups, onClose, onSave, groups }) {
+function UserModal({ user, userGroups, onClose, onSave, groups, appDefaultLocale }) {
+  const { t } = useTranslation()
   const isEdit = !!user
   const [formData, setFormData] = useState({
     email: user?.email || '',
@@ -53,7 +37,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
     lastName: user?.lastName || '',
     role: user?.role || 'user',
     groupId: '',
-    locale: user?.locale || 'fr',
+    locale: user?.locale || appDefaultLocale || 'fr',
     currency: user?.currency || 'EUR',
   })
   // Pending groups for create mode (admin role)
@@ -255,7 +239,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
     <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-lg">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">{isEdit ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}</h2>
+          <h2 className="text-lg font-semibold">{isEdit ? t('admin.users.editUser') : t('admin.users.newUser')}</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
           </button>
@@ -263,7 +247,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prenom</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.firstName')}</label>
               <input
                 type="text"
                 value={formData.firstName}
@@ -272,7 +256,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.lastName')}</label>
               <input
                 type="text"
                 value={formData.lastName}
@@ -282,7 +266,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.email')}</label>
             <input
               type="email"
               value={formData.email}
@@ -293,7 +277,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
           </div>
           {!isEdit && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.password')}</label>
               <input
                 type="password"
                 value={formData.password}
@@ -305,31 +289,31 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.role')}</label>
             <select
               value={formData.role}
               onChange={(e) => handleRoleChange(e.target.value)}
               className="input"
             >
-              <option value="user">Utilisateur</option>
-              <option value="admin">Admin</option>
-              <option value="super_admin">Super Admin</option>
+              <option value="user">{t('admin.users.roles.user')}</option>
+              <option value="admin">{t('admin.users.roles.admin')}</option>
+              <option value="super_admin">{t('admin.users.roles.super_admin')}</option>
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Langue</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.language')}</label>
               <select
                 value={formData.locale}
                 onChange={(e) => setFormData({ ...formData, locale: e.target.value })}
                 className="input"
               >
-                <option value="fr">Francais</option>
-                <option value="en">English</option>
+                <option value="fr">{t('admin.users.form.french')}</option>
+                <option value="en">{t('admin.users.form.english')}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Devise</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.currency')}</label>
               <select
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
@@ -346,13 +330,13 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
           {/* Simple group dropdown: user role (both create and edit) */}
           {formData.role === 'user' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Groupe</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.group')}</label>
               <select
                 value={userGroupId}
                 onChange={(e) => handleUserGroupChange(e.target.value)}
                 className="input"
               >
-                <option value="">Aucun groupe</option>
+                <option value="">{t('admin.users.noGroup')}</option>
                 {groups?.map((g) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
@@ -364,7 +348,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
           {formData.role === 'admin' && (
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
-                <label className="block text-sm font-medium text-gray-700">Groupes</label>
+                <label className="block text-sm font-medium text-gray-700">{t('admin.users.form.groups')}</label>
                 {availableGroups.length > 0 && (
                   <button
                     type="button"
@@ -372,7 +356,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
                     className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
                   >
                     <UserPlus className="w-4 h-4" />
-                    Ajouter
+                    {t('admin.users.addGroup')}
                   </button>
                 )}
               </div>
@@ -381,27 +365,27 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
               {showAddGroup && (
                 <div className="flex items-end gap-2 mb-3 p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Groupe</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('admin.users.form.group')}</label>
                     <select
                       value={addGroupId}
                       onChange={(e) => setAddGroupId(e.target.value)}
                       className="input text-sm"
                     >
-                      <option value="">Choisir...</option>
+                      <option value="">{t('admin.users.chooseGroup')}</option>
                       {availableGroups.map((g) => (
                         <option key={g.id} value={g.id}>{g.name}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Role</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('admin.users.form.role')}</label>
                     <select
                       value={addGroupRole}
                       onChange={(e) => setAddGroupRole(e.target.value)}
                       className="input text-sm"
                     >
-                      <option value="member">Membre</option>
-                      <option value="admin">Admin</option>
+                      <option value="member">{t('admin.users.groupRoles.member')}</option>
+                      <option value="admin">{t('admin.users.groupRoles.admin')}</option>
                     </select>
                   </div>
                   <button
@@ -410,7 +394,7 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
                     disabled={!addGroupId}
                     className="btn btn-primary btn-sm text-sm px-3 py-2"
                   >
-                    OK
+                    {t('common.ok')}
                   </button>
                 </div>
               )}
@@ -433,14 +417,14 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
                               onChange={(e) => handleUpdateGroupRole(g.id, e.target.value)}
                               className="text-xs border rounded px-2 py-1"
                             >
-                              <option value="member">Membre</option>
-                              <option value="admin">Admin</option>
+                              <option value="member">{t('admin.users.groupRoles.member')}</option>
+                              <option value="admin">{t('admin.users.groupRoles.admin')}</option>
                             </select>
                             <button
                               type="button"
                               onClick={() => handleRemoveGroup(g.id)}
                               className="p-1 text-red-500 hover:bg-red-50 rounded"
-                              title="Retirer du groupe"
+                              title={t('admin.users.removeFromGroup')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -450,17 +434,17 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
                     </div>
                   )
                 }
-                return <p className="text-sm text-gray-400 italic">Aucun groupe</p>
+                return <p className="text-sm text-gray-400 italic">{t('admin.users.noGroup')}</p>
               })()}
             </div>
           )}
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {isEdit ? 'Enregistrer' : 'Creer'}
+              {isEdit ? t('common.save') : t('common.create')}
             </button>
           </div>
         </form>
@@ -476,7 +460,15 @@ function UserModal({ user, userGroups, onClose, onSave, groups }) {
  * @param {Function} props.onChangeRole - Callback with new role
  */
 function RoleDropdown({ user, onChangeRole }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+
+  /** Role display configuration */
+  const roleBadges = {
+    super_admin: { label: t('admin.users.roles.super_admin'), classes: 'bg-purple-100 text-purple-700' },
+    admin: { label: t('admin.users.roles.admin'), classes: 'bg-blue-100 text-blue-700' },
+    user: { label: t('admin.users.roles.user'), classes: 'bg-gray-100 text-gray-700' },
+  }
 
   return (
     <div className="relative">
@@ -517,6 +509,8 @@ function RoleDropdown({ user, onChangeRole }) {
  * Lists all users with filtering, creation, editing, suspension, and role management
  */
 export default function AdminUsers() {
+  const { t } = useTranslation()
+  const { formatDate } = useFormatters()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [search, setSearch] = useState('')
@@ -524,6 +518,19 @@ export default function AdminUsers() {
   const [statusFilter, setStatusFilter] = useState('')
   const queryClient = useQueryClient()
   const toast = useToast()
+
+  /** Role display configuration */
+  const roleBadges = {
+    super_admin: { label: t('admin.users.roles.super_admin'), classes: 'bg-purple-100 text-purple-700' },
+    admin: { label: t('admin.users.roles.admin'), classes: 'bg-blue-100 text-blue-700' },
+    user: { label: t('admin.users.roles.user'), classes: 'bg-gray-100 text-gray-700' },
+  }
+
+  /** Status display configuration */
+  const statusBadges = {
+    active: { label: t('admin.users.statuses.active'), classes: 'bg-green-100 text-green-700' },
+    suspended: { label: t('admin.users.statuses.suspended'), classes: 'bg-red-100 text-red-700' },
+  }
 
   const filters = {
     ...(search && { search }),
@@ -540,6 +547,13 @@ export default function AdminUsers() {
     queryKey: ['admin-groups'],
     queryFn: () => groupsApi.getAll().then(r => r.data),
   })
+
+  const { data: settingsData } = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: () => adminApi.getSettings().then(r => r.data),
+  })
+
+  const appDefaultLocale = settingsData?.data?.defaultLocale || 'fr'
 
   // Fetch user details (with groups) when editing
   const { data: userDetailData } = useQuery({
@@ -564,10 +578,10 @@ export default function AdminUsers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
       setModalOpen(false)
-      toast.success('Utilisateur cree avec succes')
+      toast.success(t('admin.users.created'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -597,32 +611,21 @@ export default function AdminUsers() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
       queryClient.invalidateQueries({ queryKey: ['admin-user', editingUser?.id] })
       setEditingUser(null)
-      toast.success('Utilisateur mis a jour')
+      toast.success(t('admin.users.updated'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
-  const suspendMutation = useMutation({
-    mutationFn: adminApi.suspendUser,
+  const deleteMutation = useMutation({
+    mutationFn: adminApi.deleteUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      toast.success('Utilisateur suspendu')
+      toast.success(t('admin.users.deleted'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
-    },
-  })
-
-  const reactivateMutation = useMutation({
-    mutationFn: adminApi.reactivateUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      toast.success('Utilisateur reactive')
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -630,10 +633,10 @@ export default function AdminUsers() {
     mutationFn: ({ id, role }) => adminApi.updateUserRole(id, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      toast.success('Role mis a jour')
+      toast.success(t('admin.users.roleUpdated'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -664,12 +667,12 @@ export default function AdminUsers() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Utilisateurs</h1>
-          <p className="text-gray-600">Gerez les comptes utilisateurs</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.users.title')}</h1>
+          <p className="text-gray-600">{t('admin.users.subtitle')}</p>
         </div>
         <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" />
-          Nouvel utilisateur
+          {t('admin.users.newUser')}
         </button>
       </div>
 
@@ -680,7 +683,7 @@ export default function AdminUsers() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher par email ou nom..."
+              placeholder={t('admin.users.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="input pl-9"
@@ -691,19 +694,19 @@ export default function AdminUsers() {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tous les roles</option>
-            <option value="super_admin">Super Admin</option>
-            <option value="admin">Admin</option>
-            <option value="user">Utilisateur</option>
+            <option value="">{t('admin.users.allRoles')}</option>
+            <option value="super_admin">{t('admin.users.roles.super_admin')}</option>
+            <option value="admin">{t('admin.users.roles.admin')}</option>
+            <option value="user">{t('admin.users.roles.user')}</option>
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tous les statuts</option>
-            <option value="active">Actif</option>
-            <option value="suspended">Suspendu</option>
+            <option value="">{t('admin.users.allStatuses')}</option>
+            <option value="active">{t('admin.users.statuses.active')}</option>
+            <option value="suspended">{t('admin.users.statuses.suspended')}</option>
           </select>
         </div>
       </div>
@@ -714,19 +717,19 @@ export default function AdminUsers() {
           <table className="w-full">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="text-left p-4 text-sm font-medium text-gray-500">Nom</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-500">Email</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-500">Role</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-500">Statut</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-500">Cree le</th>
-                <th className="text-right p-4 text-sm font-medium text-gray-500">Actions</th>
+                <th className="text-left p-4 text-sm font-medium text-gray-500">{t('admin.users.tableHeaders.name')}</th>
+                <th className="text-left p-4 text-sm font-medium text-gray-500">{t('admin.users.tableHeaders.email')}</th>
+                <th className="text-left p-4 text-sm font-medium text-gray-500">{t('admin.users.tableHeaders.role')}</th>
+                <th className="text-left p-4 text-sm font-medium text-gray-500">{t('admin.users.tableHeaders.status')}</th>
+                <th className="text-left p-4 text-sm font-medium text-gray-500">{t('admin.users.tableHeaders.createdAt')}</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-500">{t('admin.users.tableHeaders.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="p-8 text-center text-gray-500">
-                    Aucun utilisateur trouve
+                    {t('admin.users.noUsers')}
                   </td>
                 </tr>
               ) : (
@@ -767,35 +770,22 @@ export default function AdminUsers() {
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => openEditModal(u)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Modifier"
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          title={t('common.edit')}
                         >
                           <Pencil className="w-4 h-4" />
-                          Modifier
                         </button>
-                        {u.status === 'active' ? (
-                          <button
-                            onClick={() => {
-                              if (confirm(`Suspendre l'utilisateur "${u.email}" ?`)) {
-                                suspendMutation.mutate(u.id)
-                              }
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Suspendre"
-                          >
-                            <UserX className="w-4 h-4" />
-                            Suspendre
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => reactivateMutation.mutate(u.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Reactiver"
-                          >
-                            <UserCheck className="w-4 h-4" />
-                            Reactiver
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            if (confirm(t('admin.users.confirmDelete', { email: u.email }))) {
+                              deleteMutation.mutate(u.id)
+                            }
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title={t('common.delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -814,6 +804,7 @@ export default function AdminUsers() {
           onClose={() => setModalOpen(false)}
           onSave={(data) => createMutation.mutate(data)}
           groups={groupsData?.data || []}
+          appDefaultLocale={appDefaultLocale}
         />
       )}
 
@@ -825,6 +816,7 @@ export default function AdminUsers() {
           onClose={closeEditModal}
           onSave={(data) => updateMutation.mutate({ id: editingUser.id, data })}
           groups={groupsData?.data || []}
+          appDefaultLocale={appDefaultLocale}
         />
       )}
     </div>

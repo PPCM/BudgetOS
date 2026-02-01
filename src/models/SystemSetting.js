@@ -63,6 +63,7 @@ export class SystemSetting {
     return {
       allowPublicRegistration: settings.allow_public_registration === 'true',
       defaultRegistrationGroupId: settings.default_registration_group_id || null,
+      defaultLocale: settings.default_locale || 'fr',
     };
   }
 }

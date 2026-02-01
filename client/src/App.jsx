@@ -53,6 +53,23 @@ function AdminRoute({ children }) {
   return children
 }
 
+function GroupAdminRoute({ children }) {
+  const { user, isGroupAdmin, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (!user) return <Navigate to="/login" />
+  if (user.role !== 'super_admin' && !isGroupAdmin) return <Navigate to="/" />
+
+  return children
+}
+
 function LoginRoute() {
   const { user, needsSetup, loading } = useAuth()
 
@@ -88,7 +105,7 @@ function App() {
         <Route path="payees" element={<Payees />} />
         <Route path="settings" element={<Settings />} />
         <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-        <Route path="admin/groups" element={<AdminRoute><AdminGroups /></AdminRoute>} />
+        <Route path="admin/groups" element={<GroupAdminRoute><AdminGroups /></GroupAdminRoute>} />
         <Route path="admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
       </Route>
     </Routes>

@@ -4,8 +4,10 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, groupsApi } from '../lib/api'
+import { translateError } from '../lib/errorHelper'
 import { Cog, Save } from 'lucide-react'
 import { useToast } from '../components/Toast'
 
@@ -14,9 +16,11 @@ import { useToast } from '../components/Toast'
  * Allows super_admin to configure public registration and default group
  */
 export default function AdminSettings() {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     publicRegistration: false,
     defaultGroupId: '',
+    defaultLocale: 'fr',
   })
   const [dirty, setDirty] = useState(false)
   const queryClient = useQueryClient()
@@ -36,8 +40,9 @@ export default function AdminSettings() {
   useEffect(() => {
     if (settingsData?.data) {
       setFormData({
-        publicRegistration: settingsData.data.publicRegistration ?? false,
-        defaultGroupId: settingsData.data.defaultGroupId || '',
+        publicRegistration: settingsData.data.allowPublicRegistration ?? false,
+        defaultGroupId: settingsData.data.defaultRegistrationGroupId || '',
+        defaultLocale: settingsData.data.defaultLocale || 'fr',
       })
       setDirty(false)
     }
@@ -48,10 +53,10 @@ export default function AdminSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] })
       setDirty(false)
-      toast.success('Parametres mis a jour')
+      toast.success(t('admin.settings.saved'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -62,8 +67,11 @@ export default function AdminSettings() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const data = { ...formData }
-    if (!data.defaultGroupId) data.defaultGroupId = null
+    const data = {
+      allowPublicRegistration: formData.publicRegistration,
+      defaultRegistrationGroupId: formData.defaultGroupId || null,
+      defaultLocale: formData.defaultLocale,
+    }
     updateMutation.mutate(data)
   }
 
@@ -81,8 +89,8 @@ export default function AdminSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Parametres systeme</h1>
-        <p className="text-gray-600">Configurez les parametres globaux de l'application</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('admin.settings.title')}</h1>
+        <p className="text-gray-600">{t('admin.settings.subtitle')}</p>
       </div>
 
       {/* Settings form */}
@@ -92,17 +100,17 @@ export default function AdminSettings() {
             <Cog className="w-5 h-5 text-primary-600" />
           </div>
           <div>
-            <h2 className="font-semibold text-gray-900">Configuration generale</h2>
-            <p className="text-sm text-gray-500">Parametres d'inscription et groupes par defaut</p>
+            <h2 className="font-semibold text-gray-900">{t('admin.settings.generalConfig')}</h2>
+            <p className="text-sm text-gray-500">{t('admin.settings.configSubtitle')}</p>
           </div>
         </div>
 
         {/* Public registration toggle */}
         <div className="flex items-center justify-between">
           <div>
-            <label className="text-sm font-medium text-gray-900">Inscription publique</label>
+            <label className="text-sm font-medium text-gray-900">{t('admin.settings.publicRegistration')}</label>
             <p className="text-sm text-gray-500">
-              Permettre aux utilisateurs de creer un compte sans invitation
+              {t('admin.settings.publicRegistrationDesc')}
             </p>
           </div>
           <button
@@ -123,20 +131,38 @@ export default function AdminSettings() {
         {/* Default group */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-1">
-            Groupe par defaut
+            {t('admin.settings.defaultGroup')}
           </label>
           <p className="text-sm text-gray-500 mb-2">
-            Groupe auquel les nouveaux utilisateurs seront automatiquement ajoutes
+            {t('admin.settings.defaultGroupDesc')}
           </p>
           <select
             value={formData.defaultGroupId}
             onChange={(e) => handleChange('defaultGroupId', e.target.value)}
             className="input max-w-md"
           >
-            <option value="">Aucun groupe par defaut</option>
+            <option value="">{t('admin.settings.noDefaultGroup')}</option>
             {groups.map((g) => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
+          </select>
+        </div>
+
+        {/* Default locale */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            {t('admin.settings.defaultLocale')}
+          </label>
+          <p className="text-sm text-gray-500 mb-2">
+            {t('admin.settings.defaultLocaleDesc')}
+          </p>
+          <select
+            value={formData.defaultLocale}
+            onChange={(e) => handleChange('defaultLocale', e.target.value)}
+            className="input max-w-md"
+          >
+            <option value="fr">{t('admin.users.form.french')}</option>
+            <option value="en">{t('admin.users.form.english')}</option>
           </select>
         </div>
 
@@ -148,7 +174,7 @@ export default function AdminSettings() {
             className="btn btn-primary flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            {updateMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+            {updateMutation.isPending ? t('admin.settings.saving') : t('common.save')}
           </button>
         </div>
       </form>

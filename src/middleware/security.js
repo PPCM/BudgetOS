@@ -5,7 +5,7 @@ import logger from '../utils/logger.js';
 import { TooManyRequestsError } from '../utils/errors.js';
 
 /**
- * Configuration Helmet pour les headers de sécurité
+ * Helmet configuration for security headers
  */
 export const helmetMiddleware = helmet({
   contentSecurityPolicy: {
@@ -26,13 +26,13 @@ export const helmetMiddleware = helmet({
 });
 
 /**
- * Rate limiter global
+ * Global rate limiter
  */
 export const globalRateLimiter = rateLimit({
   windowMs: config.isDev ? 1 * 60 * 1000 : config.security.rateLimit.windowMs,
   max: config.isDev ? 1000 : config.security.rateLimit.maxRequests,
   message: { 
-    error: 'Trop de requêtes, veuillez réessayer plus tard',
+    error: 'Too many requests, please try again later',
     code: 'TOO_MANY_REQUESTS',
   },
   standardHeaders: true,
@@ -48,13 +48,13 @@ export const globalRateLimiter = rateLimit({
 });
 
 /**
- * Rate limiter strict pour l'authentification
+ * Strict rate limiter for authentication
  */
 export const authRateLimiter = rateLimit({
-  windowMs: config.isDev ? 1 * 60 * 1000 : 15 * 60 * 1000, // 1 min en dev, 15 min en prod
-  max: config.isDev ? 100 : 10, // 100 tentatives en dev, 10 en prod
+  windowMs: config.isDev ? 1 * 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
+  max: config.isDev ? 100 : 10, // 100 attempts in dev, 10 in prod
   message: { 
-    error: 'Trop de tentatives de connexion, veuillez réessayer dans 15 minutes',
+    error: 'Too many login attempts, please try again in 15 minutes',
     code: 'TOO_MANY_LOGIN_ATTEMPTS',
   },
   standardHeaders: true,
@@ -63,28 +63,28 @@ export const authRateLimiter = rateLimit({
 });
 
 /**
- * Rate limiter pour les uploads
+ * Rate limiter for file uploads
  */
 export const uploadRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 heure
-  max: 20, // 20 uploads par heure
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // 20 uploads per hour
   message: { 
-    error: 'Trop de fichiers uploadés, veuillez réessayer plus tard',
+    error: 'Too many file uploads, please try again later',
     code: 'TOO_MANY_UPLOADS',
   },
 });
 
 /**
- * Middleware de nettoyage des headers dangereux
+ * Middleware to sanitize dangerous headers
  */
 export const sanitizeHeaders = (req, res, next) => {
-  // Supprimer le header X-Powered-By s'il existe encore
+  // Remove X-Powered-By header if still present
   res.removeHeader('X-Powered-By');
   next();
 };
 
 /**
- * Middleware pour logger les requêtes suspectes
+ * Middleware to log suspicious requests
  */
 export const suspiciousRequestLogger = (req, res, next) => {
   const suspiciousPatterns = [

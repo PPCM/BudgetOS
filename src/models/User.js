@@ -69,7 +69,7 @@ export class User {
 
     const existing = await knex('users').where('email', email).first();
     if (existing) {
-      throw new ConflictError('Cet email est déjà utilisé', 'EMAIL_EXISTS');
+      throw new ConflictError('This email is already in use', 'EMAIL_EXISTS');
     }
 
     const id = generateId();
@@ -139,7 +139,7 @@ export class User {
    */
   static async update(id, data) {
     const user = await User.findById(id);
-    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+    if (!user) throw new NotFoundError('User not found', 'USER_NOT_FOUND');
 
     const allowedFields = ['first_name', 'last_name', 'locale', 'currency', 'timezone'];
     const updates = buildUpdates(data, allowedFields);
@@ -174,11 +174,20 @@ export class User {
   }
 
   /**
+   * Permanently delete a user and all associated data (cascaded by DB)
+   */
+  static async delete(id) {
+    const user = await knex('users').where('id', id).first();
+    if (!user) throw new NotFoundError('User not found', 'USER_NOT_FOUND');
+    await knex('users').where('id', id).del();
+  }
+
+  /**
    * Reactivate a deactivated user
    */
   static async reactivate(id) {
     const user = await knex('users').where('id', id).first();
-    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+    if (!user) throw new NotFoundError('User not found', 'USER_NOT_FOUND');
     await knex('users').where('id', id).update({ is_active: true });
     return User.findByIdAny(id);
   }
@@ -190,7 +199,7 @@ export class User {
    */
   static async updateRole(id, role) {
     const user = await knex('users').where('id', id).first();
-    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+    if (!user) throw new NotFoundError('User not found', 'USER_NOT_FOUND');
     await knex('users').where('id', id).update({ role });
     return User.findByIdAny(id);
   }
@@ -203,13 +212,13 @@ export class User {
    */
   static async adminUpdate(id, data) {
     const user = await User.findByIdAny(id);
-    if (!user) throw new NotFoundError('Utilisateur non trouvé');
+    if (!user) throw new NotFoundError('User not found', 'USER_NOT_FOUND');
 
     // Check email uniqueness if changed
     if (data.email && data.email !== user.email) {
       const existing = await knex('users').where('email', data.email).whereNot('id', id).first();
       if (existing) {
-        throw new ConflictError('Cet email est déjà utilisé', 'EMAIL_EXISTS');
+        throw new ConflictError('This email is already in use', 'EMAIL_EXISTS');
       }
     }
 
@@ -233,7 +242,7 @@ export class User {
 
     const existing = await knex('users').where('email', email).first();
     if (existing) {
-      throw new ConflictError('Cet email est déjà utilisé', 'EMAIL_EXISTS');
+      throw new ConflictError('This email is already in use', 'EMAIL_EXISTS');
     }
 
     const id = generateId();

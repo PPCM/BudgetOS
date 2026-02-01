@@ -49,7 +49,7 @@ describe('BadRequestError', () => {
     const error = new BadRequestError()
     expect(error.statusCode).toBe(400)
     expect(error.code).toBe('BAD_REQUEST')
-    expect(error.message).toBe('Requête invalide')
+    expect(error.message).toBe('Bad request')
   })
 
   it('accepts custom message', () => {
@@ -68,7 +68,7 @@ describe('UnauthorizedError', () => {
     const error = new UnauthorizedError()
     expect(error.statusCode).toBe(401)
     expect(error.code).toBe('UNAUTHORIZED')
-    expect(error.message).toBe('Non authentifié')
+    expect(error.message).toBe('Unauthorized')
   })
 
   it('accepts custom message', () => {
@@ -82,7 +82,7 @@ describe('ForbiddenError', () => {
     const error = new ForbiddenError()
     expect(error.statusCode).toBe(403)
     expect(error.code).toBe('FORBIDDEN')
-    expect(error.message).toBe('Accès interdit')
+    expect(error.message).toBe('Forbidden')
   })
 
   it('accepts custom message', () => {
@@ -96,7 +96,7 @@ describe('NotFoundError', () => {
     const error = new NotFoundError()
     expect(error.statusCode).toBe(404)
     expect(error.code).toBe('NOT_FOUND')
-    expect(error.message).toBe('Ressource non trouvée')
+    expect(error.message).toBe('Resource not found')
   })
 
   it('accepts custom message', () => {
@@ -110,7 +110,7 @@ describe('ConflictError', () => {
     const error = new ConflictError()
     expect(error.statusCode).toBe(409)
     expect(error.code).toBe('CONFLICT')
-    expect(error.message).toBe('Conflit de ressources')
+    expect(error.message).toBe('Resource conflict')
   })
 
   it('accepts custom message', () => {
@@ -124,7 +124,7 @@ describe('ValidationError', () => {
     const error = new ValidationError()
     expect(error.statusCode).toBe(422)
     expect(error.code).toBe('VALIDATION_ERROR')
-    expect(error.message).toBe('Données invalides')
+    expect(error.message).toBe('Invalid data')
     expect(error.errors).toEqual([])
   })
 
@@ -148,7 +148,7 @@ describe('TooManyRequestsError', () => {
     const error = new TooManyRequestsError()
     expect(error.statusCode).toBe(429)
     expect(error.code).toBe('TOO_MANY_REQUESTS')
-    expect(error.message).toBe('Trop de requêtes')
+    expect(error.message).toBe('Too many requests')
   })
 
   it('accepts custom message', () => {
@@ -162,7 +162,7 @@ describe('InternalError', () => {
     const error = new InternalError()
     expect(error.statusCode).toBe(500)
     expect(error.code).toBe('INTERNAL_ERROR')
-    expect(error.message).toBe('Erreur interne du serveur')
+    expect(error.message).toBe('Internal server error')
   })
 
   it('accepts custom message', () => {
@@ -176,7 +176,7 @@ describe('DatabaseError', () => {
     const error = new DatabaseError()
     expect(error.statusCode).toBe(500)
     expect(error.code).toBe('DATABASE_ERROR')
-    expect(error.message).toBe('Erreur de base de données')
+    expect(error.message).toBe('Database error')
   })
 
   it('accepts custom message', () => {

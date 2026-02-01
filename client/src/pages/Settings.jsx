@@ -1,29 +1,32 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { useMutation } from '@tanstack/react-query'
-import { 
-  User, Lock, Bell, Palette, Globe, 
-  Save, CheckCircle, AlertCircle 
+import { translateError } from '../lib/errorHelper'
+import {
+  User, Lock, Bell, Palette, Globe,
+  Save, CheckCircle, AlertCircle
 } from 'lucide-react'
 import axios from 'axios'
 
 export default function Settings() {
+  const { t } = useTranslation()
   const { user, checkAuth } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
 
   const tabs = [
-    { id: 'profile', label: 'Profil', icon: User },
-    { id: 'security', label: 'Sécurité', icon: Lock },
-    { id: 'preferences', label: 'Préférences', icon: Palette },
+    { id: 'profile', label: t('settings.tabs.profile'), icon: User },
+    { id: 'security', label: t('settings.tabs.security'), icon: Lock },
+    { id: 'preferences', label: t('settings.tabs.preferences'), icon: Palette },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Paramètres</h1>
-        <p className="text-gray-600">Gérez votre compte et vos préférences</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('settings.title')}</h1>
+        <p className="text-gray-600">{t('settings.subtitle')}</p>
       </div>
 
       {success && (
@@ -79,6 +82,7 @@ export default function Settings() {
 }
 
 function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -93,23 +97,23 @@ function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
       })
     },
     onSuccess: () => {
-      onSuccess('Profil mis à jour')
+      onSuccess(t('settings.profile.saved'))
       checkAuth()
     },
-    onError: (err) => onError(err.response?.data?.error?.message || 'Erreur'),
+    onError: (err) => onError(translateError(err)),
   })
 
   return (
     <div className="card">
-      <h2 className="text-lg font-semibold mb-6">Informations du profil</h2>
+      <h2 className="text-lg font-semibold mb-6">{t('settings.profile.title')}</h2>
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(formData); }} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.profile.email')}</label>
           <input type="email" value={user?.email || ''} disabled className="input bg-gray-50" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.profile.firstName')}</label>
             <input
               type="text"
               value={formData.firstName}
@@ -118,7 +122,7 @@ function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.profile.lastName')}</label>
             <input
               type="text"
               value={formData.lastName}
@@ -129,7 +133,7 @@ function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
         </div>
         <button type="submit" disabled={mutation.isPending} className="btn btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" />
-          Enregistrer
+          {t('common.save')}
         </button>
       </form>
     </div>
@@ -137,6 +141,7 @@ function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
 }
 
 function SecuritySettings({ onSuccess, onError }) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -152,16 +157,16 @@ function SecuritySettings({ onSuccess, onError }) {
       })
     },
     onSuccess: () => {
-      onSuccess('Mot de passe modifié')
+      onSuccess(t('settings.security.saved'))
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' })
     },
-    onError: (err) => onError(err.response?.data?.error?.message || 'Erreur'),
+    onError: (err) => onError(translateError(err)),
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (formData.newPassword !== formData.confirmPassword) {
-      onError('Les mots de passe ne correspondent pas')
+      onError(t('settings.security.passwordMismatch'))
       return
     }
     mutation.mutate({
@@ -172,10 +177,10 @@ function SecuritySettings({ onSuccess, onError }) {
 
   return (
     <div className="card">
-      <h2 className="text-lg font-semibold mb-6">Changer le mot de passe</h2>
+      <h2 className="text-lg font-semibold mb-6">{t('settings.security.title')}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe actuel</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.security.currentPassword')}</label>
           <input
             type="password"
             value={formData.currentPassword}
@@ -185,7 +190,7 @@ function SecuritySettings({ onSuccess, onError }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.security.newPassword')}</label>
           <input
             type="password"
             value={formData.newPassword}
@@ -196,7 +201,7 @@ function SecuritySettings({ onSuccess, onError }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.security.confirmPassword')}</label>
           <input
             type="password"
             value={formData.confirmPassword}
@@ -207,7 +212,7 @@ function SecuritySettings({ onSuccess, onError }) {
         </div>
         <button type="submit" disabled={mutation.isPending} className="btn btn-primary flex items-center gap-2">
           <Lock className="w-4 h-4" />
-          Modifier le mot de passe
+          {t('settings.security.submit')}
         </button>
       </form>
     </div>
@@ -215,6 +220,7 @@ function SecuritySettings({ onSuccess, onError }) {
 }
 
 function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
+  const { t } = useTranslation()
   const { userSettings, updateSettings } = useAuth()
   const [formData, setFormData] = useState({
     locale: user?.locale || 'fr',
@@ -235,12 +241,12 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
     onSuccess: () => {
       checkAuth()
     },
-    onError: (err) => onError(err.response?.data?.error?.message || 'Erreur'),
+    onError: (err) => onError(translateError(err)),
   })
 
   const settingsMutation = useMutation({
     mutationFn: async (data) => updateSettings(data),
-    onError: (err) => onError(err.response?.data?.error?.message || 'Erreur'),
+    onError: (err) => onError(translateError(err)),
   })
 
   const handleSubmit = async (e) => {
@@ -248,7 +254,7 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
     try {
       await profileMutation.mutateAsync(formData)
       await settingsMutation.mutateAsync(settingsData)
-      onSuccess('Préférences mises à jour')
+      onSuccess(t('settings.preferences.saved'))
     } catch {
       // Error handled by mutation
     }
@@ -256,47 +262,47 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
 
   return (
     <div className="card">
-      <h2 className="text-lg font-semibold mb-6">Préférences</h2>
+      <h2 className="text-lg font-semibold mb-6">{t('settings.preferences.title')}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Langue</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.preferences.language')}</label>
           <select
             value={formData.locale}
             onChange={(e) => setFormData({ ...formData, locale: e.target.value })}
             className="input"
           >
-            <option value="fr">Français</option>
-            <option value="en">English</option>
+            <option value="fr">{t('settings.preferences.languages.fr')}</option>
+            <option value="en">{t('settings.preferences.languages.en')}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Devise</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.preferences.currency')}</label>
           <select
             value={formData.currency}
             onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
             className="input"
           >
-            <option value="EUR">Euro (€)</option>
-            <option value="USD">Dollar ($)</option>
-            <option value="GBP">Livre Sterling (£)</option>
-            <option value="CHF">Franc Suisse (CHF)</option>
+            <option value="EUR">{t('settings.preferences.currencies.EUR')}</option>
+            <option value="USD">{t('settings.preferences.currencies.USD')}</option>
+            <option value="GBP">{t('settings.preferences.currencies.GBP')}</option>
+            <option value="CHF">{t('settings.preferences.currencies.CHF')}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Premier jour de la semaine</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.preferences.weekStartDay')}</label>
           <select
             value={settingsData.weekStartDay}
             onChange={(e) => setSettingsData({ ...settingsData, weekStartDay: parseInt(e.target.value) })}
             className="input"
           >
-            <option value={1}>Lundi</option>
-            <option value={0}>Dimanche</option>
-            <option value={6}>Samedi</option>
+            <option value={1}>{t('settings.preferences.weekDays.monday')}</option>
+            <option value={0}>{t('settings.preferences.weekDays.sunday')}</option>
+            <option value={6}>{t('settings.preferences.weekDays.saturday')}</option>
           </select>
         </div>
         <button type="submit" disabled={profileMutation.isPending || settingsMutation.isPending} className="btn btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" />
-          Enregistrer
+          {t('common.save')}
         </button>
       </form>
     </div>

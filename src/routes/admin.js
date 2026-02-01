@@ -21,6 +21,7 @@ router.put('/users/:userId', requireSuperAdmin, validate({ body: updateUserSchem
 router.put('/users/:userId/suspend', requireSuperAdmin, asyncHandler(adminController.suspendUser));
 router.put('/users/:userId/reactivate', requireSuperAdmin, asyncHandler(adminController.reactivateUser));
 router.put('/users/:userId/role', requireSuperAdmin, validate({ body: updateRoleSchema }), asyncHandler(adminController.updateUserRole));
+router.delete('/users/:userId', requireSuperAdmin, asyncHandler(adminController.deleteUser));
 
 // System settings
 router.get('/settings', requireSuperAdmin, asyncHandler(adminController.getSettings));

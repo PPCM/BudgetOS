@@ -248,7 +248,7 @@ describe('PlannedTransaction.findByIdOrFail', () => {
 
   it('throws NotFoundError when not found', async () => {
     await expect(PlannedTransaction.findByIdOrFail('non-existent', userId))
-      .rejects.toThrow('Transaction planifiée non trouvée')
+      .rejects.toThrow('Planned transaction not found')
   })
 })
 
@@ -369,7 +369,7 @@ describe('PlannedTransaction.update', () => {
 
   it('throws NotFoundError for non-existent', async () => {
     await expect(PlannedTransaction.update('non-existent', userId, { description: 'Test' }))
-      .rejects.toThrow('Transaction planifiée non trouvée')
+      .rejects.toThrow('Planned transaction not found')
   })
 })
 
@@ -405,7 +405,7 @@ describe('PlannedTransaction.delete', () => {
 
   it('throws NotFoundError for non-existent', async () => {
     await expect(PlannedTransaction.delete('non-existent', userId))
-      .rejects.toThrow('Transaction planifiée non trouvée')
+      .rejects.toThrow('Planned transaction not found')
   })
 })
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { transactionTypes } from './transactions.js';
 
 /**
- * Fréquences disponibles
+ * Available frequencies
  */
 export const frequencies = [
   'once',
@@ -17,20 +17,20 @@ export const frequencies = [
 ];
 
 /**
- * Schéma de base pour transaction planifiée
+ * Base planned transaction schema
  */
 const plannedTransactionBaseSchema = z.object({
-  accountId: z.string().uuid('ID de compte invalide'),
-  categoryId: z.string().uuid('ID de catégorie invalide').nullable().optional(),
-  payeeId: z.string().uuid('ID de tiers invalide').nullable().optional(),
-  creditCardId: z.string().uuid('ID de carte invalide').nullable().optional(),
-  toAccountId: z.string().uuid('ID de compte destination invalide').nullable().optional(),
-  amount: z.number().finite('Montant invalide'),
-  description: z.string().min(1, 'Description requise').max(255, 'Description trop longue').trim(),
+  accountId: z.string().uuid('Invalid account ID'),
+  categoryId: z.string().uuid('Invalid category ID').nullable().optional(),
+  payeeId: z.string().uuid('Invalid payee ID').nullable().optional(),
+  creditCardId: z.string().uuid('Invalid card ID').nullable().optional(),
+  toAccountId: z.string().uuid('Invalid destination account ID').nullable().optional(),
+  amount: z.number().finite('Invalid amount'),
+  description: z.string().min(1, 'Description required').max(255, 'Description too long').trim(),
   notes: z.string().max(1000).optional(),
-  type: z.enum(transactionTypes, { errorMap: () => ({ message: 'Type de transaction invalide' }) }),
-  frequency: z.enum(frequencies, { errorMap: () => ({ message: 'Fréquence invalide' }) }),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide (YYYY-MM-DD)'),
+  type: z.enum(transactionTypes, { errorMap: () => ({ message: 'Invalid transaction type' }) }),
+  frequency: z.enum(frequencies, { errorMap: () => ({ message: 'Invalid frequency' }) }),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   deleteOnEnd: z.boolean().default(false),
   executeBeforeHoliday: z.boolean().default(false),
@@ -40,24 +40,24 @@ const plannedTransactionBaseSchema = z.object({
 });
 
 /**
- * Schéma de création de transaction planifiée
+ * Planned transaction creation schema
  */
 export const createPlannedTransactionSchema = plannedTransactionBaseSchema;
 
 /**
- * Schéma de mise à jour de transaction planifiée
+ * Planned transaction update schema
  */
 export const updatePlannedTransactionSchema = plannedTransactionBaseSchema.partial();
 
 /**
- * Schéma de paramètres d'URL
+ * URL parameters schema
  */
 export const plannedTransactionIdParamSchema = z.object({
-  id: z.string().uuid('ID de transaction planifiée invalide'),
+  id: z.string().uuid('Invalid planned transaction ID'),
 });
 
 /**
- * Schéma de requête pour la liste
+ * Query schema for list
  */
 export const listPlannedTransactionsQuerySchema = z.object({
   accountId: z.string().uuid().optional(),
@@ -72,11 +72,11 @@ export const listPlannedTransactionsQuerySchema = z.object({
 });
 
 /**
- * Schéma pour créer une occurrence manuellement
+ * Schema for manually creating an occurrence
  */
 export const createOccurrenceSchema = z.object({
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   amount: z.number().finite().optional(),
 });

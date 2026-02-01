@@ -86,7 +86,7 @@ describe('Group', () => {
 
   describe('findByIdOrFail', () => {
     it('should throw NotFoundError for non-existing ID', async () => {
-      await expect(Group.findByIdOrFail('non-existing')).rejects.toThrow('Groupe non trouvé')
+      await expect(Group.findByIdOrFail('non-existing')).rejects.toThrow('Group not found')
     })
   })
 
@@ -167,7 +167,7 @@ describe('Group', () => {
       await Group.addMember(group.id, 'user-2', 'member')
 
       await expect(Group.addMember(group.id, 'user-2', 'member'))
-        .rejects.toThrow('Cet utilisateur est déjà membre de ce groupe')
+        .rejects.toThrow('This user is already a member of this group')
     })
 
     it('should add admin member', async () => {
@@ -197,7 +197,7 @@ describe('Group', () => {
       const group = await Group.create({ name: 'My Group', createdBy: 'user-1' })
 
       await expect(Group.removeMember(group.id, 'non-existing'))
-        .rejects.toThrow('Membre non trouvé dans ce groupe')
+        .rejects.toThrow('Member not found in this group')
     })
   })
 
@@ -217,7 +217,7 @@ describe('Group', () => {
       const group = await Group.create({ name: 'My Group', createdBy: 'user-1' })
 
       await expect(Group.updateMemberRole(group.id, 'non-existing', 'admin'))
-        .rejects.toThrow('Membre non trouvé dans ce groupe')
+        .rejects.toThrow('Member not found in this group')
     })
   })
 

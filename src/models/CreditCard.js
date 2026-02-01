@@ -104,7 +104,7 @@ export class CreditCard {
   static async findByIdOrFail(id, userId) {
     const card = await CreditCard.findById(id, userId);
     if (!card) {
-      throw new NotFoundError('Carte de crédit non trouvée');
+      throw new NotFoundError('Credit card not found', 'CREDIT_CARD_NOT_FOUND');
     }
     return card;
   }

@@ -1,7 +1,8 @@
 import { useState, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, payeesApi, creditCardsApi, importApi } from '../lib/api'
-import { formatCurrency } from '../lib/utils'
+import { translateError } from '../lib/errorHelper'
 import {
   Upload, FileSpreadsheet, CheckCircle,
   ChevronRight, RefreshCw, Filter, CreditCard
@@ -9,6 +10,7 @@ import {
 import ImportReviewRow from '../components/ImportReviewRow'
 
 export default function Import() {
+  const { t } = useTranslation()
   const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
   const [accountId, setAccountId] = useState('')
@@ -78,7 +80,7 @@ export default function Import() {
       setAnalyzeResult(data.data)
       setStep(2)
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message)
+      setError(translateError(err))
     } finally {
       setLoading(false)
     }
@@ -160,7 +162,7 @@ export default function Import() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setStep(3)
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message)
+      setError(translateError(err))
     } finally {
       setLoading(false)
     }
@@ -178,16 +180,16 @@ export default function Import() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Import bancaire</h1>
-        <p className="text-gray-600">Importez et rapprochez vos relevés bancaires</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('import.title')}</h1>
+        <p className="text-gray-600">{t('import.subtitle')}</p>
       </div>
 
       {/* Steps indicator + action buttons */}
       <div className="flex items-center gap-2">
         {[
-          { n: 1, label: 'Fichier' },
-          { n: 2, label: 'Revue' },
-          { n: 3, label: 'Résultat' },
+          { n: 1, label: t('import.steps.file') },
+          { n: 2, label: t('import.steps.review') },
+          { n: 3, label: t('import.steps.result') },
         ].map(({ n, label }) => (
           <div key={n} className="flex items-center">
             <div className="flex items-center gap-2">
@@ -208,14 +210,14 @@ export default function Import() {
               onClick={() => { setStep(1); setAnalyzeResult(null) }}
               className="btn btn-secondary"
             >
-              Modifier les paramètres
+              {t('import.modifyParams')}
             </button>
             <button
               onClick={handleConfirm}
               disabled={loading}
               className="btn btn-primary flex items-center gap-2"
             >
-              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Confirmer l'import"}
+              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : t('import.confirmImport')}
             </button>
           </>
         )}
@@ -232,13 +234,13 @@ export default function Import() {
       {step === 1 && (
         <div className="card space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Compte de destination</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('import.destinationAccount')}</label>
             <select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
               className="input"
             >
-              <option value="">Sélectionner un compte</option>
+              <option value="">{t('import.selectAccount')}</option>
               {accounts?.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -246,7 +248,7 @@ export default function Import() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Fichier à importer</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('import.fileToImport')}</label>
             <div
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary-500 transition-colors"
@@ -269,8 +271,8 @@ export default function Import() {
               ) : (
                 <>
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">Cliquez pour sélectionner un fichier</p>
-                  <p className="text-sm text-gray-400 mt-1">CSV, Excel, QIF, OFX/QFX</p>
+                  <p className="text-gray-600">{t('import.clickToSelect')}</p>
+                  <p className="text-sm text-gray-400 mt-1">{t('import.supportedFormats')}</p>
                 </>
               )}
             </div>
@@ -279,42 +281,42 @@ export default function Import() {
           {fileType === 'csv' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Délimiteur</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('import.delimiter')}</label>
                 <select
                   value={config.delimiter}
                   onChange={(e) => setConfig({ ...config, delimiter: e.target.value })}
                   className="input"
                 >
-                  <option value=";">Point-virgule (;)</option>
-                  <option value=",">Virgule (,)</option>
-                  <option value="\t">Tabulation</option>
+                  <option value=";">{t('import.delimiterSemicolon')}</option>
+                  <option value=",">{t('import.delimiterComma')}</option>
+                  <option value="\t">{t('import.delimiterTab')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Format date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('import.dateFormat')}</label>
                 <select
                   value={config.dateFormat}
                   onChange={(e) => setConfig({ ...config, dateFormat: e.target.value })}
                   className="input"
                 >
-                  <option value="dd/MM/yyyy">JJ/MM/AAAA</option>
-                  <option value="MM/dd/yyyy">MM/JJ/AAAA</option>
-                  <option value="yyyy-MM-dd">AAAA-MM-JJ</option>
+                  <option value="dd/MM/yyyy">{t('import.dateFormatDMY')}</option>
+                  <option value="MM/dd/yyyy">{t('import.dateFormatMDY')}</option>
+                  <option value="yyyy-MM-dd">{t('import.dateFormatYMD')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Séparateur décimal</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('import.decimalSeparator')}</label>
                 <select
                   value={config.decimalSeparator}
                   onChange={(e) => setConfig({ ...config, decimalSeparator: e.target.value })}
                   className="input"
                 >
-                  <option value=",">Virgule (,)</option>
-                  <option value=".">Point (.)</option>
+                  <option value=",">{t('import.decimalComma')}</option>
+                  <option value=".">{t('import.decimalPoint')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Colonne date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('import.columnDate')}</label>
                 <input
                   type="number"
                   min="0"
@@ -324,7 +326,7 @@ export default function Import() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Colonne description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('import.columnDescription')}</label>
                 <input
                   type="number"
                   min="0"
@@ -334,7 +336,7 @@ export default function Import() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Colonne montant</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('import.columnAmount')}</label>
                 <input
                   type="number"
                   min="0"
@@ -351,7 +353,7 @@ export default function Import() {
             disabled={!file || !accountId || loading}
             className="btn btn-primary w-full flex items-center justify-center gap-2"
           >
-            {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Analyser'}
+            {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : t('import.analyze')}
           </button>
         </div>
       )}
@@ -363,19 +365,19 @@ export default function Import() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-3 bg-gray-50 rounded-lg text-center">
               <p className="text-xl font-bold">{analyzeResult.summary.total}</p>
-              <p className="text-xs text-gray-600">Total</p>
+              <p className="text-xs text-gray-600">{t('import.summary.total')}</p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg text-center">
               <p className="text-xl font-bold text-green-600">{analyzeResult.summary.new}</p>
-              <p className="text-xs text-gray-600">Nouvelles</p>
+              <p className="text-xs text-gray-600">{t('import.summary.new')}</p>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg text-center">
               <p className="text-xl font-bold text-blue-600">{analyzeResult.summary.matches}</p>
-              <p className="text-xs text-gray-600">Correspondances</p>
+              <p className="text-xs text-gray-600">{t('import.summary.matches')}</p>
             </div>
             <div className="p-3 bg-gray-100 rounded-lg text-center">
               <p className="text-xl font-bold text-gray-600">{analyzeResult.summary.duplicates}</p>
-              <p className="text-xs text-gray-600">Doublons</p>
+              <p className="text-xs text-gray-600">{t('import.summary.duplicates')}</p>
             </div>
             {analyzeResult.creditCardsDetected?.length > 0 && (
               <div className="p-3 bg-purple-50 rounded-lg text-center">
@@ -383,7 +385,7 @@ export default function Import() {
                   <CreditCard className="w-4 h-4 text-purple-600" />
                   <p className="text-xl font-bold text-purple-600">{analyzeResult.creditCardsDetected.length}</p>
                 </div>
-                <p className="text-xs text-gray-600">CB détectées</p>
+                <p className="text-xs text-gray-600">{t('import.summary.cardsDetected')}</p>
               </div>
             )}
           </div>
@@ -396,7 +398,7 @@ export default function Import() {
                   cc.creditCardName ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
                 }`}>
                   <CreditCard className="w-3 h-3" />
-                  CB*{cc.last4} {cc.creditCardName ? `→ ${cc.creditCardName}` : '(non associée)'}
+                  CB*{cc.last4} {cc.creditCardName ? `→ ${cc.creditCardName}` : `(${t('import.notAssociated')})`}
                   <span className="opacity-60">({cc.count})</span>
                 </span>
               ))}
@@ -407,10 +409,10 @@ export default function Import() {
           <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
             {[
-              { key: 'all', label: 'Tous' },
-              { key: 'new', label: 'Nouveaux' },
-              { key: 'matches', label: 'Correspondances' },
-              { key: 'duplicates', label: 'Doublons' },
+              { key: 'all', label: t('import.filters.all') },
+              { key: 'new', label: t('import.filters.new') },
+              { key: 'matches', label: t('import.filters.matches') },
+              { key: 'duplicates', label: t('import.filters.duplicates') },
             ].map(f => (
               <button
                 key={f.key}
@@ -430,7 +432,7 @@ export default function Import() {
                 onClick={handleSkipAllDuplicates}
                 className="text-xs text-gray-600 hover:text-gray-900 underline"
               >
-                Ignorer tous les doublons
+                {t('import.skipAllDuplicates')}
               </button>
             )}
           </div>
@@ -441,13 +443,13 @@ export default function Import() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Date</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Description</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Montant</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Statut</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">CB</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Tiers</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Action</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('import.tableHeaders.date')}</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('import.tableHeaders.description')}</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">{t('import.tableHeaders.amount')}</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('import.tableHeaders.status')}</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('import.tableHeaders.card')}</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('import.tableHeaders.payee')}</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">{t('import.tableHeaders.action')}</th>
                     <th className="px-2 py-2 w-8"></th>
                   </tr>
                 </thead>
@@ -480,45 +482,45 @@ export default function Import() {
         <div className="card text-center py-12 space-y-6">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Import terminé !</h2>
-            <p className="text-gray-600">Voici le résumé de l'import :</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('import.result.title')}</h2>
+            <p className="text-gray-600">{t('import.result.subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-lg mx-auto">
             {confirmResult.imported > 0 && (
               <div className="p-3 bg-green-50 rounded-lg">
                 <p className="text-xl font-bold text-green-600">{confirmResult.imported}</p>
-                <p className="text-xs text-gray-600">Créées</p>
+                <p className="text-xs text-gray-600">{t('import.result.imported')}</p>
               </div>
             )}
             {confirmResult.matched > 0 && (
               <div className="p-3 bg-blue-50 rounded-lg">
                 <p className="text-xl font-bold text-blue-600">{confirmResult.matched}</p>
-                <p className="text-xs text-gray-600">Rapprochées</p>
+                <p className="text-xs text-gray-600">{t('import.result.matched')}</p>
               </div>
             )}
             {confirmResult.skipped > 0 && (
               <div className="p-3 bg-gray-100 rounded-lg">
                 <p className="text-xl font-bold text-gray-600">{confirmResult.skipped}</p>
-                <p className="text-xs text-gray-600">Ignorées</p>
+                <p className="text-xs text-gray-600">{t('import.result.skipped')}</p>
               </div>
             )}
             {confirmResult.aliasesLearned > 0 && (
               <div className="p-3 bg-purple-50 rounded-lg">
                 <p className="text-xl font-bold text-purple-600">{confirmResult.aliasesLearned}</p>
-                <p className="text-xs text-gray-600">Alias appris</p>
+                <p className="text-xs text-gray-600">{t('import.result.aliasesLearned')}</p>
               </div>
             )}
           </div>
 
           {confirmResult.errors > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700 max-w-lg mx-auto">
-              {confirmResult.errors} erreur(s) pendant l'import
+              {t('import.result.errors', { count: confirmResult.errors })}
             </div>
           )}
 
           <button onClick={reset} className="btn btn-primary">
-            Nouvel import
+            {t('import.result.newImport')}
           </button>
         </div>
       )}

@@ -262,6 +262,8 @@ export const adminApi = {
   /** @param {string} id - User UUID */
   reactivateUser: (id) => api.put(`/admin/users/${id}/reactivate`),
   /** @param {string} id - User UUID */
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  /** @param {string} id - User UUID */
   updateUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
   getSettings: () => api.get('/admin/settings'),
   /** @param {Object} data - Settings data (publicRegistration, defaultGroupId) */

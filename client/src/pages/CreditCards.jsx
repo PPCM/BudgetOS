@@ -4,9 +4,11 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { creditCardsApi, accountsApi } from '../lib/api'
-import { formatCurrency, formatDate } from '../lib/utils'
+import { useFormatters } from '../hooks/useFormatters'
+import { translateError } from '../lib/errorHelper'
 import { CreditCard, Calendar, Clock, Plus, Pencil, Trash2, X, Filter, ArrowUpDown } from 'lucide-react'
 import Modal from '../components/Modal'
 
@@ -19,8 +21,9 @@ import Modal from '../components/Modal'
  * @param {Function} props.onSave - Callback with form data when saved
  */
 function CreditCardModal({ card, accounts, onClose, onSave }) {
+  const { t } = useTranslation()
   const checkingAccounts = accounts?.filter(a => a.type === 'checking') || []
-  
+
   const [formData, setFormData] = useState({
     name: card?.name || '',
     accountId: card?.accountId || checkingAccounts[0]?.id || '',
@@ -56,7 +59,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">
-            {card ? 'Modifier la carte' : 'Nouvelle carte de crédit'}
+            {card ? t('creditCards.editCard') : t('creditCards.newCardTitle')}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -64,36 +67,36 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la carte</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.cardName')}</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="input"
-              placeholder="Ex: Visa Premier"
+              placeholder={t('creditCards.cardNamePlaceholder')}
               required
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Compte associé</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.linkedAccount')}</label>
             <select
               value={formData.accountId}
               onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
               className="input"
               required
             >
-              <option value="">Sélectionner un compte</option>
+              <option value="">{t('creditCards.selectAccount')}</option>
               {checkingAccounts.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">Compte sur lequel sera débité la carte</p>
+            <p className="text-xs text-gray-500 mt-1">{t('creditCards.linkedAccountDesc')}</p>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">4 derniers chiffres</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.last4')}</label>
               <input
                 type="text"
                 value={formData.cardNumberLast4}
@@ -104,7 +107,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expiration *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.expiration')}</label>
               <input
                 type="text"
                 value={formData.expirationDate}
@@ -114,13 +117,13 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
                   setFormData({ ...formData, expirationDate: val })
                 }}
                 className="input"
-                placeholder="MM/AA"
+                placeholder={t('creditCards.expirationFormat')}
                 maxLength={5}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Plafond</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.creditLimit')}</label>
               <input
                 type="number"
                 value={formData.creditLimit}
@@ -132,29 +135,29 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type de débit</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.debitType')}</label>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, debitType: 'deferred' })}
                 className={`flex-1 p-3 rounded-lg border-2 text-sm ${
-                  formData.debitType === 'deferred' 
-                    ? 'border-primary-500 bg-primary-50 text-primary-700' 
+                  formData.debitType === 'deferred'
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
                     : 'border-gray-200'
                 }`}
               >
-                Différé
+                {t('creditCards.deferred')}
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, debitType: 'immediate' })}
                 className={`flex-1 p-3 rounded-lg border-2 text-sm ${
-                  formData.debitType === 'immediate' 
-                    ? 'border-primary-500 bg-primary-50 text-primary-700' 
+                  formData.debitType === 'immediate'
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
                     : 'border-gray-200'
                 }`}
               >
-                Immédiat
+                {t('creditCards.immediate')}
               </button>
             </div>
           </div>
@@ -162,26 +165,26 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
           {formData.debitType === 'deferred' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Début du cycle</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.cycleStart')}</label>
                 <select
                   value={formData.cycleStartDay}
                   onChange={(e) => setFormData({ ...formData, cycleStartDay: e.target.value })}
                   className="input"
                 >
                   {[...Array(28)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>Le {i + 1}</option>
+                    <option key={i + 1} value={i + 1}>{t('creditCards.dayOfMonth', { day: i + 1 })}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jour de prélèvement</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.debitDay')}</label>
                 <select
                   value={formData.debitDay}
                   onChange={(e) => setFormData({ ...formData, debitDay: e.target.value })}
                   className="input"
                 >
                   {[...Array(28)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>Le {i + 1}</option>
+                    <option key={i + 1} value={i + 1}>{t('creditCards.dayOfMonth', { day: i + 1 })}</option>
                   ))}
                 </select>
               </div>
@@ -189,7 +192,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.color')}</label>
             <input
               type="color"
               value={formData.color}
@@ -200,10 +203,10 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {card ? 'Modifier' : 'Créer'}
+              {card ? t('common.edit') : t('common.create')}
             </button>
           </div>
         </form>
@@ -219,6 +222,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
  * @returns {JSX.Element} The credit cards page
  */
 export default function CreditCards() {
+  const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
   /** @type {''|'active'|'expired'} Filter by card status */
@@ -249,7 +253,7 @@ export default function CreditCards() {
       queryClient.invalidateQueries({ queryKey: ['credit-cards'] })
       setModalOpen(false)
     },
-    onError: (err) => alert('Erreur: ' + (err.response?.data?.error?.message || err.message)),
+    onError: (err) => alert(translateError(err)),
   })
 
   const updateMutation = useMutation({
@@ -258,13 +262,13 @@ export default function CreditCards() {
       queryClient.invalidateQueries({ queryKey: ['credit-cards'] })
       setEditingCard(null)
     },
-    onError: (err) => alert('Erreur: ' + (err.response?.data?.error?.message || err.message)),
+    onError: (err) => alert(translateError(err)),
   })
 
   const deleteMutation = useMutation({
     mutationFn: creditCardsApi.delete,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['credit-cards'] }),
-    onError: (err) => alert('Erreur: ' + (err.response?.data?.error?.message || err.message)),
+    onError: (err) => alert(translateError(err)),
   })
 
   const handleSave = (formData) => {
@@ -276,9 +280,9 @@ export default function CreditCards() {
   }
 
   const handleEdit = (card) => setEditingCard(card)
-  
+
   const handleDelete = (card) => {
-    if (confirm(`Supprimer la carte "${card.name}" ?`)) {
+    if (confirm(t('creditCards.confirmDelete', { name: card.name }))) {
       deleteMutation.mutate(card.id)
     }
   }
@@ -293,20 +297,20 @@ export default function CreditCards() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cartes de crédit</h1>
-          <p className="text-gray-600">Gérez vos cartes et cycles de facturation</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('creditCards.title')}</h1>
+          <p className="text-gray-600">{t('creditCards.subtitle')}</p>
         </div>
         <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" />
-          Nouvelle carte
+          {t('creditCards.newCard')}
         </button>
       </div>
 
-      {/* Filtres et tri */}
+      {/* Filters and sorting */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-sm text-gray-600">Statut :</span>
+          <span className="text-sm text-gray-600">{t('creditCards.status.label')}</span>
           <div className="flex gap-1">
             <button
               onClick={() => setStatusFilter('')}
@@ -316,7 +320,7 @@ export default function CreditCards() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Toutes
+              {t('creditCards.status.all')}
             </button>
             <button
               onClick={() => setStatusFilter('active')}
@@ -326,7 +330,7 @@ export default function CreditCards() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Actives
+              {t('creditCards.status.active')}
             </button>
             <button
               onClick={() => setStatusFilter('expired')}
@@ -336,26 +340,26 @@ export default function CreditCards() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Expirées
+              {t('creditCards.status.expired')}
             </button>
           </div>
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
           <ArrowUpDown className="w-4 h-4 text-gray-500" />
-          <span className="text-sm text-gray-600">Trier par :</span>
+          <span className="text-sm text-gray-600">{t('creditCards.sort.label')}</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            <option value="name">Nom</option>
-            <option value="expiration_date">Date d'expiration</option>
+            <option value="name">{t('creditCards.sort.name')}</option>
+            <option value="expiration_date">{t('creditCards.sort.expirationDate')}</option>
           </select>
           <button
             onClick={toggleSortOrder}
             className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            title={sortOrder === 'asc' ? 'Croissant' : 'Décroissant'}
+            title={sortOrder === 'asc' ? t('creditCards.sort.asc') : t('creditCards.sort.desc')}
           >
             <ArrowUpDown className={`w-4 h-4 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
           </button>
@@ -366,27 +370,27 @@ export default function CreditCards() {
         <div className="card text-center py-12">
           <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">
-            {statusFilter === 'active' && 'Aucune carte active'}
-            {statusFilter === 'expired' && 'Aucune carte expirée'}
-            {statusFilter === '' && 'Aucune carte de crédit configurée'}
+            {statusFilter === 'active' && t('creditCards.empty.active')}
+            {statusFilter === 'expired' && t('creditCards.empty.expired')}
+            {statusFilter === '' && t('creditCards.empty.all')}
           </p>
           {statusFilter === '' && (
             <button onClick={() => setModalOpen(true)} className="btn btn-primary mt-4">
-              Ajouter une carte
+              {t('creditCards.empty.addCard')}
             </button>
           )}
           {statusFilter !== '' && (
             <button onClick={() => setStatusFilter('')} className="btn btn-secondary mt-4">
-              Voir toutes les cartes
+              {t('creditCards.empty.viewAll')}
             </button>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {cards?.map((card) => (
-            <CardDetail 
-              key={card.id} 
-              card={card} 
+            <CardDetail
+              key={card.id}
+              card={card}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
@@ -415,6 +419,9 @@ export default function CreditCards() {
  * @param {Function} props.onDelete - Callback when delete button is clicked
  */
 function CardDetail({ card, onEdit, onDelete }) {
+  const { t } = useTranslation()
+  const { formatCurrency, formatDate } = useFormatters()
+
   // Fetch current billing cycle for deferred debit cards
   const { data: cycleData } = useQuery({
     queryKey: ['credit-card-cycle', card.id],
@@ -432,32 +439,32 @@ function CardDetail({ card, onEdit, onDelete }) {
     if (!card.expirationDate) return false
     const [month, year] = card.expirationDate.split('/')
     if (!month || !year) return false
-    const expDate = new Date(2000 + parseInt(year), parseInt(month), 0) // Dernier jour du mois
+    const expDate = new Date(2000 + parseInt(year), parseInt(month), 0) // Last day of month
     return expDate < new Date()
   })()
 
   return (
     <div className={`card relative group ${isExpired ? 'bg-gray-200' : ''}`}>
-      {/* Actions au survol */}
+      {/* Hover actions */}
       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(card)}
           className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-          title="Modifier"
+          title={t('common.edit')}
         >
           <Pencil className="w-4 h-4" />
         </button>
         <button
           onClick={() => onDelete(card)}
           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          title="Supprimer"
+          title={t('common.delete')}
         >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex items-start gap-4 mb-4">
-        <div 
+        <div
           className={`w-14 h-14 rounded-xl flex items-center justify-center ${isExpired ? 'bg-gray-300' : ''}`}
           style={isExpired ? {} : { backgroundColor: card.color + '20', color: card.color }}
         >
@@ -467,24 +474,24 @@ function CardDetail({ card, onEdit, onDelete }) {
           <h3 className={`text-lg font-semibold flex items-center gap-2 ${isExpired ? 'text-gray-400' : 'text-gray-900'}`}>
             {card.name}
             {isExpired && (
-              <span className="text-xs px-2 py-0.5 bg-gray-400 text-gray-100 rounded-full">Expirée</span>
+              <span className="text-xs px-2 py-0.5 bg-gray-400 text-gray-100 rounded-full">{t('creditCards.expired')}</span>
             )}
           </h3>
           <p className={`text-sm ${isExpired ? 'text-gray-400' : 'text-gray-500'}`}>
-            {card.debitType === 'deferred' ? 'Débit différé' : 'Débit immédiat'}
+            {card.debitType === 'deferred' ? t('creditCards.deferredDebit') : t('creditCards.immediateDebit')}
             {card.cardNumberLast4 && ` •••• ${card.cardNumberLast4}`}
-            {card.expirationDate && ` • Exp: ${card.expirationDate}`}
+            {card.expirationDate && ` • ${t('creditCards.exp')} ${card.expirationDate}`}
           </p>
           {card.accountName && (
-            <p className="text-xs text-gray-400">Associée à : {card.accountName}</p>
+            <p className="text-xs text-gray-400">{t('creditCards.linkedTo')} {card.accountName}</p>
           )}
         </div>
       </div>
-      
-      {/* Limite - affiché sous les infos principales */}
+
+      {/* Credit limit - displayed below main info */}
       {card.creditLimit && (
         <div className={`flex items-center justify-between p-3 rounded-lg mb-4 ${isExpired ? 'bg-gray-300' : 'bg-gray-50'}`}>
-          <span className={`text-sm ${isExpired ? 'text-gray-400' : 'text-gray-600'}`}>Plafond</span>
+          <span className={`text-sm ${isExpired ? 'text-gray-400' : 'text-gray-600'}`}>{t('creditCards.creditLimit')}</span>
           <span className={`font-semibold ${isExpired ? 'text-gray-400' : ''}`}>{formatCurrency(card.creditLimit)}</span>
         </div>
       )}
@@ -495,17 +502,17 @@ function CardDetail({ card, onEdit, onDelete }) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4" />
-                Cycle en cours
+                {t('creditCards.currentCycle')}
               </div>
               <span className="badge bg-primary-100 text-primary-700">
-                {cycle.status === 'open' ? 'Ouvert' : 'En attente'}
+                {cycle.status === 'open' ? t('creditCards.cycleStatus.open') : t('creditCards.cycleStatus.pending')}
               </span>
             </div>
             <p className="text-sm text-gray-600 mb-2">
-              Du {formatDate(cycle.cycleStartDate)} au {formatDate(cycle.cycleEndDate)}
+              {t('creditCards.cycleRange', { start: formatDate(cycle.cycleStartDate), end: formatDate(cycle.cycleEndDate) })}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Total cycle</span>
+              <span className="text-gray-600">{t('creditCards.cycleTotal')}</span>
               <span className="text-xl font-bold text-gray-900">
                 {formatCurrency(cycle.totalAmount || 0)}
               </span>
@@ -515,7 +522,7 @@ function CardDetail({ card, onEdit, onDelete }) {
           <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg text-amber-800">
             <Clock className="w-5 h-5" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Prochain prélèvement</p>
+              <p className="text-sm font-medium">{t('creditCards.nextDebit')}</p>
               <p className="text-xs">{formatDate(cycle.debitDate)}</p>
             </div>
             <span className="font-semibold">{formatCurrency(cycle.totalAmount || 0)}</span>
@@ -523,7 +530,7 @@ function CardDetail({ card, onEdit, onDelete }) {
 
           {cycleData?.cycle?.transactions?.length > 0 && (
             <div className="mt-4 pt-4 border-t">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Dernières opérations</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">{t('creditCards.recentOperations')}</h4>
               <div className="space-y-2">
                 {cycleData.cycle.transactions.slice(0, 5).map((tx) => (
                   <div key={tx.id} className="flex items-center justify-between text-sm">
@@ -539,7 +546,7 @@ function CardDetail({ card, onEdit, onDelete }) {
 
       {card.debitType === 'immediate' && !isExpired && (
         <div className="text-center py-6 text-gray-500">
-          <p>Les opérations sont débitées immédiatement</p>
+          <p>{t('creditCards.immediateMessage')}</p>
         </div>
       )}
     </div>

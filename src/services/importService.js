@@ -222,15 +222,15 @@ export class ImportService {
    */
   static async confirmImport(userId, importId, actions, autoCategories = true) {
     const imp = await knex('imports').where({ id: importId, user_id: userId }).first();
-    if (!imp) throw new BadRequestError('Import non trouvé');
-    if (imp.status !== 'analyzed') throw new BadRequestError('Import pas encore analysé ou déjà confirmé');
+    if (!imp) throw new BadRequestError('Import not found');
+    if (imp.status !== 'analyzed') throw new BadRequestError('Import not yet analyzed or already confirmed');
 
     // Read stored match results
     let matchResults;
     try {
       matchResults = JSON.parse(imp.match_results);
     } catch (e) {
-      throw new BadRequestError('Résultats d\'analyse corrompus');
+      throw new BadRequestError('Corrupted analysis results');
     }
 
     // Build a lookup by rowIndex for quick access
@@ -345,7 +345,7 @@ export class ImportService {
       case 'qif': return ImportService.parseQIF(content.toString('utf-8'));
       case 'qfx':
       case 'ofx': return ImportService.parseOFX(content.toString('utf-8'));
-      default: throw new BadRequestError('Type de fichier non supporté');
+      default: throw new BadRequestError('Unsupported file type');
     }
   }
 

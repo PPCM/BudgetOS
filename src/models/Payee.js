@@ -22,7 +22,7 @@ class Payee {
 
   static async findByIdOrFail(id, userId) {
     const payee = await Payee.findById(id, userId);
-    if (!payee) throw new NotFoundError('Tiers non trouvé');
+    if (!payee) throw new NotFoundError('Payee not found', 'PAYEE_NOT_FOUND');
     return payee;
   }
 

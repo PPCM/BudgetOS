@@ -25,7 +25,7 @@ export const getUser = async (req, res) => {
   const user = await User.findByIdAny(req.params.userId);
   if (!user) {
     const { NotFoundError } = await import('../utils/errors.js');
-    throw new NotFoundError('Utilisateur non trouvé');
+    throw new NotFoundError('User not found', 'USER_NOT_FOUND');
   }
 
   const groups = await Group.findByUser(req.params.userId);
@@ -69,7 +69,7 @@ export const updateUser = async (req, res) => {
 
   // Prevent self-role modification
   if (req.body.role && userId === req.user.id) {
-    throw new BadRequestError('Vous ne pouvez pas modifier votre propre rôle');
+    throw new BadRequestError('You cannot modify your own role', 'CANNOT_MODIFY_OWN_ROLE');
   }
 
   const user = await User.adminUpdate(userId, req.body);
@@ -89,7 +89,7 @@ export const suspendUser = async (req, res) => {
   const { userId } = req.params;
 
   if (userId === req.user.id) {
-    throw new BadRequestError('Vous ne pouvez pas vous suspendre vous-même');
+    throw new BadRequestError('You cannot suspend yourself', 'CANNOT_SUSPEND_SELF');
   }
 
   await User.deactivate(userId);
@@ -118,6 +118,35 @@ export const reactivateUser = async (req, res) => {
 };
 
 /**
+ * Delete a user and all their data (super_admin only)
+ */
+export const deleteUser = async (req, res) => {
+  const { userId } = req.params;
+
+  if (userId === req.user.id) {
+    throw new BadRequestError('You cannot delete yourself', 'CANNOT_DELETE_SELF');
+  }
+
+  // Prevent deleting the last super_admin
+  const targetUser = await User.findByIdAny(userId);
+  if (targetUser?.role === 'super_admin') {
+    const { data: superAdmins } = await User.findAll({ role: 'super_admin' });
+    if (superAdmins.length <= 1) {
+      throw new BadRequestError('Cannot delete the last super administrator', 'CANNOT_DELETE_LAST_SUPER_ADMIN');
+    }
+  }
+
+  await User.delete(userId);
+
+  logger.info('User deleted by admin', { userId, deletedBy: req.user.id });
+
+  res.json({
+    success: true,
+    message: 'User deleted',
+  });
+};
+
+/**
  * Change user role (super_admin only)
  */
 export const updateUserRole = async (req, res) => {
@@ -125,7 +154,7 @@ export const updateUserRole = async (req, res) => {
   const { role } = req.body;
 
   if (userId === req.user.id) {
-    throw new BadRequestError('Vous ne pouvez pas modifier votre propre rôle');
+    throw new BadRequestError('You cannot modify your own role', 'CANNOT_MODIFY_OWN_ROLE');
   }
 
   const user = await User.updateRole(userId, role);
@@ -146,7 +175,7 @@ export const getSettings = async (req, res) => {
 
   res.json({
     success: true,
-    data: { settings },
+    data: settings,
   });
 };
 
@@ -154,7 +183,7 @@ export const getSettings = async (req, res) => {
  * Update system settings (super_admin only)
  */
 export const updateSettings = async (req, res) => {
-  const { allowPublicRegistration, defaultRegistrationGroupId } = req.body;
+  const { allowPublicRegistration, defaultRegistrationGroupId, defaultLocale } = req.body;
 
   if (allowPublicRegistration !== undefined) {
     // If enabling public registration, verify default group is set
@@ -163,13 +192,13 @@ export const updateSettings = async (req, res) => {
         await SystemSetting.get('default_registration_group_id');
       if (!currentGroupId) {
         throw new BadRequestError(
-          'Un groupe par défaut doit être défini pour activer l\'inscription publique'
+          'A default group must be set to enable public registration', 'DEFAULT_GROUP_REQUIRED'
         );
       }
       // Verify the group exists and is active
       const group = await Group.findById(currentGroupId);
       if (!group || !group.isActive) {
-        throw new BadRequestError('Le groupe par défaut spécifié est invalide ou inactif');
+        throw new BadRequestError('The specified default group is invalid or inactive', 'DEFAULT_GROUP_INVALID');
       }
     }
     await SystemSetting.set('allow_public_registration', String(allowPublicRegistration), req.user.id);
@@ -180,10 +209,14 @@ export const updateSettings = async (req, res) => {
       // Verify group exists
       const group = await Group.findById(defaultRegistrationGroupId);
       if (!group || !group.isActive) {
-        throw new BadRequestError('Le groupe spécifié est invalide ou inactif');
+        throw new BadRequestError('The specified group is invalid or inactive', 'GROUP_INVALID');
       }
     }
     await SystemSetting.set('default_registration_group_id', defaultRegistrationGroupId, req.user.id);
+  }
+
+  if (defaultLocale !== undefined) {
+    await SystemSetting.set('default_locale', defaultLocale, req.user.id);
   }
 
   const settings = await SystemSetting.getAllFormatted();
@@ -192,6 +225,6 @@ export const updateSettings = async (req, res) => {
 
   res.json({
     success: true,
-    data: { settings },
+    data: settings,
   });
 };

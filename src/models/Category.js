@@ -30,7 +30,7 @@ export class Category {
 
   static async findByIdOrFail(id, userId) {
     const category = await Category.findById(id, userId);
-    if (!category) throw new NotFoundError('Catégorie non trouvée');
+    if (!category) throw new NotFoundError('Category not found', 'CATEGORY_NOT_FOUND');
     return category;
   }
 

@@ -157,7 +157,7 @@ export class Transaction {
   static async findByIdOrFail(id, userId) {
     const tx = await Transaction.findById(id, userId);
     if (!tx) {
-      throw new NotFoundError('Transaction non trouvée');
+      throw new NotFoundError('Transaction not found', 'TRANSACTION_NOT_FOUND');
     }
     return tx;
   }

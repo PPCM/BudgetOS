@@ -57,16 +57,16 @@ export async function seed(knex) {
       id: user1Id,
       email: 'user@budgetos.local',
       password_hash: demoPassword,
-      first_name: 'Jean',
-      last_name: 'Dupont',
+      first_name: 'John',
+      last_name: 'Doe',
       role: 'user',
     },
     {
       id: user2Id,
       email: 'manager@budgetos.local',
       password_hash: demoPassword,
-      first_name: 'Marie',
-      last_name: 'Martin',
+      first_name: 'Jane',
+      last_name: 'Smith',
       role: 'admin',
     },
   ]);
@@ -89,20 +89,20 @@ export async function seed(knex) {
 
   await knex('accounts').insert([
     {
-      id: checkingAccountId, user_id: adminId, name: 'Compte Courant',
-      type: 'checking', institution: 'Ma Banque',
+      id: checkingAccountId, user_id: adminId, name: 'Checking Account',
+      type: 'checking', institution: 'My Bank',
       initial_balance: 2500.00, current_balance: 2500.00,
       color: '#3B82F6', icon: 'wallet', sort_order: 0,
     },
     {
-      id: savingsAccountId, user_id: adminId, name: 'Livret A',
-      type: 'savings', institution: 'Ma Banque',
+      id: savingsAccountId, user_id: adminId, name: 'Savings Account',
+      type: 'savings', institution: 'My Bank',
       initial_balance: 10000.00, current_balance: 10000.00,
       color: '#10B981', icon: 'piggy-bank', sort_order: 1,
     },
     {
-      id: creditCardAccountId, user_id: adminId, name: 'Carte Visa',
-      type: 'credit_card', institution: 'Ma Banque',
+      id: creditCardAccountId, user_id: adminId, name: 'Visa Card',
+      type: 'credit_card', institution: 'My Bank',
       initial_balance: 0, current_balance: 0,
       color: '#EF4444', icon: 'credit-card', sort_order: 2,
     },
@@ -124,10 +124,10 @@ export async function seed(knex) {
   const electricityCategoryId = uuidv4();
 
   await knex('categories').insert([
-    { id: salaryCategoryId, user_id: adminId, name: 'Salaire', type: 'income', icon: 'briefcase', color: '#10B981', sort_order: 0 },
-    { id: coursesCategoryId, user_id: adminId, name: 'Courses', type: 'expense', icon: 'shopping-cart', color: '#22C55E', sort_order: 1 },
+    { id: salaryCategoryId, user_id: adminId, name: 'Salary', type: 'income', icon: 'briefcase', color: '#10B981', sort_order: 0 },
+    { id: coursesCategoryId, user_id: adminId, name: 'Groceries', type: 'expense', icon: 'shopping-cart', color: '#22C55E', sort_order: 1 },
     { id: restaurantCategoryId, user_id: adminId, name: 'Restaurant', type: 'expense', icon: 'utensils', color: '#F97316', sort_order: 2 },
-    { id: electricityCategoryId, user_id: adminId, name: 'Électricité', type: 'expense', icon: 'zap', color: '#F97316', sort_order: 3 },
+    { id: electricityCategoryId, user_id: adminId, name: 'Electricity', type: 'expense', icon: 'zap', color: '#F97316', sort_order: 3 },
   ]);
 
   // Create demo transactions
@@ -138,7 +138,7 @@ export async function seed(knex) {
     {
       id: uuidv4(), user_id: adminId, account_id: checkingAccountId,
       category_id: salaryCategoryId, amount: 2800.00,
-      description: 'Salaire Novembre',
+      description: 'November Salary',
       date: toDateStr(new Date(now.getFullYear(), now.getMonth(), 1)),
       status: 'cleared', type: 'income',
     },
@@ -159,7 +159,7 @@ export async function seed(knex) {
     {
       id: uuidv4(), user_id: adminId, account_id: checkingAccountId,
       category_id: electricityCategoryId, amount: -95.00,
-      description: 'EDF - Prélèvement mensuel',
+      description: 'EDF - Monthly debit',
       date: toDateStr(new Date(now.getFullYear(), now.getMonth(), 15)),
       status: 'cleared', type: 'expense',
     },
@@ -173,7 +173,7 @@ export async function seed(knex) {
   await knex('planned_transactions').insert({
     id: uuidv4(), user_id: adminId, account_id: checkingAccountId,
     category_id: salaryCategoryId, amount: 2800.00,
-    description: 'Salaire', type: 'income', frequency: 'monthly',
+    description: 'Salary', type: 'income', frequency: 'monthly',
     start_date: toDateStr(new Date(now.getFullYear(), now.getMonth(), 1)),
     next_occurrence: toDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 1)),
     day_of_month: 1, auto_create: true,

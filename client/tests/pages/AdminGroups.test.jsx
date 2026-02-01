@@ -6,6 +6,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+// Prevent i18n side-effect initialization via errorHelper
+vi.mock('../../src/lib/errorHelper', () => ({
+  translateError: (err) => err?.response?.data?.message || err?.message || 'Error',
+}))
+
+// Mock AuthContext - defaults to super_admin
+const mockAuthValue = {
+  user: { id: 'admin1', email: 'admin@test.com', role: 'super_admin' },
+  isGroupAdmin: false,
+}
+vi.mock('../../src/contexts/AuthContext', () => ({
+  useAuth: () => mockAuthValue,
+}))
+
 import AdminGroups from '../../src/pages/AdminGroups'
 
 // Mock the API module
@@ -23,6 +38,7 @@ vi.mock('../../src/lib/api', () => ({
   },
   adminApi: {
     getUsers: vi.fn(),
+    getSettings: vi.fn(),
   },
 }))
 
@@ -105,9 +121,13 @@ async function waitForGroupsLoaded() {
 describe('AdminGroups', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset to super_admin by default
+    mockAuthValue.user = { id: 'admin1', email: 'admin@test.com', role: 'super_admin' }
+    mockAuthValue.isGroupAdmin = false
     groupsApi.getAll.mockResolvedValue({ data: { data: mockGroups } })
     groupsApi.getMembers.mockResolvedValue({ data: { data: mockMembers } })
     adminApi.getUsers.mockResolvedValue({ data: { data: mockUsers } })
+    adminApi.getSettings.mockResolvedValue({ data: { data: { defaultLocale: 'fr' } } })
   })
 
   describe('rendering', () => {
@@ -115,15 +135,15 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      expect(screen.getByText('Groupes')).toBeInTheDocument()
-      expect(screen.getByText('Gerez les groupes et leurs membres')).toBeInTheDocument()
+      expect(screen.getByText('admin.groups.title')).toBeInTheDocument()
+      expect(screen.getByText('admin.groups.subtitle')).toBeInTheDocument()
     })
 
     it('renders the new group button after loading', async () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      expect(screen.getByText('Nouveau groupe')).toBeInTheDocument()
+      expect(screen.getByText('admin.groups.newGroup')).toBeInTheDocument()
     })
 
     it('renders loading spinner initially', () => {
@@ -153,19 +173,18 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      expect(screen.getByText('3 membres')).toBeInTheDocument()
-      expect(screen.getByText('5 membres')).toBeInTheDocument()
-      // 0 uses singular "membre"
-      expect(screen.getByText(/0 membre/)).toBeInTheDocument()
+      // t('admin.groups.memberCount', { count: N }) returns just the key
+      const memberCountElements = screen.getAllByText('admin.groups.memberCount')
+      expect(memberCountElements.length).toBe(3)
     })
 
     it('displays status badges', async () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const activeBadges = screen.getAllByText('Actif')
+      const activeBadges = screen.getAllByText('common.active')
       expect(activeBadges.length).toBe(2)
-      expect(screen.getByText('Inactif')).toBeInTheDocument()
+      expect(screen.getByText('common.inactive')).toBeInTheDocument()
     })
 
     it('shows empty state when no groups', async () => {
@@ -173,8 +192,8 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
 
       await waitFor(() => {
-        expect(screen.getByText('Aucun groupe')).toBeInTheDocument()
-        expect(screen.getByText('Creez un groupe pour commencer')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.noGroups')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.createFirst')).toBeInTheDocument()
       })
     })
 
@@ -182,8 +201,8 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const editButtons = screen.getAllByTitle('Modifier')
-      const deleteButtons = screen.getAllByTitle('Supprimer')
+      const editButtons = screen.getAllByTitle('common.edit')
+      const deleteButtons = screen.getAllByTitle('common.delete')
       expect(editButtons.length).toBe(3)
       expect(deleteButtons.length).toBe(3)
     })
@@ -192,7 +211,7 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const toggleButtons = screen.getAllByText('Voir les membres')
+      const toggleButtons = screen.getAllByText('admin.groups.showMembers')
       expect(toggleButtons.length).toBe(3)
     })
   })
@@ -202,10 +221,10 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getByText('Nouveau groupe'))
+      fireEvent.click(screen.getByText('admin.groups.newGroup'))
 
       await waitFor(() => {
-        expect(screen.getByText('Description')).toBeInTheDocument()
+        expect(screen.getByText('common.description')).toBeInTheDocument()
       })
     })
 
@@ -213,16 +232,16 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getByText('Nouveau groupe'))
+      fireEvent.click(screen.getByText('admin.groups.newGroup'))
 
       await waitFor(() => {
-        expect(screen.getByText('Description')).toBeInTheDocument()
+        expect(screen.getByText('common.description')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Annuler'))
+      fireEvent.click(screen.getByText('common.cancel'))
 
       await waitFor(() => {
-        expect(screen.queryByText('Description')).not.toBeInTheDocument()
+        expect(screen.queryByText('common.description')).not.toBeInTheDocument()
       })
     })
 
@@ -231,10 +250,10 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getByText('Nouveau groupe'))
+      fireEvent.click(screen.getByText('admin.groups.newGroup'))
 
       await waitFor(() => {
-        expect(screen.getByText('Description')).toBeInTheDocument()
+        expect(screen.getByText('common.description')).toBeInTheDocument()
       })
 
       // Find inputs in the modal
@@ -266,11 +285,11 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const editButtons = screen.getAllByTitle('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Modifier le groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.editGroup')).toBeInTheDocument()
         expect(screen.getByDisplayValue('Famille')).toBeInTheDocument()
         expect(screen.getByDisplayValue('Groupe familial')).toBeInTheDocument()
       })
@@ -281,7 +300,7 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const editButtons = screen.getAllByTitle('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[0])
 
       await waitFor(() => {
@@ -316,7 +335,7 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const deleteButtons = screen.getAllByTitle('Supprimer')
+      const deleteButtons = screen.getAllByTitle('common.delete')
       await act(async () => {
         fireEvent.click(deleteButtons[0])
       })
@@ -332,7 +351,7 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const deleteButtons = screen.getAllByTitle('Supprimer')
+      const deleteButtons = screen.getAllByTitle('common.delete')
       fireEvent.click(deleteButtons[0])
 
       expect(groupsApi.delete).not.toHaveBeenCalled()
@@ -346,10 +365,10 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Membres')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.members')).toBeInTheDocument()
       })
     })
 
@@ -357,7 +376,7 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
         expect(screen.getByText('Alice Martin')).toBeInTheDocument()
@@ -369,7 +388,7 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
         expect(screen.getByText('alice@test.com')).toBeInTheDocument()
@@ -381,16 +400,16 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Masquer les membres')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.hideMembers')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Masquer les membres'))
+      fireEvent.click(screen.getByText('admin.groups.hideMembers'))
 
       await waitFor(() => {
-        expect(screen.queryByText('Masquer les membres')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.groups.hideMembers')).not.toBeInTheDocument()
       })
     })
 
@@ -399,39 +418,44 @@ describe('AdminGroups', () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aucun membre')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.noMembers')).toBeInTheDocument()
       })
     })
 
-    it('shows remove button for each member', async () => {
+    it('shows delete button for each member', async () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      // Before expanding: 3 group card delete buttons
+      expect(screen.getAllByTitle('common.delete').length).toBe(3)
+
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        const removeButtons = screen.getAllByTitle('Retirer')
-        expect(removeButtons.length).toBe(2)
+        // After expanding: 3 group card + 2 member = 5 delete buttons
+        expect(screen.getAllByTitle('common.delete').length).toBe(5)
       })
     })
 
-    it('calls removeMember API when confirming removal', async () => {
+    it('calls removeMember API when confirming deletion', async () => {
       groupsApi.removeMember.mockResolvedValue({ data: {} })
       vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        expect(screen.getAllByTitle('Retirer').length).toBeGreaterThan(0)
+        expect(screen.getByText('Alice Martin')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getAllByTitle('Retirer')[0])
+      // Delete buttons order: [group1-delete, alice-delete, bob-delete, group2-delete, group3-delete]
+      const allDeleteButtons = screen.getAllByTitle('common.delete')
+      fireEvent.click(allDeleteButtons[1]) // Alice's delete button
 
       await waitFor(() => {
         expect(groupsApi.removeMember).toHaveBeenCalledWith('g1', 'u1')
@@ -441,58 +465,221 @@ describe('AdminGroups', () => {
     })
   })
 
-  describe('add member modal', () => {
-    it('opens add member modal from expanded panel', async () => {
+  describe('add member modal (super_admin)', () => {
+    it('opens add member modal with tabs from expanded panel', async () => {
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Ajouter')).toBeInTheDocument()
+        expect(screen.getByText('common.add')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Ajouter'))
+      fireEvent.click(screen.getByText('common.add'))
 
       await waitFor(() => {
-        expect(screen.getByText('Ajouter un membre')).toBeInTheDocument()
-        expect(screen.getByText('Utilisateur')).toBeInTheDocument()
-        expect(screen.getByText('Role dans le groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.addMember')).toBeInTheDocument()
+        // Super admin sees both tabs
+        expect(screen.getByText('admin.groups.existingUser')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.newMember')).toBeInTheDocument()
+        // Default tab is existing user
+        expect(screen.getByText('admin.users.title')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.groupRole')).toBeInTheDocument()
       })
     })
 
-    it('calls addMember API on form submit', async () => {
+    it('calls addMember API with existing user on form submit', async () => {
       groupsApi.addMember.mockResolvedValue({ data: { data: {} } })
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      fireEvent.click(screen.getAllByText('Voir les membres')[0])
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Ajouter')).toBeInTheDocument()
+        expect(screen.getByText('common.add')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Ajouter'))
+      fireEvent.click(screen.getByText('common.add'))
 
       await waitFor(() => {
-        expect(screen.getByText('Ajouter un membre')).toBeInTheDocument()
+        expect(screen.getByText('admin.groups.addMember')).toBeInTheDocument()
       })
 
       // Select a user (Carol is the only one not already a member)
-      const userSelect = screen.getByText('Selectionner un utilisateur').closest('select')
+      const userSelect = screen.getByText('admin.groups.selectUser').closest('select')
       fireEvent.change(userSelect, { target: { value: 'u3' } })
 
       // Find submit button inside the add member modal
       const modal = document.querySelectorAll('.fixed.inset-0')
       // The add member modal is the last overlay
       const addMemberModal = modal[modal.length - 1]
-      const submitBtn = within(addMemberModal).getAllByRole('button').find(b => b.textContent === 'Ajouter')
+      const submitBtn = within(addMemberModal).getAllByRole('button').find(b => b.textContent === 'common.add')
       fireEvent.click(submitBtn)
 
       await waitFor(() => {
         expect(groupsApi.addMember).toHaveBeenCalledWith('g1', {
           userId: 'u3',
           role: 'member',
+        })
+      })
+    })
+
+    it('calls addMember API with inline creation on new member tab', async () => {
+      groupsApi.addMember.mockResolvedValue({ data: { data: {} } })
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
+
+      await waitFor(() => {
+        expect(screen.getByText('common.add')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('common.add'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.groups.newMember')).toBeInTheDocument()
+      })
+
+      // Switch to new member tab
+      fireEvent.click(screen.getByText('admin.groups.newMember'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.users.form.email')).toBeInTheDocument()
+      })
+
+      // Fill in the inline creation form
+      const modal = document.querySelectorAll('.fixed.inset-0')
+      const addMemberModal = modal[modal.length - 1]
+      const emailInput = addMemberModal.querySelector('input[type="email"]')
+      const passwordInput = addMemberModal.querySelector('input[type="password"]')
+      const textInputs = addMemberModal.querySelectorAll('input[type="text"]')
+
+      fireEvent.change(textInputs[0], { target: { value: 'New' } })
+      fireEvent.change(textInputs[1], { target: { value: 'Member' } })
+      fireEvent.change(emailInput, { target: { value: 'new@test.com' } })
+      fireEvent.change(passwordInput, { target: { value: 'Test1234!' } })
+
+      const form = addMemberModal.querySelector('form')
+      await act(async () => {
+        fireEvent.submit(form)
+      })
+
+      await waitFor(() => {
+        expect(groupsApi.addMember).toHaveBeenCalledWith('g1', {
+          email: 'new@test.com',
+          password: 'Test1234!',
+          firstName: 'New',
+          lastName: 'Member',
+          role: 'member',
+          locale: 'fr',
+          currency: 'EUR',
+        })
+      })
+    })
+  })
+
+  describe('group admin access', () => {
+    beforeEach(() => {
+      mockAuthValue.user = { id: 'manager1', email: 'manager@test.com', role: 'user' }
+      mockAuthValue.isGroupAdmin = true
+    })
+
+    it('hides new group button for group admin', async () => {
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      expect(screen.queryByText('admin.groups.newGroup')).not.toBeInTheDocument()
+    })
+
+    it('hides edit and delete buttons for group admin', async () => {
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      expect(screen.queryByTitle('common.edit')).not.toBeInTheDocument()
+      expect(screen.queryByTitle('common.delete')).not.toBeInTheDocument()
+    })
+
+    it('shows groups and member toggle for group admin', async () => {
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      expect(screen.getByText('Famille')).toBeInTheDocument()
+      expect(screen.getByText('Travail')).toBeInTheDocument()
+      const toggleButtons = screen.getAllByText('admin.groups.showMembers')
+      expect(toggleButtons.length).toBe(3)
+    })
+
+    it('shows only inline creation form (no tabs) in add member modal for group admin', async () => {
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
+
+      await waitFor(() => {
+        expect(screen.getByText('common.add')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('common.add'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.groups.addMember')).toBeInTheDocument()
+      })
+
+      // No tabs should be shown
+      expect(screen.queryByText('admin.groups.existingUser')).not.toBeInTheDocument()
+      // Inline creation form visible directly
+      expect(screen.getByText('admin.users.form.email')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.form.password')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.form.firstName')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.form.lastName')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.form.language')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.form.currency')).toBeInTheDocument()
+    })
+
+    it('calls addMember API with inline data for group admin', async () => {
+      groupsApi.addMember.mockResolvedValue({ data: { data: {} } })
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
+
+      await waitFor(() => {
+        expect(screen.getByText('common.add')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('common.add'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.users.form.email')).toBeInTheDocument()
+      })
+
+      const modal = document.querySelectorAll('.fixed.inset-0')
+      const addMemberModal = modal[modal.length - 1]
+      const emailInput = addMemberModal.querySelector('input[type="email"]')
+      const passwordInput = addMemberModal.querySelector('input[type="password"]')
+      const textInputs = addMemberModal.querySelectorAll('input[type="text"]')
+
+      fireEvent.change(textInputs[0], { target: { value: 'Jean' } })
+      fireEvent.change(textInputs[1], { target: { value: 'Dupont' } })
+      fireEvent.change(emailInput, { target: { value: 'newuser@test.com' } })
+      fireEvent.change(passwordInput, { target: { value: 'Pass1234!' } })
+
+      const form = addMemberModal.querySelector('form')
+      await act(async () => {
+        fireEvent.submit(form)
+      })
+
+      await waitFor(() => {
+        expect(groupsApi.addMember).toHaveBeenCalledWith('g1', {
+          email: 'newuser@test.com',
+          password: 'Pass1234!',
+          firstName: 'Jean',
+          lastName: 'Dupont',
+          role: 'member',
+          locale: 'fr',
+          currency: 'EUR',
         })
       })
     })

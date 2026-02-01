@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronUp, CreditCard, ArrowRightLeft, PlusCircle, XCircle, CheckCircle, Link2, RefreshCw, Loader2 } from 'lucide-react'
 import SearchableSelect from './SearchableSelect'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { importApi } from '../lib/api'
 
 const matchTypeBadge = {
-  duplicate: { label: 'Doublon', bg: 'bg-gray-100 text-gray-700' },
-  exact: { label: 'Correspondance', bg: 'bg-blue-100 text-blue-700' },
-  probable: { label: 'Probable', bg: 'bg-amber-100 text-amber-700' },
-  new: { label: 'Nouveau', bg: 'bg-green-100 text-green-700' },
+  duplicate: { labelKey: 'import.matchTypes.duplicate', bg: 'bg-gray-100 text-gray-700' },
+  exact: { labelKey: 'import.matchTypes.exact', bg: 'bg-blue-100 text-blue-700' },
+  probable: { labelKey: 'import.matchTypes.probable', bg: 'bg-amber-100 text-amber-700' },
+  new: { labelKey: 'import.matchTypes.new', bg: 'bg-green-100 text-green-700' },
 }
 
 export default function ImportReviewRow({
@@ -19,6 +20,7 @@ export default function ImportReviewRow({
   accountId,
   onUpdate,
 }) {
+  const { t } = useTranslation()
   const [manualExpanded, setManualExpanded] = useState(false)
   const [candidates, setCandidates] = useState([])
   const [showCandidates, setShowCandidates] = useState(false)
@@ -110,7 +112,7 @@ export default function ImportReviewRow({
         <td className="px-3 py-2 text-sm whitespace-nowrap">
           {tx.date}
           {tx.purchaseDate && tx.purchaseDate !== tx.date && (
-            <div className="text-xs text-gray-400">Achat: {tx.purchaseDate}</div>
+            <div className="text-xs text-gray-400">{t('import.purchaseDate', { date: tx.purchaseDate })}</div>
           )}
         </td>
 
@@ -130,7 +132,7 @@ export default function ImportReviewRow({
         {/* Status badge */}
         <td className="px-3 py-2 text-sm">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge.bg}`}>
-            {badge.label}
+            {t(badge.labelKey)}
             {tx.score && <span className="ml-1 opacity-60">({tx.score})</span>}
           </span>
         </td>
@@ -164,7 +166,7 @@ export default function ImportReviewRow({
               value={payeeId}
               onChange={(val) => handleChange('payeeId', val)}
               options={payees}
-              placeholder="Tiers..."
+              placeholder={t('import.payeePlaceholder')}
               className="text-xs"
               allowCreate={false}
             />
@@ -178,7 +180,7 @@ export default function ImportReviewRow({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              title="Créer"
+              title={t('import.actions.create')}
               data-action="create"
               onClick={() => handleChange('action', 'create')}
               className={`p-0.5 rounded transition-colors ${
@@ -191,7 +193,7 @@ export default function ImportReviewRow({
             </button>
             <button
               type="button"
-              title="Ignorer"
+              title={t('import.actions.skip')}
               data-action="skip"
               onClick={() => handleChange('action', 'skip')}
               className={`p-0.5 rounded transition-colors ${
@@ -204,7 +206,7 @@ export default function ImportReviewRow({
             </button>
             <button
               type="button"
-              title="Rapprocher"
+              title={t('import.actions.match')}
               data-action="match"
               onClick={handleMatchClick}
               className={`p-0.5 rounded transition-colors ${
@@ -243,17 +245,17 @@ export default function ImportReviewRow({
           <td colSpan="8" className="px-3 py-2">
             <div className="text-xs">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-gray-700">Transactions candidates ({candidates.length})</span>
+                <span className="font-medium text-gray-700">{t('import.candidates', { count: candidates.length })}</span>
                 <button
                   type="button"
                   onClick={() => { setShowCandidates(false); setCandidates([]) }}
                   className="text-gray-500 hover:text-gray-700 underline text-xs"
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </button>
               </div>
               {candidates.length === 0 ? (
-                <p className="text-gray-500 italic py-2">Aucune transaction correspondante</p>
+                <p className="text-gray-500 italic py-2">{t('import.noCandidates')}</p>
               ) : (
                 <div className="space-y-0.5 max-h-48 overflow-y-auto">
                   {candidates.map((c) => (
@@ -285,19 +287,19 @@ export default function ImportReviewRow({
               <ArrowRightLeft className="w-4 h-4 text-blue-500 flex-shrink-0" />
               <div className="flex-1 grid grid-cols-5 gap-4">
                 <div>
-                  <span className="text-gray-500">Date:</span>{' '}
+                  <span className="text-gray-500">{t('import.matchedDate')}:</span>{' '}
                   <span className="font-medium">{matchedTx.date}</span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-gray-500">Description:</span>{' '}
+                  <span className="text-gray-500">{t('import.matchedDescription')}:</span>{' '}
                   <span className="font-medium">{matchedTx.description}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Tiers:</span>{' '}
+                  <span className="text-gray-500">{t('import.matchedPayee')}:</span>{' '}
                   <span className="font-medium">{matchedPayeeName || '—'}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-gray-500">Montant:</span>{' '}
+                  <span className="text-gray-500">{t('import.matchedAmount')}:</span>{' '}
                   <span className={`font-medium ${matchedTx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(matchedTx.amount)}
                   </span>
@@ -305,7 +307,7 @@ export default function ImportReviewRow({
               </div>
               <button
                 type="button"
-                title="Changer la transaction associée"
+                title={t('import.changeMatch')}
                 onClick={fetchCandidates}
                 className="p-1 hover:bg-blue-100 rounded text-blue-500 hover:text-blue-700 transition-colors flex-shrink-0"
               >

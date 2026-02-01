@@ -3,24 +3,24 @@ import { ForbiddenError } from '../utils/errors.js';
 import logger from '../utils/logger.js';
 
 /**
- * Génère un token CSRF
+ * Generate a CSRF token
  */
 const generateToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
 /**
- * Middleware de protection CSRF personnalisé
- * Alternative à csurf qui est déprécié
+ * Custom CSRF protection middleware
+ * Alternative to the deprecated csurf package
  */
 export const csrfProtection = (req, res, next) => {
-  // Ignorer pour les requêtes safe (GET, HEAD, OPTIONS)
+  // Skip safe methods (GET, HEAD, OPTIONS)
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
   if (safeMethods.includes(req.method)) {
     return next();
   }
   
-  // Vérifier le token CSRF
+  // Verify the CSRF token
   const tokenFromHeader = req.headers['x-csrf-token'];
   const tokenFromBody = req.body?._csrf;
   const tokenFromSession = req.session?.csrfToken;
@@ -34,32 +34,32 @@ export const csrfProtection = (req, res, next) => {
       method: req.method,
       userId: req.session?.userId,
     });
-    throw new ForbiddenError('Token CSRF invalide', 'CSRF_TOKEN_INVALID');
+    throw new ForbiddenError('Invalid CSRF token', 'CSRF_TOKEN_INVALID');
   }
   
   next();
 };
 
 /**
- * Middleware pour générer et fournir le token CSRF
+ * Middleware to generate and provide the CSRF token
  */
 export const csrfTokenProvider = (req, res, next) => {
-  // Générer un token si absent
+  // Generate a token if missing
   if (!req.session.csrfToken) {
     req.session.csrfToken = generateToken();
   }
   
-  // Ajouter une méthode pour récupérer le token
+  // Add a method to retrieve the token
   res.locals.csrfToken = req.session.csrfToken;
   
-  // Exposer le token dans un header de réponse pour les SPA
+  // Expose the token in a response header for SPAs
   res.setHeader('X-CSRF-Token', req.session.csrfToken);
   
   next();
 };
 
 /**
- * Route pour obtenir le token CSRF (pour les SPA)
+ * Route to obtain the CSRF token (for SPAs)
  */
 export const csrfTokenRoute = (req, res) => {
   if (!req.session.csrfToken) {

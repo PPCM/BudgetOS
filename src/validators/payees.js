@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createPayeeSchema = z.object({
-  name: z.string().min(1, 'Le nom est requis').max(200),
+  name: z.string().min(1, 'Name is required').max(200),
   imageUrl: z.string().max(500).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
 });

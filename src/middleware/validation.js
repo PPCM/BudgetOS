@@ -1,14 +1,14 @@
 import { ValidationError } from '../utils/errors.js';
 
 /**
- * Middleware de validation avec Zod
- * @param {Object} schemas - Schémas Zod pour body, query, params
+ * Validation middleware using Zod
+ * @param {Object} schemas - Zod schemas for body, query, params
  */
 export const validate = (schemas) => {
   return (req, res, next) => {
     const errors = [];
     
-    // Valider le body
+    // Validate body
     if (schemas.body) {
       const result = schemas.body.safeParse(req.body);
       if (!result.success) {
@@ -22,7 +22,7 @@ export const validate = (schemas) => {
       }
     }
     
-    // Valider les query params
+    // Validate query params
     if (schemas.query) {
       const result = schemas.query.safeParse(req.query);
       if (!result.success) {
@@ -36,7 +36,7 @@ export const validate = (schemas) => {
       }
     }
     
-    // Valider les path params
+    // Validate path params
     if (schemas.params) {
       const result = schemas.params.safeParse(req.params);
       if (!result.success) {
@@ -51,7 +51,7 @@ export const validate = (schemas) => {
     }
     
     if (errors.length > 0) {
-      throw new ValidationError('Données de requête invalides', errors);
+      throw new ValidationError('Invalid request data', errors, 'VALIDATION_ERROR');
     }
     
     next();
@@ -59,7 +59,7 @@ export const validate = (schemas) => {
 };
 
 /**
- * Middleware pour nettoyer les entrées HTML
+ * Middleware to sanitize HTML inputs
  *
  * Note: Only escapes < and > to prevent HTML tag injection.
  * Other characters (&, ", ') are NOT escaped because:

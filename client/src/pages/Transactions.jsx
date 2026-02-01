@@ -4,9 +4,12 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue, Fragment } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi, creditCardsApi } from '../lib/api'
-import { formatCurrency, formatDate, getDatePeriod } from '../lib/utils'
+import { getDatePeriod } from '../lib/utils'
+import { translateError } from '../lib/errorHelper'
+import { useFormatters } from '../hooks/useFormatters'
 import { getIconComponent } from '../lib/iconMap'
 import {
   Plus, Search, TrendingUp, TrendingDown,
@@ -103,6 +106,7 @@ const TransactionTypeIcon = ({ type, amount }) => {
  * @param {Function} props.onCreateCategory - Callback to create a new category inline
  */
 function TransactionModal({ transaction, accounts, categories, payees, creditCards, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState(transaction || {
     accountId: accounts?.[0]?.id || '',
     toAccountId: '',
@@ -120,12 +124,12 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
     e.preventDefault()
     // For transfers, at least one account must be selected
     if (formData.type === 'transfer' && !formData.accountId && !formData.toAccountId) {
-      toast.error('Veuillez sélectionner au moins un compte (source ou destination)')
+      toast.error(t('transactions.selectOneAccount'))
       return
     }
     // For non-transfers, account is required
     if (formData.type !== 'transfer' && !formData.accountId) {
-      toast.error('Veuillez sélectionner un compte')
+      toast.error(t('transactions.selectAccountRequired'))
       return
     }
     onSave(formData)
@@ -146,7 +150,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
       <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
           <h2 className="text-lg font-semibold">
-            {transaction ? 'Modifier' : 'Nouvelle transaction'}
+            {transaction ? t('transactions.editTransaction') : t('transactions.newTransaction')}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -156,9 +160,9 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
           {/* Type */}
           <div className="flex gap-2">
             {[
-              { value: 'expense', label: 'Dépense', icon: TrendingDown, color: 'red' },
-              { value: 'income', label: 'Revenu', icon: TrendingUp, color: 'green' },
-              { value: 'transfer', label: 'Virement', icon: ArrowLeftRight, color: 'blue' },
+              { value: 'expense', label: t('transactions.types.expense'), icon: TrendingDown, color: 'red' },
+              { value: 'income', label: t('transactions.types.income'), icon: TrendingUp, color: 'green' },
+              { value: 'transfer', label: t('transactions.types.transfer'), icon: ArrowLeftRight, color: 'blue' },
             ].map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}
@@ -177,7 +181,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Montant</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.amount')}</label>
             <input
               type="number"
               step="0.01"
@@ -190,7 +194,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.description')}</label>
             <input
               type="text"
               value={formData.description}
@@ -201,7 +205,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.date')}</label>
             <input
               type="date"
               value={formData.date}
@@ -214,7 +218,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
           {formData.type !== 'transfer' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Moyen de paiement (optionnel)
+                {t('transactions.paymentMethod')} ({t('common.optional')})
               </label>
               {!formData.creditCardId && !formData.checkNumber ? (
                 <div className="flex gap-2">
@@ -224,7 +228,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                     className="flex-1 p-2 border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors flex items-center justify-center gap-2 text-sm text-gray-600"
                   >
                     <CreditCard className="w-4 h-4" />
-                    Carte
+                    {t('transactions.card')}
                   </button>
                   <button
                     type="button"
@@ -232,7 +236,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                     className="flex-1 p-2 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-sm text-gray-600"
                   >
                     <Tag className="w-4 h-4" />
-                    Chèque
+                    {t('transactions.check')}
                   </button>
                 </div>
               ) : formData.creditCardId ? (
@@ -242,7 +246,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                     onChange={(e) => setFormData({ ...formData, creditCardId: e.target.value || '', checkNumber: '' })}
                     className="input flex-1"
                   >
-                    <option value="">Sélectionner une carte</option>
+                    <option value="">{t('transactions.selectCard')}</option>
                     {creditCards?.map((cc) => (
                       <option key={cc.id} value={cc.id}>{cc.name}</option>
                     ))}
@@ -251,7 +255,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                     type="button"
                     onClick={() => setFormData({ ...formData, creditCardId: '' })}
                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Annuler"
+                    title={t('common.cancel')}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -271,7 +275,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                     type="button"
                     onClick={() => setFormData({ ...formData, checkNumber: '' })}
                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Annuler"
+                    title={t('common.cancel')}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -285,8 +289,8 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
             <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Compte source (débit) - optionnel
-                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">(désactivé car tiers sélectionné)</span>}
+                  {t('transactions.sourceAccountOptional')}
+                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">({t('transactions.disabledPayee')})</span>}
                 </label>
                 <select
                   value={formData.accountId}
@@ -294,7 +298,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                   className="input"
                   disabled={!!formData.payeeId}
                 >
-                  <option value="">Aucun (virement externe)</option>
+                  <option value="">{t('transactions.noSourceExternal')}</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id} disabled={a.id === formData.toAccountId}>
                       {a.name}
@@ -307,8 +311,8 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Compte destination (crédit) - optionnel
-                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">(désactivé car tiers sélectionné)</span>}
+                  {t('transactions.destAccount')}
+                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">({t('transactions.disabledPayee')})</span>}
                 </label>
                 <select
                   value={formData.toAccountId}
@@ -316,7 +320,7 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                   className="input"
                   disabled={!!formData.payeeId}
                 >
-                  <option value="">Aucun (virement externe)</option>
+                  <option value="">{t('transactions.noSourceExternal')}</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id} disabled={a.id === formData.accountId}>
                       {a.name}
@@ -327,14 +331,14 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Compte</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('transactions.account')}</label>
               <select
                 value={formData.accountId}
                 onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
                 className="input"
                 required
               >
-                <option value="">Sélectionner</option>
+                <option value="">{t('transactions.selectAccount')}</option>
                 {accounts?.map((a) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
@@ -343,15 +347,15 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('transactions.category')}</label>
             <SearchableSelect
               value={formData.categoryId}
               onChange={(id) => setFormData({ ...formData, categoryId: id })}
               options={filteredCategories}
-              placeholder="Tapez pour rechercher..."
-              emptyMessage="Aucune catégorie trouvée"
+              placeholder={t('transactions.searchCategories')}
+              emptyMessage={t('transactions.noCategory')}
               allowCreate={!!onCreateCategory}
-              createLabel="Créer la catégorie"
+              createLabel={t('transactions.createCategory')}
               onCreate={(name) => onCreateCategory(name, formData.type)}
               renderOption={(cat) => {
                 const IconComp = getIconComponent(cat.icon)
@@ -369,19 +373,19 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tiers (optionnel)
+              {t('transactions.payeeOptional')}
               {formData.type === 'transfer' && formData.toAccountId && (
-                <span className="text-xs text-amber-600 ml-2">(désactivé car compte destination sélectionné)</span>
+                <span className="text-xs text-amber-600 ml-2">({t('transactions.disabledDestAccount')})</span>
               )}
             </label>
             <SearchableSelect
               value={formData.payeeId}
               onChange={(id) => setFormData({ ...formData, payeeId: id })}
               options={sortedPayees}
-              placeholder="Tapez pour rechercher..."
-              emptyMessage="Aucun tiers trouvé"
+              placeholder={t('transactions.searchPayees')}
+              emptyMessage={t('transactions.noPayee')}
               allowCreate={!!onCreatePayee}
-              createLabel="Créer le tiers"
+              createLabel={t('transactions.createPayee')}
               onCreate={onCreatePayee}
               disabled={formData.type === 'transfer' && !!formData.toAccountId}
               renderOption={(p) => (
@@ -395,10 +399,10 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {transaction ? 'Modifier' : 'Créer'}
+              {transaction ? t('common.edit') : t('common.create')}
             </button>
           </div>
         </form>
@@ -414,6 +418,8 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
  * @returns {JSX.Element} The transactions page
  */
 export default function Transactions() {
+  const { t } = useTranslation()
+  const { formatCurrency, formatDate } = useFormatters()
   const { userSettings } = useAuth()
   const toast = useToast()
   const [modalOpen, setModalOpen] = useState(false)
@@ -580,7 +586,7 @@ export default function Transactions() {
       const result = await createPayeeMutation.mutateAsync({ name, imageUrl })
       return result.data.data
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
       return null
     }
   }
@@ -602,7 +608,7 @@ export default function Transactions() {
       })
       return result.data.data.category
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
       return null
     }
   }
@@ -613,10 +619,10 @@ export default function Transactions() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setModalOpen(false)
-      toast.success('Transaction créée avec succès')
+      toast.success(t('transactions.created'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -627,10 +633,10 @@ export default function Transactions() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setModalOpen(false)
       setEditingTx(null)
-      toast.success('Transaction modifiée avec succès')
+      toast.success(t('transactions.updated'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -639,10 +645,10 @@ export default function Transactions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
-      toast.success('Transaction supprimée')
+      toast.success(t('transactions.deleted'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -682,7 +688,7 @@ export default function Transactions() {
       if (context?.previousData) {
         queryClient.setQueryData(['transactions', queryFilters, sort], context.previousData)
       }
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -761,7 +767,7 @@ export default function Transactions() {
   }, [])
 
   const handleDelete = useCallback((tx) => {
-    if (confirm(`Supprimer la transaction "${tx.description}" ?`)) {
+    if (confirm(t('transactions.confirmDelete', { description: tx.description }))) {
       deleteMutation.mutate(tx.id)
     }
   }, [deleteMutation])
@@ -770,9 +776,9 @@ export default function Transactions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('transactions.title')}</h1>
           <p className="text-gray-600">
-            {totalCount > 0 ? `${totalCount} opération${totalCount > 1 ? 's' : ''}` : 'Historique de vos opérations'}
+            {totalCount > 0 ? t('transactions.operationCount', { count: totalCount }) : t('transactions.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -783,15 +789,15 @@ export default function Transactions() {
                 ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'
                 : 'btn-secondary'
             }`}
-            title="Mode rapprochement bancaire"
+            title={t('transactions.reconciliation.title')}
           >
             <Scale className="w-5 h-5" />
-            {reconcileMode ? 'Quitter rapprochement' : 'Rapprochement'}
+            {reconcileMode ? t('transactions.reconciliation.exit') : t('transactions.reconciliation.title')}
           </button>
           {!reconcileMode && (
             <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
               <Plus className="w-5 h-5" />
-              Nouvelle
+              {t('transactions.newTransaction')}
             </button>
           )}
         </div>
@@ -805,7 +811,7 @@ export default function Transactions() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder={t('common.search')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="input pl-10 pr-9"
@@ -814,7 +820,7 @@ export default function Transactions() {
                 <button
                   onClick={() => setSearchInput('')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
-                  title="Effacer la recherche"
+                  title={t('transactions.filters.clearSearch')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -827,7 +833,7 @@ export default function Transactions() {
               onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}
               className="input"
             >
-              <option value="">Tous les comptes</option>
+              <option value="">{t('transactions.filters.allAccounts')}</option>
               {accountsData?.data?.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -839,7 +845,7 @@ export default function Transactions() {
               onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}
               className="input"
             >
-              <option value="">Toutes catégories</option>
+              <option value="">{t('transactions.filters.allCategories')}</option>
               {categoriesData?.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -851,10 +857,10 @@ export default function Transactions() {
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
               className="input"
             >
-              <option value="">Tous types</option>
-              <option value="income">Revenus</option>
-              <option value="expense">Dépenses</option>
-              <option value="transfer">Virements</option>
+              <option value="">{t('transactions.filters.allTypes')}</option>
+              <option value="income">{t('transactions.filters.income')}</option>
+              <option value="expense">{t('transactions.filters.expense')}</option>
+              <option value="transfer">{t('transactions.filters.transfer')}</option>
             </select>
           </div>
           <div className="w-40">
@@ -863,9 +869,9 @@ export default function Transactions() {
               onChange={(e) => setFilters({ ...filters, isReconciled: e.target.value })}
               className="input"
             >
-              <option value="">Tous statuts</option>
-              <option value="true">Rapprochées</option>
-              <option value="false">Non rapprochées</option>
+              <option value="">{t('transactions.filters.allStatuses')}</option>
+              <option value="true">{t('transactions.filters.reconciled')}</option>
+              <option value="false">{t('transactions.filters.notReconciled')}</option>
             </select>
           </div>
         </div>
@@ -874,7 +880,7 @@ export default function Transactions() {
         <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t items-center">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">Période :</span>
+            <span className="text-sm text-gray-600">{t('transactions.filters.period')}</span>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -905,13 +911,13 @@ export default function Transactions() {
             value={quickPeriod}
             onChange={(e) => handleQuickPeriod(e.target.value)}
           >
-            <option value="">Toutes les dates</option>
-            <option value="week">Semaine en cours</option>
-            <option value="7days">7 derniers jours</option>
-            <option value="month">Mois en cours</option>
-            <option value="30days">30 derniers jours</option>
-            <option value="year">Année en cours</option>
-            <option value="365days">365 derniers jours</option>
+            <option value="">{t('transactions.filters.allDates')}</option>
+            <option value="week">{t('transactions.filters.currentWeek')}</option>
+            <option value="7days">{t('transactions.filters.last7days')}</option>
+            <option value="month">{t('transactions.filters.currentMonth')}</option>
+            <option value="30days">{t('transactions.filters.last30days')}</option>
+            <option value="year">{t('transactions.filters.currentYear')}</option>
+            <option value="365days">{t('transactions.filters.last365days')}</option>
           </select>
           {(filters.startDate || filters.endDate) && (
             <button
@@ -922,17 +928,17 @@ export default function Transactions() {
               className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
             >
               <X className="w-4 h-4" />
-              Effacer
+              {t('common.clear')}
             </button>
           )}
           {hasActiveFilters && (
             <button
               onClick={resetAllFilters}
               className="ml-auto flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-              title="Réinitialiser tous les filtres"
+              title={t('transactions.filters.resetAll')}
             >
               <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Réinitialiser</span>
+              <span className="hidden sm:inline">{t('transactions.filters.resetAll')}</span>
             </button>
           )}
         </div>
@@ -956,7 +962,7 @@ export default function Transactions() {
                       onClick={() => handleSort('date')}
                     >
                       <div className="flex items-center gap-1">
-                        Date
+                        {t('common.date')}
                         <SortIcon column="date" sort={sort} />
                       </div>
                     </th>
@@ -965,7 +971,7 @@ export default function Transactions() {
                       onClick={() => handleSort('description')}
                     >
                       <div className="flex items-center gap-1">
-                        Description
+                        {t('common.description')}
                         <SortIcon column="description" sort={sort} />
                       </div>
                     </th>
@@ -974,7 +980,7 @@ export default function Transactions() {
                       onClick={() => handleSort('payee')}
                     >
                       <div className="flex items-center gap-1">
-                        Tiers
+                        {t('transactions.payee')}
                         <SortIcon column="payee" sort={sort} />
                       </div>
                     </th>
@@ -983,7 +989,7 @@ export default function Transactions() {
                       onClick={() => handleSort('category')}
                     >
                       <div className="flex items-center gap-1">
-                        Catégorie
+                        {t('transactions.category')}
                         <SortIcon column="category" sort={sort} />
                       </div>
                     </th>
@@ -992,7 +998,7 @@ export default function Transactions() {
                       onClick={() => handleSort('account')}
                     >
                       <div className="flex items-center gap-1">
-                        Compte
+                        {t('transactions.account')}
                         <SortIcon column="account" sort={sort} />
                       </div>
                     </th>
@@ -1001,7 +1007,7 @@ export default function Transactions() {
                       onClick={() => handleSort('amount')}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        Montant
+                        {t('common.amount')}
                         <SortIcon column="amount" sort={sort} />
                       </div>
                     </th>
@@ -1085,7 +1091,7 @@ export default function Transactions() {
                                     ? 'text-green-600 hover:text-red-600 hover:bg-red-50'
                                     : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
                                 }`}
-                                title={tx.isReconciled ? 'Annuler le rapprochement' : 'Marquer comme rapproché'}
+                                title={tx.isReconciled ? t('transactions.reconciliation.unmarkReconciled') : t('transactions.reconciliation.markReconciled')}
                               >
                                 <CheckCircle2 className={`w-4 h-4 ${tx.isReconciled ? 'fill-green-100' : ''}`} />
                               </button>

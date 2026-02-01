@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import {
   LayoutDashboard, Wallet, ArrowLeftRight, CreditCard,
@@ -9,27 +10,28 @@ import { useState } from 'react'
 import { cn } from '../lib/utils'
 
 const navigation = [
-  { name: 'Tableau de bord', href: '/', icon: LayoutDashboard },
-  { name: 'Comptes', href: '/accounts', icon: Wallet },
-  { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
-  { name: 'Récurrentes', href: '/planned', icon: Repeat },
-  { name: 'Cartes de crédit', href: '/credit-cards', icon: CreditCard },
-  { name: 'Catégories', href: '/categories', icon: Tags },
-  { name: 'Tiers', href: '/payees', icon: Users },
-  { name: 'Import', href: '/import', icon: Upload },
-  { name: 'Règles', href: '/rules', icon: Wand2 },
-  { name: 'Rapports', href: '/reports', icon: BarChart3 },
-  { name: 'Paramètres', href: '/settings', icon: Settings },
+  { name: 'nav.dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'nav.accounts', href: '/accounts', icon: Wallet },
+  { name: 'nav.transactions', href: '/transactions', icon: ArrowLeftRight },
+  { name: 'nav.recurring', href: '/planned', icon: Repeat },
+  { name: 'nav.creditCards', href: '/credit-cards', icon: CreditCard },
+  { name: 'nav.categories', href: '/categories', icon: Tags },
+  { name: 'nav.payees', href: '/payees', icon: Users },
+  { name: 'nav.import', href: '/import', icon: Upload },
+  { name: 'nav.rules', href: '/rules', icon: Wand2 },
+  { name: 'nav.reports', href: '/reports', icon: BarChart3 },
+  { name: 'nav.settings', href: '/settings', icon: Settings },
 ]
 
 const adminNavigation = [
-  { name: 'Utilisateurs', href: '/admin/users', icon: Users },
-  { name: 'Groupes', href: '/admin/groups', icon: FolderTree },
-  { name: 'Système', href: '/admin/settings', icon: Cog },
+  { name: 'admin.users.title', href: '/admin/users', icon: Users },
+  { name: 'admin.groups.title', href: '/admin/groups', icon: FolderTree },
+  { name: 'admin.settings.title', href: '/admin/settings', icon: Cog },
 ]
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, isGroupAdmin, logout } = useAuth()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -81,19 +83,25 @@ export default function Layout() {
                 onClick={() => setSidebarOpen(false)}
               >
                 <item.icon className="w-5 h-5" />
-                {item.name}
+                {t(item.name)}
               </NavLink>
             ))}
 
-            {/* Admin section - super_admin only */}
-            {user?.role === 'super_admin' && (
+            {/* Admin section - super_admin and group admins */}
+            {(user?.role === 'super_admin' || isGroupAdmin) && (
               <>
                 <div className="border-t border-gray-200 my-3" />
                 <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5" />
-                  Administration
+                  {t('nav.administration')}
                 </p>
-                {adminNavigation.map((item) => (
+                {adminNavigation
+                  .filter((item) => {
+                    // Group admins only see Groups link
+                    if (user?.role === 'super_admin') return true
+                    return item.href === '/admin/groups'
+                  })
+                  .map((item) => (
                   <NavLink
                     key={item.href}
                     to={item.href}
@@ -106,7 +114,7 @@ export default function Layout() {
                     onClick={() => setSidebarOpen(false)}
                   >
                     <item.icon className="w-5 h-5" />
-                    {item.name}
+                    {t(item.name)}
                   </NavLink>
                 ))}
               </>
@@ -130,7 +138,7 @@ export default function Layout() {
               <button
                 onClick={handleLogout}
                 className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-                title="Déconnexion"
+                title={t('nav.logout')}
               >
                 <LogOut className="w-5 h-5" />
               </button>

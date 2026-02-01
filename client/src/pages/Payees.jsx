@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { payeesApi } from '../lib/api'
+import { translateError } from '../lib/errorHelper'
 import { Plus, Search, Pencil, Trash2, X, User, Users, AlertTriangle } from 'lucide-react'
 import PayeeImageEditor from '../components/PayeeImageEditor'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
 import { findKnownLogo } from '../lib/knownLogos'
 
-// Modal de confirmation de suppression avec gestion des transactions
+// Delete confirmation modal with transaction handling
 function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm, onCreatePayee }) {
+  const { t } = useTranslation()
   const [reassignTo, setReassignTo] = useState(null)
-  const [action, setAction] = useState('none') // 'none' = dissocier, 'reassign' = réassigner
+  const [action, setAction] = useState('none') // 'none' = dissociate, 'reassign' = reassign
 
   const otherPayees = payees?.filter(p => p.id !== payee.id).sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
 
@@ -27,16 +30,16 @@ function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm,
             <AlertTriangle className="w-5 h-5 text-amber-600" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Supprimer "{payee.name}"</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('payees.delete.title', { name: payee.name })}</h2>
             <p className="text-sm text-amber-700">
-              {transactionCount} transaction{transactionCount > 1 ? 's' : ''} associée{transactionCount > 1 ? 's' : ''}
+              {t('payees.delete.transactionCount', { count: transactionCount })}
             </p>
           </div>
         </div>
-        
+
         <div className="p-4 space-y-4">
           <p className="text-sm text-gray-600">
-            Ce tiers est associé à des transactions. Que souhaitez-vous faire ?
+            {t('payees.delete.question')}
           </p>
 
           <div className="space-y-3">
@@ -50,8 +53,8 @@ function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm,
                 className="mt-1"
               />
               <div>
-                <p className="font-medium text-gray-900">Dissocier les transactions</p>
-                <p className="text-sm text-gray-500">Les transactions n'auront plus de tiers associé</p>
+                <p className="font-medium text-gray-900">{t('payees.delete.dissociate')}</p>
+                <p className="text-sm text-gray-500">{t('payees.delete.dissociateDesc')}</p>
               </div>
             </label>
 
@@ -65,17 +68,17 @@ function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm,
                 className="mt-1"
               />
               <div className="flex-1">
-                <p className="font-medium text-gray-900">Réassigner à un autre tiers</p>
-                <p className="text-sm text-gray-500 mb-2">Les transactions seront transférées</p>
+                <p className="font-medium text-gray-900">{t('payees.delete.reassign')}</p>
+                <p className="text-sm text-gray-500 mb-2">{t('payees.delete.reassignDesc')}</p>
                 {action === 'reassign' && (
                   <SearchableSelect
                     value={reassignTo}
                     onChange={setReassignTo}
                     options={otherPayees}
-                    placeholder="Tapez pour rechercher ou créer..."
-                    emptyMessage="Aucun tiers trouvé"
+                    placeholder={t('payees.delete.searchPayee')}
+                    emptyMessage={t('payees.delete.noPayeeFound')}
                     allowCreate={!!onCreatePayee}
-                    createLabel="Créer le tiers"
+                    createLabel={t('payees.delete.createPayee')}
                     onCreate={onCreatePayee}
                     renderOption={(p) => (
                       <span className="flex items-center gap-2">
@@ -96,14 +99,14 @@ function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm,
 
         <div className="flex gap-3 p-4 border-t">
           <button onClick={onClose} className="btn btn-secondary flex-1">
-            Annuler
+            {t('common.cancel')}
           </button>
-          <button 
-            onClick={handleConfirm} 
+          <button
+            onClick={handleConfirm}
             className="btn bg-red-600 text-white hover:bg-red-700 flex-1"
             disabled={action === 'reassign' && !reassignTo}
           >
-            Supprimer
+            {t('common.delete')}
           </button>
         </div>
       </div>
@@ -112,6 +115,7 @@ function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm,
 }
 
 function PayeeModal({ payee, onClose, onSave }) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState(payee || {
     name: '',
     imageUrl: null,
@@ -119,7 +123,7 @@ function PayeeModal({ payee, onClose, onSave }) {
   })
   const [autoLogoApplied, setAutoLogoApplied] = useState(false)
 
-  // Détection automatique du logo au montage (pour les tiers existants sans image)
+  // Auto-detect logo on mount (for existing payees without image)
   useEffect(() => {
     if (payee && !payee.imageUrl && formData.name) {
       const knownLogo = findKnownLogo(formData.name)
@@ -128,13 +132,13 @@ function PayeeModal({ payee, onClose, onSave }) {
         setAutoLogoApplied(true)
       }
     }
-  }, []) // Seulement au montage
+  }, []) // Only on mount
 
-  // Détection automatique du logo quand le nom change
+  // Auto-detect logo when name changes
   useEffect(() => {
-    // Ne pas écraser une image déjà définie manuellement ou existante
+    // Don't overwrite a manually set or existing image
     if (payee?.imageUrl || autoLogoApplied) return
-    
+
     const knownLogo = findKnownLogo(formData.name)
     if (knownLogo && !formData.imageUrl) {
       setFormData(prev => ({ ...prev, imageUrl: knownLogo }))
@@ -145,8 +149,8 @@ function PayeeModal({ payee, onClose, onSave }) {
   const handleNameChange = (e) => {
     const newName = e.target.value
     setFormData({ ...formData, name: newName })
-    
-    // Reset auto-logo si l'utilisateur efface le nom
+
+    // Reset auto-logo if user clears the name
     if (!newName.trim()) {
       setAutoLogoApplied(false)
     }
@@ -162,7 +166,7 @@ function PayeeModal({ payee, onClose, onSave }) {
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">
-            {payee ? 'Modifier le tiers' : 'Nouveau tiers'}
+            {payee ? t('payees.editPayee') : t('payees.newPayee')}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -178,38 +182,38 @@ function PayeeModal({ payee, onClose, onSave }) {
               size="xl"
             />
           </div>
-          <p className="text-center text-xs text-gray-500">Cliquez pour modifier l'image</p>
+          <p className="text-center text-xs text-gray-500">{t('payees.clickToEditImage')}</p>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')}</label>
             <input
               type="text"
               value={formData.name}
               onChange={handleNameChange}
               className="input"
-              placeholder="Nom du tiers"
+              placeholder={t('payees.payeeName')}
               required
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optionnel)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('payees.notesOptional')}</label>
             <textarea
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="input"
               rows={3}
-              placeholder="Notes supplémentaires..."
+              placeholder={t('payees.notesPlaceholder')}
             />
           </div>
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {payee ? 'Modifier' : 'Créer'}
+              {payee ? t('common.edit') : t('common.create')}
             </button>
           </div>
         </form>
@@ -219,6 +223,7 @@ function PayeeModal({ payee, onClose, onSave }) {
 }
 
 export default function Payees() {
+  const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPayee, setEditingPayee] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -232,7 +237,7 @@ export default function Payees() {
     queryFn: () => payeesApi.getAll({ search: search || undefined }).then(r => r.data.data),
   })
 
-  // Récupérer tous les tiers pour la réassignation
+  // Fetch all payees for reassignment
   const { data: allPayees } = useQuery({
     queryKey: ['payees-all'],
     queryFn: () => payeesApi.getAll().then(r => r.data.data),
@@ -246,14 +251,14 @@ export default function Payees() {
     },
   })
 
-  // Création à la volée d'un tiers (pour le modal de suppression)
+  // On-the-fly payee creation (for delete modal)
   const handleCreatePayee = async (name) => {
     try {
       const imageUrl = findKnownLogo(name)
       const result = await createMutation.mutateAsync({ name, imageUrl })
       return result.data.data
     } catch (err) {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
       return null
     }
   }
@@ -280,7 +285,7 @@ export default function Payees() {
       imageUrl: formData.imageUrl || null,
       notes: formData.notes?.trim() || null,
     }
-    
+
     try {
       if (editingPayee) {
         await updateMutation.mutateAsync({ id: editingPayee.id, data: cleanData })
@@ -292,7 +297,7 @@ export default function Payees() {
       setEditingPayee(null)
     } catch (err) {
       console.error('Save error:', err)
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     }
   }
 
@@ -303,36 +308,36 @@ export default function Payees() {
 
   const handleDelete = async (payee) => {
     try {
-      // Vérifier le nombre de transactions associées
+      // Check associated transaction count
       const response = await payeesApi.getTransactionCount(payee.id)
       const count = response.data.data.count
 
       if (count === 0) {
-        // Pas de transactions, confirmation simple
-        if (confirm(`Supprimer le tiers "${payee.name}" ?`)) {
+        // No transactions, simple confirmation
+        if (confirm(t('payees.confirmDelete', { name: payee.name }))) {
           deleteMutation.mutate(payee.id)
         }
       } else {
-        // Des transactions existent, ouvrir le modal de choix
+        // Transactions exist, open choice modal
         setDeletingPayee(payee)
         setDeleteTransactionCount(count)
         setDeleteModalOpen(true)
       }
     } catch (err) {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     }
   }
 
   const handleConfirmDelete = async (toPayeeId) => {
     try {
-      // Réassigner ou dissocier les transactions
+      // Reassign or dissociate transactions
       await reassignMutation.mutateAsync({ id: deletingPayee.id, toPayeeId })
-      // Puis supprimer le tiers
+      // Then delete the payee
       await deleteMutation.mutateAsync(deletingPayee.id)
       setDeleteModalOpen(false)
       setDeletingPayee(null)
     } catch (err) {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     }
   }
 
@@ -340,15 +345,15 @@ export default function Payees() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tiers</h1>
-          <p className="text-gray-600">Gérez vos fournisseurs, bénéficiaires et contacts</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('payees.title')}</h1>
+          <p className="text-gray-600">{t('payees.subtitle')}</p>
         </div>
-        <button 
-          onClick={() => { setEditingPayee(null); setModalOpen(true); }} 
+        <button
+          onClick={() => { setEditingPayee(null); setModalOpen(true); }}
           className="btn btn-primary flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
-          Nouveau tiers
+          {t('payees.newPayee')}
         </button>
       </div>
 
@@ -358,7 +363,7 @@ export default function Payees() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Rechercher un tiers..."
+            placeholder={t('payees.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input pl-10"
@@ -375,13 +380,13 @@ export default function Payees() {
         ) : data?.length > 0 ? (
           <div className="divide-y">
             {data.map((payee) => (
-              <div 
-                key={payee.id} 
+              <div
+                key={payee.id}
                 className="flex items-center gap-4 p-4 hover:bg-gray-50 group"
               >
                 {payee.imageUrl ? (
-                  <img 
-                    src={payee.imageUrl} 
+                  <img
+                    src={payee.imageUrl}
                     alt={payee.name}
                     className="w-12 h-12 rounded-full object-cover"
                   />
@@ -416,8 +421,8 @@ export default function Payees() {
         ) : (
           <div className="text-center py-12 text-gray-500">
             <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>Aucun tiers trouvé</p>
-            <p className="text-sm mt-1">Créez votre premier tiers pour commencer</p>
+            <p>{t('payees.noPayees')}</p>
+            <p className="text-sm mt-1">{t('payees.createFirst')}</p>
           </div>
         )}
       </div>

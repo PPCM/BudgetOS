@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { LogIn, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { preloadCsrfToken } from '../lib/api'
+import { translateError } from '../lib/errorHelper'
+import LanguageSelector from '../components/LanguageSelector'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -12,6 +15,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -25,12 +29,11 @@ export default function Login() {
       navigate('/')
     } catch (err) {
       console.error('Login error:', err.response?.status, err.response?.data)
-      const message = err.response?.data?.error?.message || 'Erreur de connexion'
       const code = err.response?.data?.error?.code
       if (code === 'CSRF_TOKEN_INVALID') {
-        setError('Erreur de sécurité, veuillez réessayer')
+        setError(t('auth.login.csrfError'))
       } else {
-        setError(message)
+        setError(translateError(err) || t('auth.login.error'))
       }
     } finally {
       setLoading(false)
@@ -38,7 +41,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 p-4 relative">
+      <LanguageSelector />
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
@@ -47,7 +51,7 @@ export default function Login() {
               <span className="text-2xl font-bold text-primary-600">B</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">BudgetOS</h1>
-            <p className="text-gray-600 mt-2">Connectez-vous à votre compte</p>
+            <p className="text-gray-600 mt-2">{t('auth.login.subtitle')}</p>
           </div>
 
           {/* Error */}
@@ -62,7 +66,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {t('auth.login.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -71,7 +75,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="input pl-10"
-                  placeholder="vous@exemple.com"
+                  placeholder={t('auth.login.emailPlaceholder')}
                   required
                 />
               </div>
@@ -79,7 +83,7 @@ export default function Login() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mot de passe
+                {t('auth.login.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -111,16 +115,16 @@ export default function Login() {
               ) : (
                 <>
                   <LogIn className="w-5 h-5" />
-                  Se connecter
+                  {t('auth.login.submit')}
                 </>
               )}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Pas encore de compte ?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-              Créer un compte
+              {t('auth.login.createAccount')}
             </Link>
           </p>
 

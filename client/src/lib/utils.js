@@ -27,8 +27,9 @@ export function cn(...inputs) {
  * formatCurrency(1234.56) // => "1 234,56 €"
  * formatCurrency(1234.56, 'USD') // => "1 234,56 $US"
  */
-export function formatCurrency(amount, currency = 'EUR') {
-  return new Intl.NumberFormat('fr-FR', {
+export function formatCurrency(amount, currency = 'EUR', locale = 'fr') {
+  const intlLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
+  return new Intl.NumberFormat(intlLocale, {
     style: 'currency',
     currency,
   }).format(amount)
@@ -41,8 +42,9 @@ export function formatCurrency(amount, currency = 'EUR') {
  * @example
  * formatDate('2026-01-20') // => "20/01/2026"
  */
-export function formatDate(date) {
-  return new Intl.DateTimeFormat('fr-FR', {
+export function formatDate(date, locale = 'fr') {
+  const intlLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
+  return new Intl.DateTimeFormat(intlLocale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

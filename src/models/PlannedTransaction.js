@@ -94,7 +94,7 @@ export class PlannedTransaction {
 
   static async findByIdOrFail(id, userId) {
     const pt = await PlannedTransaction.findById(id, userId);
-    if (!pt) throw new NotFoundError('Transaction planifiée non trouvée');
+    if (!pt) throw new NotFoundError('Planned transaction not found', 'PLANNED_NOT_FOUND');
     return pt;
   }
 

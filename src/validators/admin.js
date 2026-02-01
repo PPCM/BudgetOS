@@ -6,32 +6,31 @@ import { z } from 'zod';
 export const createUserSchema = z.object({
   email: z
     .string()
-    .email('Email invalide')
-    .max(255, 'Email trop long')
+    .email('Invalid email')
+    .max(255, 'Email too long')
     .toLowerCase()
     .trim(),
   password: z
     .string()
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-    .max(128, 'Le mot de passe est trop long')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Le mot de passe doit contenir une minuscule, une majuscule et un chiffre'
+    .max(128, 'Password is too long')
+    .refine(
+      (val) => val.length >= 8 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(val),
+      'Password must contain at least 8 characters, one lowercase, one uppercase, and one digit'
     ),
   firstName: z
     .string()
-    .min(1, 'Prénom requis')
-    .max(100, 'Prénom trop long')
+    .min(1, 'First name required')
+    .max(100, 'First name too long')
     .trim()
     .optional(),
   lastName: z
     .string()
-    .min(1, 'Nom requis')
-    .max(100, 'Nom trop long')
+    .min(1, 'Last name required')
+    .max(100, 'Last name too long')
     .trim()
     .optional(),
   role: z.enum(['user', 'admin']).default('user'),
-  groupId: z.string().min(1, 'ID groupe requis').optional(),
+  groupId: z.string().min(1, 'Group ID required').optional(),
   locale: z.enum(['fr', 'en']).default('fr'),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).default('EUR'),
 });
@@ -42,21 +41,21 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z.object({
   email: z
     .string()
-    .email('Email invalide')
-    .max(255, 'Email trop long')
+    .email('Invalid email')
+    .max(255, 'Email too long')
     .toLowerCase()
     .trim()
     .optional(),
   firstName: z
     .string()
-    .min(1, 'Prénom requis')
-    .max(100, 'Prénom trop long')
+    .min(1, 'First name required')
+    .max(100, 'First name too long')
     .trim()
     .optional(),
   lastName: z
     .string()
-    .min(1, 'Nom requis')
-    .max(100, 'Nom trop long')
+    .min(1, 'Last name required')
+    .max(100, 'Last name too long')
     .trim()
     .optional(),
   role: z.enum(['user', 'admin', 'super_admin']).optional(),
@@ -69,8 +68,8 @@ export const updateUserSchema = z.object({
  */
 export const updateRoleSchema = z.object({
   role: z.enum(['user', 'admin'], {
-    required_error: 'Rôle requis',
-    invalid_type_error: 'Rôle invalide (user ou admin)',
+    required_error: 'Role required',
+    invalid_type_error: 'Invalid role (user or admin)',
   }),
 });
 
@@ -80,6 +79,7 @@ export const updateRoleSchema = z.object({
 export const updateSettingsSchema = z.object({
   allowPublicRegistration: z.boolean().optional(),
   defaultRegistrationGroupId: z.string().nullable().optional(),
+  defaultLocale: z.enum(['fr', 'en']).optional(),
 });
 
 /**

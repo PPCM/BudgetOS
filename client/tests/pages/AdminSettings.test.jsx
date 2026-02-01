@@ -6,6 +6,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+// Prevent i18n side-effect initialization via errorHelper
+vi.mock('../../src/lib/errorHelper', () => ({
+  translateError: (err) => err?.response?.data?.message || err?.message || 'Error',
+}))
+
 import AdminSettings from '../../src/pages/AdminSettings'
 
 // Mock the API module
@@ -28,8 +34,9 @@ vi.mock('../../src/components/Toast', () => ({
 import { adminApi, groupsApi } from '../../src/lib/api'
 
 const mockSettings = {
-  publicRegistration: false,
-  defaultGroupId: '',
+  allowPublicRegistration: false,
+  defaultRegistrationGroupId: '',
+  defaultLocale: 'fr',
 }
 
 const mockGroups = [
@@ -66,7 +73,7 @@ function renderWithProviders(ui) {
  */
 async function waitForSettingsLoaded() {
   await waitFor(() => {
-    expect(screen.getByText('Inscription publique')).toBeInTheDocument()
+    expect(screen.getByText('admin.settings.publicRegistration')).toBeInTheDocument()
   })
 }
 
@@ -75,7 +82,7 @@ async function waitForSettingsLoaded() {
  */
 function getToggleButton() {
   // The toggle is a button[type="button"] inside the same flex container as the label
-  const label = screen.getByText('Inscription publique')
+  const label = screen.getByText('admin.settings.publicRegistration')
   const container = label.closest('.flex.items-center.justify-between')
   return container.querySelector('button[type="button"]')
 }
@@ -93,8 +100,8 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      expect(screen.getByText('Parametres systeme')).toBeInTheDocument()
-      expect(screen.getByText("Configurez les parametres globaux de l'application")).toBeInTheDocument()
+      expect(screen.getByText('admin.settings.title')).toBeInTheDocument()
+      expect(screen.getByText('admin.settings.subtitle')).toBeInTheDocument()
     })
 
     it('renders loading spinner initially', () => {
@@ -108,29 +115,29 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      expect(screen.getByText('Configuration generale')).toBeInTheDocument()
+      expect(screen.getByText('admin.settings.generalConfig')).toBeInTheDocument()
     })
 
     it('renders public registration toggle', async () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      expect(screen.getByText('Permettre aux utilisateurs de creer un compte sans invitation')).toBeInTheDocument()
+      expect(screen.getByText('admin.settings.publicRegistrationDesc')).toBeInTheDocument()
     })
 
     it('renders default group select', async () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      expect(screen.getByText('Groupe par defaut')).toBeInTheDocument()
-      expect(screen.getByText('Groupe auquel les nouveaux utilisateurs seront automatiquement ajoutes')).toBeInTheDocument()
+      expect(screen.getByText('admin.settings.defaultGroup')).toBeInTheDocument()
+      expect(screen.getByText('admin.settings.defaultGroupDesc')).toBeInTheDocument()
     })
 
     it('renders save button as disabled when form is not dirty', async () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      const saveButton = screen.getByText('Enregistrer').closest('button')
+      const saveButton = screen.getByText('common.save').closest('button')
       expect(saveButton).toBeDisabled()
     })
   })
@@ -146,7 +153,7 @@ describe('AdminSettings', () => {
 
     it('reflects initial publicRegistration value as true (primary toggle)', async () => {
       adminApi.getSettings.mockResolvedValue({
-        data: { data: { publicRegistration: true, defaultGroupId: '' } }
+        data: { data: { allowPublicRegistration: true, defaultRegistrationGroupId: '' } }
       })
 
       renderWithProviders(<AdminSettings />)
@@ -177,7 +184,7 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      const saveButton = screen.getByText('Enregistrer').closest('button')
+      const saveButton = screen.getByText('common.save').closest('button')
       expect(saveButton).toBeDisabled()
 
       fireEvent.click(getToggleButton())
@@ -199,12 +206,12 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      expect(screen.getByText('Aucun groupe par defaut')).toBeInTheDocument()
+      expect(screen.getByText('admin.settings.noDefaultGroup')).toBeInTheDocument()
     })
 
-    it('reflects initial defaultGroupId value', async () => {
+    it('reflects initial defaultRegistrationGroupId value', async () => {
       adminApi.getSettings.mockResolvedValue({
-        data: { data: { publicRegistration: false, defaultGroupId: 'g1' } }
+        data: { data: { allowPublicRegistration: false, defaultRegistrationGroupId: 'g1' } }
       })
 
       renderWithProviders(<AdminSettings />)
@@ -220,7 +227,7 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      const saveButton = screen.getByText('Enregistrer').closest('button')
+      const saveButton = screen.getByText('common.save').closest('button')
       expect(saveButton).toBeDisabled()
 
       const select = screen.getByText('Default Group').closest('select')
@@ -246,8 +253,8 @@ describe('AdminSettings', () => {
       // React Query v5 passes extra context arg to mutationFn
       expect(adminApi.updateSettings).toHaveBeenCalled()
       expect(adminApi.updateSettings.mock.calls[0][0]).toMatchObject({
-        publicRegistration: true,
-        defaultGroupId: null,
+        allowPublicRegistration: true,
+        defaultRegistrationGroupId: null,
       })
     })
 
@@ -266,14 +273,14 @@ describe('AdminSettings', () => {
 
       expect(adminApi.updateSettings).toHaveBeenCalled()
       expect(adminApi.updateSettings.mock.calls[0][0]).toMatchObject({
-        publicRegistration: false,
-        defaultGroupId: 'g2',
+        allowPublicRegistration: false,
+        defaultRegistrationGroupId: 'g2',
       })
     })
 
-    it('sends null for empty defaultGroupId', async () => {
+    it('sends null for empty defaultRegistrationGroupId', async () => {
       adminApi.getSettings.mockResolvedValue({
-        data: { data: { publicRegistration: false, defaultGroupId: 'g1' } }
+        data: { data: { allowPublicRegistration: false, defaultRegistrationGroupId: 'g1' } }
       })
 
       renderWithProviders(<AdminSettings />)
@@ -294,7 +301,7 @@ describe('AdminSettings', () => {
       })
 
       expect(adminApi.updateSettings).toHaveBeenCalled()
-      expect(adminApi.updateSettings.mock.calls[0][0]).toMatchObject({ defaultGroupId: null })
+      expect(adminApi.updateSettings.mock.calls[0][0]).toMatchObject({ defaultRegistrationGroupId: null })
     })
   })
 })

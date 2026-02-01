@@ -6,14 +6,15 @@ import { z } from 'zod';
 export const createGroupSchema = z.object({
   name: z
     .string()
-    .min(1, 'Nom requis')
-    .max(100, 'Nom trop long')
+    .min(1, 'Name required')
+    .max(100, 'Name too long')
     .trim(),
   description: z
     .string()
-    .max(500, 'Description trop longue')
+    .max(500, 'Description too long')
     .trim()
     .optional(),
+  defaultLocale: z.enum(['fr', 'en']).optional(),
 });
 
 /**
@@ -22,36 +23,38 @@ export const createGroupSchema = z.object({
 export const updateGroupSchema = z.object({
   name: z
     .string()
-    .min(1, 'Nom requis')
-    .max(100, 'Nom trop long')
+    .min(1, 'Name required')
+    .max(100, 'Name too long')
     .trim()
     .optional(),
   description: z
     .string()
-    .max(500, 'Description trop longue')
+    .max(500, 'Description too long')
     .trim()
     .optional(),
   isActive: z.boolean().optional(),
+  defaultLocale: z.enum(['fr', 'en']).optional(),
 });
 
 /**
  * Schema for adding a member to a group
  */
 export const addMemberSchema = z.object({
-  userId: z.string().min(1, 'ID utilisateur requis').optional(),
-  email: z.string().email('Email invalide').toLowerCase().trim().optional(),
+  userId: z.string().min(1, 'User ID required').optional(),
+  email: z.string().email('Invalid email').toLowerCase().trim().optional(),
   password: z
     .string()
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-    .max(128, 'Le mot de passe est trop long')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Le mot de passe doit contenir une minuscule, une majuscule et un chiffre'
+    .max(128, 'Password is too long')
+    .refine(
+      (val) => val.length >= 8 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(val),
+      'Password must contain at least 8 characters, one lowercase, one uppercase, and one digit'
     )
     .optional(),
   firstName: z.string().max(100).trim().optional(),
   lastName: z.string().max(100).trim().optional(),
   role: z.enum(['admin', 'member']).default('member'),
+  locale: z.enum(['fr', 'en']).optional(),
+  currency: z.enum(['EUR', 'USD', 'GBP', 'CHF']).optional(),
 });
 
 /**
@@ -59,8 +62,8 @@ export const addMemberSchema = z.object({
  */
 export const updateMemberRoleSchema = z.object({
   role: z.enum(['admin', 'member'], {
-    required_error: 'Rôle requis',
-    invalid_type_error: 'Rôle invalide',
+    required_error: 'Role required',
+    invalid_type_error: 'Invalid role',
   }),
 });
 

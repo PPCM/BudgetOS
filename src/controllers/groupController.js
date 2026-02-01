@@ -10,6 +10,7 @@ export const createGroup = async (req, res) => {
   const group = await Group.create({
     name: req.body.name,
     description: req.body.description,
+    defaultLocale: req.body.defaultLocale,
     createdBy: req.user.id,
   });
 
@@ -122,9 +123,9 @@ export const listMembers = async (req, res) => {
  */
 export const addMember = async (req, res) => {
   const { groupId } = req.params;
-  const { userId, email, password, firstName, lastName, role } = req.body;
+  const { userId, email, password, firstName, lastName, role, locale, currency } = req.body;
 
-  await Group.findByIdOrFail(groupId);
+  const group = await Group.findByIdOrFail(groupId);
 
   let targetUserId = userId;
 
@@ -132,12 +133,14 @@ export const addMember = async (req, res) => {
   if (!targetUserId && email && password) {
     const newUser = await User.createByAdmin({
       email, password, firstName, lastName, role: 'user',
+      locale: locale || group.defaultLocale,
+      currency: currency || undefined,
     });
     targetUserId = newUser.id;
   }
 
   if (!targetUserId) {
-    throw new BadRequestError('userId ou email+password requis');
+    throw new BadRequestError('userId or email+password required', 'MEMBER_ID_REQUIRED');
   }
 
   const member = await Group.addMember(groupId, targetUserId, role || 'member');
@@ -173,19 +176,32 @@ export const updateMember = async (req, res) => {
 };
 
 /**
- * Remove a member from a group
+ * Delete a member (user and all their data) from a group
  */
 export const removeMember = async (req, res) => {
   const { groupId, userId } = req.params;
 
-  await Group.removeMember(groupId, userId);
+  if (userId === req.user.id) {
+    throw new BadRequestError('You cannot delete yourself', 'CANNOT_DELETE_SELF');
+  }
 
-  logger.info('Member removed from group', {
-    groupId, userId, removedBy: req.user.id,
+  // Prevent deleting the last super_admin
+  const targetUser = await User.findByIdAny(userId);
+  if (targetUser?.role === 'super_admin') {
+    const { data: superAdmins } = await User.findAll({ role: 'super_admin' });
+    if (superAdmins.length <= 1) {
+      throw new BadRequestError('Cannot delete the last super administrator', 'CANNOT_DELETE_LAST_SUPER_ADMIN');
+    }
+  }
+
+  await User.delete(userId);
+
+  logger.info('User deleted from group', {
+    groupId, userId, deletedBy: req.user.id,
   });
 
   res.json({
     success: true,
-    message: 'Membre retiré du groupe',
+    message: 'User deleted',
   });
 };

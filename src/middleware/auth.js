@@ -21,7 +21,7 @@ const buildReqUser = (session) => ({
  */
 const ensureAuthenticated = (req) => {
   if (!req.session?.userId) {
-    throw new UnauthorizedError('Authentification requise');
+    throw new UnauthorizedError('Authentication required', 'AUTH_REQUIRED');
   }
   req.user = buildReqUser(req.session);
 };
@@ -46,7 +46,7 @@ export const requireAdmin = (req, res, next) => {
       userId: req.user.id,
       path: req.path,
     });
-    throw new ForbiddenError('Accès administrateur requis');
+    throw new ForbiddenError('Admin access required', 'ADMIN_REQUIRED');
   }
 
   next();
@@ -63,7 +63,7 @@ export const requireSuperAdmin = (req, res, next) => {
       userId: req.user.id,
       path: req.path,
     });
-    throw new ForbiddenError('Accès super administrateur requis');
+    throw new ForbiddenError('Super admin access required', 'SUPER_ADMIN_REQUIRED');
   }
 
   next();
@@ -83,7 +83,7 @@ export const requireGroupAdmin = async (req, res, next) => {
 
   const groupId = req.params.groupId || req.body?.groupId;
   if (!groupId) {
-    throw new ForbiddenError('Accès administrateur de groupe requis');
+    throw new ForbiddenError('Group admin access required', 'GROUP_ADMIN_REQUIRED');
   }
 
   // Dynamic import to avoid circular dependency
@@ -96,7 +96,7 @@ export const requireGroupAdmin = async (req, res, next) => {
       groupId,
       path: req.path,
     });
-    throw new ForbiddenError('Accès administrateur de groupe requis');
+    throw new ForbiddenError('Group admin access required', 'GROUP_ADMIN_REQUIRED');
   }
 
   next();
@@ -113,7 +113,7 @@ export const requireAdminOrSuperAdmin = (req, res, next) => {
       userId: req.user.id,
       path: req.path,
     });
-    throw new ForbiddenError('Accès administrateur requis');
+    throw new ForbiddenError('Admin access required', 'ADMIN_REQUIRED');
   }
 
   next();
@@ -145,7 +145,7 @@ export const requireOwnership = (req, res, next) => {
       resourceUserId,
       path: req.path,
     });
-    throw new ForbiddenError('Accès non autorisé à cette ressource');
+    throw new ForbiddenError('Unauthorized access to this resource', 'FORBIDDEN');
   }
 
   next();

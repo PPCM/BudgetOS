@@ -4,10 +4,13 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { groupsApi, adminApi } from '../lib/api'
+import { translateError } from '../lib/errorHelper'
+import { useAuth } from '../contexts/AuthContext'
 import {
-  Plus, X, Trash2, Pencil, Users, UserPlus, UserMinus,
+  Plus, X, Trash2, Pencil, Users, UserPlus,
   ChevronDown, ChevronUp, FolderTree
 } from 'lucide-react'
 import Modal from '../components/Modal'
@@ -20,10 +23,12 @@ import { useToast } from '../components/Toast'
  * @param {Function} props.onClose - Close callback
  * @param {Function} props.onSave - Save callback with form data
  */
-function GroupModal({ group, onClose, onSave }) {
+function GroupModal({ group, onClose, onSave, appDefaultLocale }) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     name: group?.name || '',
     description: group?.description || '',
+    defaultLocale: group?.defaultLocale || appDefaultLocale || 'fr',
   })
 
   const handleSubmit = (e) => {
@@ -36,7 +41,7 @@ function GroupModal({ group, onClose, onSave }) {
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">
-            {group ? 'Modifier le groupe' : 'Nouveau groupe'}
+            {group ? t('admin.groups.editGroup') : t('admin.groups.newGroup')}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -44,7 +49,7 @@ function GroupModal({ group, onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')}</label>
             <input
               type="text"
               value={formData.name}
@@ -54,7 +59,7 @@ function GroupModal({ group, onClose, onSave }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.description')}</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -62,12 +67,24 @@ function GroupModal({ group, onClose, onSave }) {
               rows={3}
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultLocale')}</label>
+            <p className="text-xs text-gray-500 mb-1">{t('admin.groups.defaultLocaleDesc')}</p>
+            <select
+              value={formData.defaultLocale}
+              onChange={(e) => setFormData({ ...formData, defaultLocale: e.target.value })}
+              className="input"
+            >
+              <option value="fr">{t('admin.users.form.french')}</option>
+              <option value="en">{t('admin.users.form.english')}</option>
+            </select>
+          </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {group ? 'Modifier' : 'Creer'}
+              {group ? t('common.edit') : t('common.create')}
             </button>
           </div>
         </form>
@@ -78,76 +95,221 @@ function GroupModal({ group, onClose, onSave }) {
 
 /**
  * Modal for adding a member to a group
+ * Super admins see two tabs: existing user dropdown or inline creation form
+ * Group admins only see the inline creation form (no user enumeration)
  * @param {Object} props
  * @param {string} props.groupId - Group UUID
  * @param {Function} props.onClose - Close callback
- * @param {Function} props.onSave - Save callback with { userId, role }
- * @param {Array} props.users - Available users list
+ * @param {Function} props.onSave - Save callback with member data
+ * @param {Array} props.users - Available users list (super_admin only)
  * @param {Array} props.existingMemberIds - IDs of existing members to exclude
+ * @param {boolean} props.isSuperAdmin - Whether current user is super_admin
  */
-function AddMemberModal({ onClose, onSave, users, existingMemberIds }) {
+function AddMemberModal({ onClose, onSave, users, existingMemberIds, isSuperAdmin }) {
+  const { t } = useTranslation()
+  const [tab, setTab] = useState(isSuperAdmin ? 'existing' : 'new')
   const [formData, setFormData] = useState({
     userId: '',
     role: 'member',
   })
+  const [newMemberData, setNewMemberData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    role: 'member',
+    locale: 'fr',
+    currency: 'EUR',
+  })
 
   const availableUsers = users.filter((u) => !existingMemberIds.includes(u.id))
 
-  const handleSubmit = (e) => {
+  const handleSubmitExisting = (e) => {
     e.preventDefault()
     if (!formData.userId) return
     onSave(formData)
+  }
+
+  const handleSubmitNew = (e) => {
+    e.preventDefault()
+    if (!newMemberData.email || !newMemberData.password) return
+    onSave(newMemberData)
   }
 
   return (
     <Modal onClose={onClose}>
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Ajouter un membre</h2>
+          <h2 className="text-lg font-semibold">{t('admin.groups.addMember')}</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Utilisateur</label>
-            <select
-              value={formData.userId}
-              onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-              className="input"
-              required
+
+        {/* Tabs - only for super_admin */}
+        {isSuperAdmin && (
+          <div className="flex border-b">
+            <button
+              type="button"
+              onClick={() => setTab('existing')}
+              className={`flex-1 py-2 text-sm font-medium text-center transition-colors ${
+                tab === 'existing'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
-              <option value="">Selectionner un utilisateur</option>
-              {availableUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.firstName || u.lastName
-                    ? `${u.firstName || ''} ${u.lastName || ''}`.trim()
-                    : u.email}
-                  {' '}({u.email})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role dans le groupe</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="input"
-            >
-              <option value="member">Membre</option>
-              <option value="admin">Administrateur</option>
-            </select>
-          </div>
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('admin.groups.existingUser')}
             </button>
-            <button type="submit" className="btn btn-primary flex-1">
-              Ajouter
+            <button
+              type="button"
+              onClick={() => setTab('new')}
+              className={`flex-1 py-2 text-sm font-medium text-center transition-colors ${
+                tab === 'new'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {t('admin.groups.newMember')}
             </button>
           </div>
-        </form>
+        )}
+
+        {/* Existing user tab */}
+        {tab === 'existing' && isSuperAdmin && (
+          <form onSubmit={handleSubmitExisting} className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.title')}</label>
+              <select
+                value={formData.userId}
+                onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                className="input"
+                required
+              >
+                <option value="">{t('admin.groups.selectUser')}</option>
+                {availableUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName || u.lastName
+                      ? `${u.firstName || ''} ${u.lastName || ''}`.trim()
+                      : u.email}
+                    {' '}({u.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.groupRole')}</label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="input"
+              >
+                <option value="member">{t('admin.users.groupRoles.member')}</option>
+                <option value="admin">{t('admin.groups.administrator')}</option>
+              </select>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
+                {t('common.cancel')}
+              </button>
+              <button type="submit" className="btn btn-primary flex-1">
+                {t('common.add')}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* New member inline creation tab */}
+        {tab === 'new' && (
+          <form onSubmit={handleSubmitNew} className="p-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.firstName')}</label>
+                <input
+                  type="text"
+                  value={newMemberData.firstName}
+                  onChange={(e) => setNewMemberData({ ...newMemberData, firstName: e.target.value })}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.lastName')}</label>
+                <input
+                  type="text"
+                  value={newMemberData.lastName}
+                  onChange={(e) => setNewMemberData({ ...newMemberData, lastName: e.target.value })}
+                  className="input"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.email')}</label>
+              <input
+                type="email"
+                value={newMemberData.email}
+                onChange={(e) => setNewMemberData({ ...newMemberData, email: e.target.value })}
+                className="input"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.password')}</label>
+              <input
+                type="password"
+                value={newMemberData.password}
+                onChange={(e) => setNewMemberData({ ...newMemberData, password: e.target.value })}
+                className="input"
+                required
+                minLength={8}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.language')}</label>
+                <select
+                  value={newMemberData.locale}
+                  onChange={(e) => setNewMemberData({ ...newMemberData, locale: e.target.value })}
+                  className="input"
+                >
+                  <option value="fr">{t('admin.users.form.french')}</option>
+                  <option value="en">{t('admin.users.form.english')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.currency')}</label>
+                <select
+                  value={newMemberData.currency}
+                  onChange={(e) => setNewMemberData({ ...newMemberData, currency: e.target.value })}
+                  className="input"
+                >
+                  <option value="EUR">EUR</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                  <option value="CHF">CHF</option>
+                  <option value="CAD">CAD</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.groupRole')}</label>
+              <select
+                value={newMemberData.role}
+                onChange={(e) => setNewMemberData({ ...newMemberData, role: e.target.value })}
+                className="input"
+              >
+                <option value="member">{t('admin.users.groupRoles.member')}</option>
+                <option value="admin">{t('admin.groups.administrator')}</option>
+              </select>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
+                {t('common.cancel')}
+              </button>
+              <button type="submit" className="btn btn-primary flex-1">
+                {t('common.add')}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </Modal>
   )
@@ -161,7 +323,8 @@ function AddMemberModal({ onClose, onSave, users, existingMemberIds }) {
  * @param {Function} props.onDelete - Delete callback
  * @param {Array} props.users - Available users for adding members
  */
-function GroupCard({ group, onEdit, onDelete, users }) {
+function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -179,10 +342,10 @@ function GroupCard({ group, onEdit, onDelete, users }) {
       queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
       queryClient.invalidateQueries({ queryKey: ['admin-groups'] })
       setAddMemberOpen(false)
-      toast.success('Membre ajoute')
+      toast.success(t('admin.groups.memberAdded'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -190,22 +353,22 @@ function GroupCard({ group, onEdit, onDelete, users }) {
     mutationFn: ({ userId, role }) => groupsApi.updateMember(group.id, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
-      toast.success('Role du membre mis a jour')
+      toast.success(t('admin.groups.memberRoleUpdated'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
-  const removeMemberMutation = useMutation({
+  const deleteMemberMutation = useMutation({
     mutationFn: (userId) => groupsApi.removeMember(group.id, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
       queryClient.invalidateQueries({ queryKey: ['admin-groups'] })
-      toast.success('Membre retire')
+      toast.success(t('admin.groups.memberDeleted'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -227,38 +390,40 @@ function GroupCard({ group, onEdit, onDelete, users }) {
             <div className="flex items-center gap-3 mt-2">
               <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                 <Users className="w-3.5 h-3.5" />
-                {memberCount} membre{memberCount !== 1 ? 's' : ''}
+                {t('admin.groups.memberCount', { count: memberCount })}
               </span>
               {group.status && (
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                   group.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                 }`}>
-                  {group.status === 'active' ? 'Actif' : 'Inactif'}
+                  {group.status === 'active' ? t('common.active') : t('common.inactive')}
                 </span>
               )}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onEdit(group)}
-            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-            title="Modifier"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => {
-              if (confirm(`Supprimer le groupe "${group.name}" ?`)) {
-                onDelete(group.id)
-              }
-            }}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Supprimer"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        {isSuperAdmin && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onEdit(group)}
+              className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+              title={t('common.edit')}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(t('admin.groups.confirmDelete', { name: group.name }))) {
+                  onDelete(group.id)
+                }
+              }}
+              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title={t('common.delete')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Expand/collapse members */}
@@ -267,19 +432,19 @@ function GroupCard({ group, onEdit, onDelete, users }) {
         className="flex items-center gap-1 mt-3 text-sm text-primary-600 hover:text-primary-700"
       >
         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        {expanded ? 'Masquer les membres' : 'Voir les membres'}
+        {expanded ? t('admin.groups.hideMembers') : t('admin.groups.showMembers')}
       </button>
 
       {expanded && (
         <div className="mt-3 pt-3 border-t">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-gray-700">Membres</h4>
+            <h4 className="text-sm font-medium text-gray-700">{t('admin.groups.members')}</h4>
             <button
               onClick={() => setAddMemberOpen(true)}
               className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
             >
               <UserPlus className="w-4 h-4" />
-              Ajouter
+              {t('common.add')}
             </button>
           </div>
 
@@ -288,7 +453,7 @@ function GroupCard({ group, onEdit, onDelete, users }) {
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
             </div>
           ) : members.length === 0 ? (
-            <p className="text-sm text-gray-400 py-2">Aucun membre</p>
+            <p className="text-sm text-gray-400 py-2">{t('admin.groups.noMembers')}</p>
           ) : (
             <div className="space-y-2">
               {members.map((member) => (
@@ -314,19 +479,19 @@ function GroupCard({ group, onEdit, onDelete, users }) {
                       onChange={(e) => updateMemberMutation.mutate({ userId: member.userId || member.id, role: e.target.value })}
                       className="text-xs border rounded px-2 py-1 text-gray-600"
                     >
-                      <option value="member">Membre</option>
-                      <option value="admin">Admin</option>
+                      <option value="member">{t('admin.users.groupRoles.member')}</option>
+                      <option value="admin">{t('admin.users.groupRoles.admin')}</option>
                     </select>
                     <button
                       onClick={() => {
-                        if (confirm(`Retirer ce membre du groupe ?`)) {
-                          removeMemberMutation.mutate(member.userId || member.id)
+                        if (confirm(t('admin.groups.confirmDeleteMember'))) {
+                          deleteMemberMutation.mutate(member.userId || member.id)
                         }
                       }}
                       className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
-                      title="Retirer"
+                      title={t('common.delete')}
                     >
-                      <UserMinus className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -340,6 +505,7 @@ function GroupCard({ group, onEdit, onDelete, users }) {
               onSave={(data) => addMemberMutation.mutate(data)}
               users={users || []}
               existingMemberIds={members.map((m) => m.userId || m.id)}
+              isSuperAdmin={isSuperAdmin}
             />
           )}
         </div>
@@ -353,6 +519,9 @@ function GroupCard({ group, onEdit, onDelete, users }) {
  * Lists all groups with creation, editing, deletion, and member management
  */
 export default function AdminGroups() {
+  const { t } = useTranslation()
+  const { user } = useAuth()
+  const isSuperAdmin = user?.role === 'super_admin'
   const [modalOpen, setModalOpen] = useState(false)
   const [editingGroup, setEditingGroup] = useState(null)
   const queryClient = useQueryClient()
@@ -366,17 +535,26 @@ export default function AdminGroups() {
   const { data: usersData } = useQuery({
     queryKey: ['admin-users-all'],
     queryFn: () => adminApi.getUsers().then(r => r.data),
+    enabled: isSuperAdmin,
   })
+
+  const { data: settingsData } = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: () => adminApi.getSettings().then(r => r.data),
+    enabled: isSuperAdmin,
+  })
+
+  const appDefaultLocale = settingsData?.data?.defaultLocale || 'fr'
 
   const createMutation = useMutation({
     mutationFn: groupsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-groups'] })
       setModalOpen(false)
-      toast.success('Groupe cree avec succes')
+      toast.success(t('admin.groups.created'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -385,10 +563,10 @@ export default function AdminGroups() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-groups'] })
       setEditingGroup(null)
-      toast.success('Groupe mis a jour')
+      toast.success(t('admin.groups.updated'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -396,10 +574,10 @@ export default function AdminGroups() {
     mutationFn: groupsApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-groups'] })
-      toast.success('Groupe supprime')
+      toast.success(t('admin.groups.deleted'))
     },
     onError: (err) => {
-      toast.error(err.response?.data?.error?.message || err.message)
+      toast.error(translateError(err))
     },
   })
 
@@ -426,21 +604,23 @@ export default function AdminGroups() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Groupes</h1>
-          <p className="text-gray-600">Gerez les groupes et leurs membres</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.groups.title')}</h1>
+          <p className="text-gray-600">{t('admin.groups.subtitle')}</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
-          <Plus className="w-5 h-5" />
-          Nouveau groupe
-        </button>
+        {isSuperAdmin && (
+          <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            {t('admin.groups.newGroup')}
+          </button>
+        )}
       </div>
 
       {/* Groups grid */}
       {groups.length === 0 ? (
         <div className="card text-center py-12">
           <FolderTree className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Aucun groupe</p>
-          <p className="text-sm text-gray-400 mt-1">Creez un groupe pour commencer</p>
+          <p className="text-gray-500">{t('admin.groups.noGroups')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('admin.groups.createFirst')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -451,6 +631,7 @@ export default function AdminGroups() {
               onEdit={(g) => setEditingGroup(g)}
               onDelete={(id) => deleteMutation.mutate(id)}
               users={usersData?.data || []}
+              isSuperAdmin={isSuperAdmin}
             />
           ))}
         </div>
@@ -462,6 +643,7 @@ export default function AdminGroups() {
           group={editingGroup}
           onClose={() => { setModalOpen(false); setEditingGroup(null) }}
           onSave={handleSave}
+          appDefaultLocale={appDefaultLocale}
         />
       )}
     </div>

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { preloadCsrfToken } from '../lib/api'
+import { translateError } from '../lib/errorHelper'
 import { useToast } from '../components/Toast'
+import LanguageSelector from '../components/LanguageSelector'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -18,6 +21,7 @@ export default function Register() {
   const { register, needsSetup } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const { t } = useTranslation()
 
   // Pré-charger le token CSRF au montage du composant
   useEffect(() => {
@@ -32,7 +36,7 @@ export default function Register() {
     e.preventDefault()
 
     if (formData.password !== formData.passwordConfirm) {
-      toast.error('Les mots de passe ne correspondent pas')
+      toast.error(t('auth.register.passwordMismatch'))
       return
     }
 
@@ -42,19 +46,15 @@ export default function Register() {
       await register(formData)
       navigate('/')
     } catch (err) {
-      const details = err.response?.data?.error?.details
-      if (details?.length > 0) {
-        details.forEach(d => toast.error(d.message))
-      } else {
-        toast.error(err.response?.data?.error?.message || 'Erreur lors de l\'inscription')
-      }
+      toast.error(translateError(err) || t('auth.register.error'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 p-4 relative">
+      <LanguageSelector />
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
@@ -62,17 +62,17 @@ export default function Register() {
               <span className="text-2xl font-bold text-primary-600">B</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {needsSetup ? 'Bienvenue sur BudgetOS' : 'Créer un compte'}
+              {needsSetup ? t('auth.register.welcomeTitle') : t('auth.register.createTitle')}
             </h1>
             <p className="text-gray-600 mt-2">
-              {needsSetup ? 'Créez votre compte administrateur pour commencer' : 'Commencez à gérer vos finances'}
+              {needsSetup ? t('auth.register.welcomeSubtitle') : t('auth.register.createSubtitle')}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.register.firstName')}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -81,25 +81,25 @@ export default function Register() {
                     value={formData.firstName}
                     onChange={handleChange}
                     className="input pl-10"
-                    placeholder="Jean"
+                    placeholder={t('auth.register.firstNamePlaceholder')}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.register.lastName')}</label>
                 <input
                   type="text"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
                   className="input"
-                  placeholder="Dupont"
+                  placeholder={t('auth.register.lastNamePlaceholder')}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.register.email')}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -108,14 +108,14 @@ export default function Register() {
                   value={formData.email}
                   onChange={handleChange}
                   className="input pl-10"
-                  placeholder="vous@exemple.com"
+                  placeholder={t('auth.register.emailPlaceholder')}
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.register.password')}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -124,7 +124,7 @@ export default function Register() {
                   value={formData.password}
                   onChange={handleChange}
                   className="input pl-10 pr-10"
-                  placeholder="Min. 8 car., 1 majuscule, 1 minuscule, 1 chiffre"
+                  placeholder={t('auth.register.passwordPlaceholder')}
                   required
                 />
                 <button
@@ -138,7 +138,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirmer</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.register.confirm')}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -147,7 +147,7 @@ export default function Register() {
                   value={formData.passwordConfirm}
                   onChange={handleChange}
                   className="input pl-10 pr-10"
-                  placeholder="Répéter le mot de passe"
+                  placeholder={t('auth.register.confirmPlaceholder')}
                   required
                 />
                 <button
@@ -170,7 +170,7 @@ export default function Register() {
               ) : (
                 <>
                   <UserPlus className="w-5 h-5" />
-                  Créer mon compte
+                  {t('auth.register.submit')}
                 </>
               )}
             </button>
@@ -178,9 +178,9 @@ export default function Register() {
 
           {!needsSetup && (
             <p className="mt-6 text-center text-sm text-gray-600">
-              Déjà un compte ?{' '}
+              {t('auth.register.hasAccount')}{' '}
               <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-                Se connecter
+                {t('auth.register.login')}
               </Link>
             </p>
           )}

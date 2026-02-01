@@ -4,9 +4,11 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi } from '../lib/api'
-import { formatCurrency } from '../lib/utils'
+import { translateError } from '../lib/errorHelper'
+import { useFormatters } from '../hooks/useFormatters'
 import {
   Plus, Wallet, PiggyBank, Landmark,
   Pencil, Trash2, X, HandCoins
@@ -14,14 +16,14 @@ import {
 import Modal from '../components/Modal'
 
 /**
- * Account type definitions with labels and icons
- * @type {Object.<string, {label: string, icon: React.Component}>}
+ * Account type icons mapping
+ * @type {Object.<string, React.Component>}
  */
-const accountTypes = {
-  checking: { label: 'Compte courant', icon: Wallet },
-  savings: { label: 'Épargne', icon: PiggyBank },
-  cash: { label: 'Espèces', icon: HandCoins },
-  investment: { label: 'Investissement', icon: Landmark },
+const accountTypeIcons = {
+  checking: Wallet,
+  savings: PiggyBank,
+  cash: HandCoins,
+  investment: Landmark,
 }
 
 /**
@@ -32,6 +34,7 @@ const accountTypes = {
  * @param {Function} props.onSave - Callback with form data when saved
  */
 function AccountModal({ account, onClose, onSave }) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     name: account?.name || '',
     type: account?.type || 'checking',
@@ -40,19 +43,26 @@ function AccountModal({ account, onClose, onSave }) {
     color: account?.color || '#3b82f6'
   })
 
+  const accountTypes = {
+    checking: { label: t('accounts.types.checking'), icon: Wallet },
+    savings: { label: t('accounts.types.savings'), icon: PiggyBank },
+    cash: { label: t('accounts.types.cash'), icon: HandCoins },
+    investment: { label: t('accounts.types.investment'), icon: Landmark },
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    // N'envoyer que les champs nécessaires
+    // Only send necessary fields
     const data = {
       name: formData.name,
       type: formData.type,
       color: formData.color
     }
-    // Champs optionnels - ne pas envoyer si vides
+    // Optional fields - do not send if empty
     if (formData.institution?.trim()) {
       data.institution = formData.institution.trim()
     }
-    // Solde initial uniquement pour les nouveaux comptes
+    // Initial balance only for new accounts
     if (!account) {
       data.initialBalance = parseFloat(formData.initialBalance) || 0
     }
@@ -64,7 +74,7 @@ function AccountModal({ account, onClose, onSave }) {
       <div className="bg-white rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">
-            {account ? 'Modifier le compte' : 'Nouveau compte'}
+            {account ? t('accounts.editAccount') : t('accounts.newAccount')}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -72,7 +82,7 @@ function AccountModal({ account, onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')}</label>
             <input
               type="text"
               value={formData.name}
@@ -82,7 +92,7 @@ function AccountModal({ account, onClose, onSave }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.type')}</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -94,7 +104,7 @@ function AccountModal({ account, onClose, onSave }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Établissement</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('accounts.institution')}</label>
             <input
               type="text"
               value={formData.institution || ''}
@@ -102,10 +112,10 @@ function AccountModal({ account, onClose, onSave }) {
               className="input"
             />
           </div>
-          {/* Solde initial uniquement pour les nouveaux comptes */}
+          {/* Initial balance only for new accounts */}
           {!account && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Solde initial</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('accounts.initialBalance')}</label>
               <input
                 type="number"
                 step="0.01"
@@ -116,7 +126,7 @@ function AccountModal({ account, onClose, onSave }) {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.color')}</label>
             <input
               type="color"
               value={formData.color}
@@ -126,10 +136,10 @@ function AccountModal({ account, onClose, onSave }) {
           </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary flex-1">
-              {account ? 'Modifier' : 'Créer'}
+              {account ? t('common.edit') : t('common.create')}
             </button>
           </div>
         </form>
@@ -145,9 +155,18 @@ function AccountModal({ account, onClose, onSave }) {
  * @returns {JSX.Element} The accounts page
  */
 export default function Accounts() {
+  const { t } = useTranslation()
+  const { formatCurrency } = useFormatters()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)
   const queryClient = useQueryClient()
+
+  const accountTypes = {
+    checking: { label: t('accounts.types.checking'), icon: Wallet },
+    savings: { label: t('accounts.types.savings'), icon: PiggyBank },
+    cash: { label: t('accounts.types.cash'), icon: HandCoins },
+    investment: { label: t('accounts.types.investment'), icon: Landmark },
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['accounts'],
@@ -161,7 +180,7 @@ export default function Accounts() {
       setModalOpen(false)
     },
     onError: (err) => {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     },
   })
 
@@ -172,7 +191,7 @@ export default function Accounts() {
       setEditingAccount(null)
     },
     onError: (err) => {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     },
   })
 
@@ -180,7 +199,7 @@ export default function Accounts() {
     mutationFn: accountsApi.delete,
     onSuccess: () => queryClient.invalidateQueries(['accounts']),
     onError: (err) => {
-      alert('Erreur: ' + (err.response?.data?.error?.message || err.message))
+      alert(translateError(err))
     },
   })
 
@@ -202,12 +221,12 @@ export default function Accounts() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Comptes</h1>
-          <p className="text-gray-600">Gérez vos comptes bancaires</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('accounts.title')}</h1>
+          <p className="text-gray-600">{t('accounts.subtitle')}</p>
         </div>
         <button onClick={() => setModalOpen(true)} className="btn btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" />
-          Nouveau compte
+          {t('accounts.newAccount')}
         </button>
       </div>
 
@@ -215,15 +234,15 @@ export default function Accounts() {
       {data?.totals && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="card">
-            <p className="text-sm text-gray-600">Solde total</p>
+            <p className="text-sm text-gray-600">{t('accounts.totalBalance')}</p>
             <p className="text-2xl font-bold">{formatCurrency(data.totals.totalBalance)}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Disponible</p>
+            <p className="text-sm text-gray-600">{t('accounts.available')}</p>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(data.totals.availableBalance)}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Investissements</p>
+            <p className="text-sm text-gray-600">{t('accounts.investments')}</p>
             <p className="text-2xl font-bold text-primary-600">{formatCurrency(data.totals.investmentBalance)}</p>
           </div>
         </div>
@@ -232,33 +251,33 @@ export default function Accounts() {
       {/* Accounts list */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {data?.data?.map((account) => {
-          const TypeIcon = accountTypes[account.type]?.icon || Wallet
+          const TypeIcon = accountTypeIcons[account.type] || Wallet
           return (
             <div key={account.id} className="card hover:shadow-md transition-shadow relative group">
-              {/* Actions au survol */}
+              {/* Hover actions */}
               <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => setEditingAccount(account)}
                   className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                  title="Modifier"
+                  title={t('common.edit')}
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm(`Supprimer le compte "${account.name}" ?\n\nAttention : toutes les transactions associées seront également supprimées.`)) {
+                    if (confirm(t('accounts.confirmDelete', { name: account.name }))) {
                       deleteMutation.mutate(account.id)
                     }
                   }}
                   className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Supprimer"
+                  title={t('common.delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="flex items-start gap-4">
-                <div 
+                <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center"
                   style={{ backgroundColor: account.color + '20', color: account.color }}
                 >

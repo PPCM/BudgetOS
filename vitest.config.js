@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     globals: true,
     include: ['tests/**/*.{test,spec}.js'],
-    exclude: ['tests/integration/**'],
+    exclude: ['tests/integration/**', 'tests/ui/**'],
     testTimeout: externalDb ? 30000 : 10000,
     fileParallelism: !externalDb,
   },

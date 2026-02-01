@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { reportsApi } from '../lib/api'
-import { formatCurrency } from '../lib/utils'
+import { useFormatters } from '../hooks/useFormatters'
 import { BarChart3, PieChart, TrendingUp, Calendar } from 'lucide-react'
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPie, Pie, Cell, LineChart, Line
 } from 'recharts'
@@ -11,21 +12,22 @@ import {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
 
 export default function Reports() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('trend')
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Rapports</h1>
-        <p className="text-gray-600">Analysez vos finances</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('reports.title')}</h1>
+        <p className="text-gray-600">{t('reports.subtitle')}</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b">
         {[
-          { id: 'trend', label: 'Évolution', icon: TrendingUp },
-          { id: 'categories', label: 'Par catégorie', icon: PieChart },
-          { id: 'forecast', label: 'Prévisions', icon: Calendar },
+          { id: 'trend', label: t('reports.tabs.trend'), icon: TrendingUp },
+          { id: 'categories', label: t('reports.tabs.categories'), icon: PieChart },
+          { id: 'forecast', label: t('reports.tabs.forecast'), icon: Calendar },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -50,6 +52,8 @@ export default function Reports() {
 }
 
 function MonthlyTrend() {
+  const { t } = useTranslation()
+  const { formatCurrency } = useFormatters()
   const { data, isLoading } = useQuery({
     queryKey: ['monthly-trend'],
     queryFn: () => reportsApi.getMonthlyTrend({ months: 12 }).then(r => r.data.data.trend),
@@ -59,19 +63,19 @@ function MonthlyTrend() {
 
   return (
     <div className="card">
-      <h3 className="text-lg font-semibold mb-6">Revenus vs Dépenses (12 derniers mois)</h3>
+      <h3 className="text-lg font-semibold mb-6">{t('reports.trend.title')}</h3>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="monthLabel" tick={{ fontSize: 12 }} />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${v/1000}k`} />
-            <Tooltip 
+            <Tooltip
               formatter={(value) => formatCurrency(value)}
               contentStyle={{ borderRadius: '8px' }}
             />
-            <Bar dataKey="income" name="Revenus" fill="#10b981" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expenses" name="Dépenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="income" name={t('reports.trend.income')} fill="#10b981" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expenses" name={t('reports.trend.expenses')} fill="#ef4444" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -80,6 +84,8 @@ function MonthlyTrend() {
 }
 
 function CategoryBreakdown() {
+  const { t } = useTranslation()
+  const { formatCurrency } = useFormatters()
   const { data, isLoading } = useQuery({
     queryKey: ['expenses-category-report'],
     queryFn: () => reportsApi.getExpensesByCategory({}).then(r => r.data.data.expenses),
@@ -96,7 +102,7 @@ function CategoryBreakdown() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="card">
-        <h3 className="text-lg font-semibold mb-6">Répartition des dépenses</h3>
+        <h3 className="text-lg font-semibold mb-6">{t('reports.categoryBreakdown.title')}</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <RechartsPie>
@@ -120,11 +126,11 @@ function CategoryBreakdown() {
       </div>
 
       <div className="card">
-        <h3 className="text-lg font-semibold mb-6">Détail par catégorie</h3>
+        <h3 className="text-lg font-semibold mb-6">{t('reports.categoryBreakdown.detail')}</h3>
         <div className="space-y-4">
           {data?.slice(0, 8).map((cat, i) => (
             <div key={cat.categoryId || i} className="flex items-center gap-3">
-              <div 
+              <div
                 className="w-4 h-4 rounded-full flex-shrink-0"
                 style={{ backgroundColor: cat.color || COLORS[i % COLORS.length] }}
               />
@@ -140,6 +146,8 @@ function CategoryBreakdown() {
 }
 
 function Forecast() {
+  const { t } = useTranslation()
+  const { formatCurrency, locale } = useFormatters()
   const { data, isLoading } = useQuery({
     queryKey: ['forecast'],
     queryFn: () => reportsApi.getForecast({ days: 90 }).then(r => r.data.data.forecast),
@@ -148,48 +156,49 @@ function Forecast() {
   if (isLoading) return <LoadingState />
 
   const chartData = data?.dailyBalances?.filter((_, i) => i % 7 === 0) || []
+  const intlLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card">
-          <p className="text-sm text-gray-600">Solde actuel</p>
+          <p className="text-sm text-gray-600">{t('reports.forecast.currentBalance')}</p>
           <p className="text-2xl font-bold">{formatCurrency(data?.currentBalance || 0)}</p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600">Dans 30 jours</p>
+          <p className="text-sm text-gray-600">{t('reports.forecast.in30days')}</p>
           <p className="text-2xl font-bold">{formatCurrency(data?.forecast?.days30 || 0)}</p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600">Dans 60 jours</p>
+          <p className="text-sm text-gray-600">{t('reports.forecast.in60days')}</p>
           <p className="text-2xl font-bold">{formatCurrency(data?.forecast?.days60 || 0)}</p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600">Dans 90 jours</p>
+          <p className="text-sm text-gray-600">{t('reports.forecast.in90days')}</p>
           <p className="text-2xl font-bold">{formatCurrency(data?.forecast?.days90 || 0)}</p>
         </div>
       </div>
 
       <div className="card">
-        <h3 className="text-lg font-semibold mb-6">Prévision de trésorerie</h3>
+        <h3 className="text-lg font-semibold mb-6">{t('reports.forecast.title')}</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 tick={{ fontSize: 12 }}
-                tickFormatter={(v) => new Date(v).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                tickFormatter={(v) => new Intl.DateTimeFormat(intlLocale, { day: '2-digit', month: 'short' }).format(new Date(v))}
               />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-              <Tooltip 
+              <Tooltip
                 formatter={(value) => formatCurrency(value)}
-                labelFormatter={(label) => new Date(label).toLocaleDateString('fr-FR')}
+                labelFormatter={(label) => new Intl.DateTimeFormat(intlLocale).format(new Date(label))}
               />
-              <Line 
-                type="monotone" 
-                dataKey="balance" 
-                stroke="#3b82f6" 
+              <Line
+                type="monotone"
+                dataKey="balance"
+                stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
               />

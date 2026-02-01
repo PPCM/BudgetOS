@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authApi } from '../lib/api'
+import i18n from '../i18n'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [userSettings, setUserSettings] = useState(null)
+  const [userGroups, setUserGroups] = useState([])
   const [needsSetup, setNeedsSetup] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -17,7 +19,9 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await authApi.getMe()
       setUser(data.data.user)
+      setUserGroups(data.data.groups || [])
       setNeedsSetup(false)
+      if (data.data.user?.locale) i18n.changeLanguage(data.data.user.locale)
       // Load user settings
       try {
         const settingsRes = await authApi.getSettings()
@@ -28,6 +32,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       setUser(null)
       setUserSettings(null)
+      setUserGroups([])
       // Check if application needs initial setup
       try {
         const { data } = await authApi.getSetupStatus()
@@ -43,34 +48,21 @@ export function AuthProvider({ children }) {
   const updateSettings = async (newSettings) => {
     const { data } = await authApi.updateSettings(newSettings)
     setUserSettings(data.data.settings)
+    if (newSettings.locale) i18n.changeLanguage(newSettings.locale)
     return data
   }
 
   const login = async (email, password) => {
     const { data } = await authApi.login({ email, password })
-    setUser(data.data.user)
-    setNeedsSetup(false)
-    // Load settings after login
-    try {
-      const settingsRes = await authApi.getSettings()
-      setUserSettings(settingsRes.data.data.settings)
-    } catch {
-      setUserSettings(null)
-    }
+    // Reload full user data (user, settings, groups) via checkAuth
+    await checkAuth()
     return data
   }
 
   const register = async (userData) => {
     const { data } = await authApi.register(userData)
-    setUser(data.data.user)
-    setNeedsSetup(false)
-    // Load settings after register
-    try {
-      const settingsRes = await authApi.getSettings()
-      setUserSettings(settingsRes.data.data.settings)
-    } catch {
-      setUserSettings(null)
-    }
+    // Reload full user data (user, settings, groups) via checkAuth
+    await checkAuth()
     return data
   }
 
@@ -78,10 +70,13 @@ export function AuthProvider({ children }) {
     await authApi.logout()
     setUser(null)
     setUserSettings(null)
+    setUserGroups([])
   }
 
+  const isGroupAdmin = userGroups.some(g => g.memberRole === 'admin')
+
   return (
-    <AuthContext.Provider value={{ user, userSettings, needsSetup, loading, login, register, logout, checkAuth, updateSettings }}>
+    <AuthContext.Provider value={{ user, userSettings, userGroups, isGroupAdmin, needsSetup, loading, login, register, logout, checkAuth, updateSettings }}>
       {children}
     </AuthContext.Provider>
   )

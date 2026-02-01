@@ -7,6 +7,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+// Prevent i18n side-effect initialization via errorHelper
+vi.mock('../../src/lib/errorHelper', () => ({
+  translateError: (err) => {
+    const data = err?.response?.data?.error || err
+    return data?.message || err?.message || 'Error'
+  },
+}))
+
+// Mock useFormatters to avoid AuthProvider dependency
+vi.mock('../../src/hooks/useFormatters', () => ({
+  useFormatters: () => ({
+    formatCurrency: (amount) => `${amount} €`,
+    formatDate: (date) => new Date(date).toLocaleDateString('fr-FR'),
+    formatDateRelative: (date) => new Date(date).toLocaleDateString('fr-FR'),
+    locale: 'fr',
+  }),
+}))
+
 import AdminUsers from '../../src/pages/AdminUsers'
 
 // Mock the API module
@@ -14,10 +33,12 @@ vi.mock('../../src/lib/api', () => ({
   adminApi: {
     getUsers: vi.fn(),
     getUser: vi.fn(),
+    getSettings: vi.fn(),
     createUser: vi.fn(),
     updateUser: vi.fn(),
     suspendUser: vi.fn(),
     reactivateUser: vi.fn(),
+    deleteUser: vi.fn(),
     updateUserRole: vi.fn(),
   },
   groupsApi: {
@@ -127,6 +148,7 @@ describe('AdminUsers', () => {
     vi.clearAllMocks()
     adminApi.getUsers.mockResolvedValue({ data: { data: mockUsers } })
     adminApi.getUser.mockResolvedValue(mockUserDetailResponse)
+    adminApi.getSettings.mockResolvedValue({ data: { data: { defaultLocale: 'fr' } } })
     groupsApi.getAll.mockResolvedValue({ data: { data: mockGroups } })
   })
 
@@ -135,9 +157,9 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      expect(screen.getByText('Utilisateurs')).toBeInTheDocument()
-      expect(screen.getByText('Gerez les comptes utilisateurs')).toBeInTheDocument()
-      expect(screen.getByText('Nouvel utilisateur')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.title')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.subtitle')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.newUser')).toBeInTheDocument()
     })
 
     it('renders loading spinner initially', () => {
@@ -170,10 +192,10 @@ describe('AdminUsers', () => {
 
       // Look for role badges inside the table body only
       const tableBody = document.querySelector('tbody')
-      const superAdminBadge = within(tableBody).getByText('Super Admin')
+      const superAdminBadge = within(tableBody).getByText('admin.users.roles.super_admin')
       expect(superAdminBadge).toBeInTheDocument()
 
-      const userBadges = within(tableBody).getAllByText('Utilisateur')
+      const userBadges = within(tableBody).getAllByText('admin.users.roles.user')
       expect(userBadges.length).toBe(2)
     })
 
@@ -182,31 +204,24 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       const tableBody = document.querySelector('tbody')
-      const activeBadges = within(tableBody).getAllByText('Actif')
+      const activeBadges = within(tableBody).getAllByText('admin.users.statuses.active')
       expect(activeBadges.length).toBe(2)
-      expect(within(tableBody).getByText('Suspendu')).toBeInTheDocument()
+      expect(within(tableBody).getByText('admin.users.statuses.suspended')).toBeInTheDocument()
     })
 
-    it('displays suspend button for active users', async () => {
+    it('displays delete button for each user', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const suspendButtons = screen.getAllByText('Suspendre')
-      expect(suspendButtons.length).toBe(2)
+      const deleteButtons = screen.getAllByTitle('common.delete')
+      expect(deleteButtons.length).toBe(3)
     })
 
-    it('displays reactivate button for suspended users', async () => {
+    it('displays edit button (icon only) for each user', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      expect(screen.getByText('Reactiver')).toBeInTheDocument()
-    })
-
-    it('displays edit button for each user', async () => {
-      renderWithProviders(<AdminUsers />)
-      await waitForUsersLoaded()
-
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       expect(editButtons.length).toBe(3)
     })
 
@@ -215,7 +230,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
 
       await waitFor(() => {
-        expect(screen.getByText('Aucun utilisateur trouve')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.noUsers')).toBeInTheDocument()
       })
     })
 
@@ -224,11 +239,11 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       const thead = document.querySelector('thead')
-      expect(within(thead).getByText('Nom')).toBeInTheDocument()
-      expect(within(thead).getByText('Email')).toBeInTheDocument()
-      expect(within(thead).getByText('Role')).toBeInTheDocument()
-      expect(within(thead).getByText('Statut')).toBeInTheDocument()
-      expect(within(thead).getByText('Actions')).toBeInTheDocument()
+      expect(within(thead).getByText('admin.users.tableHeaders.name')).toBeInTheDocument()
+      expect(within(thead).getByText('admin.users.tableHeaders.email')).toBeInTheDocument()
+      expect(within(thead).getByText('admin.users.tableHeaders.role')).toBeInTheDocument()
+      expect(within(thead).getByText('admin.users.tableHeaders.status')).toBeInTheDocument()
+      expect(within(thead).getByText('admin.users.tableHeaders.actions')).toBeInTheDocument()
     })
   })
 
@@ -237,22 +252,22 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      expect(screen.getByPlaceholderText('Rechercher par email ou nom...')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('admin.users.searchPlaceholder')).toBeInTheDocument()
     })
 
     it('renders role and status filter selects', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      expect(screen.getByDisplayValue('Tous les roles')).toBeInTheDocument()
-      expect(screen.getByDisplayValue('Tous les statuts')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('admin.users.allRoles')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('admin.users.allStatuses')).toBeInTheDocument()
     })
 
     it('calls API with search term when searching', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const searchInput = screen.getByPlaceholderText('Rechercher par email ou nom...')
+      const searchInput = screen.getByPlaceholderText('admin.users.searchPlaceholder')
       fireEvent.change(searchInput, { target: { value: 'john' } })
 
       await waitFor(() => {
@@ -266,7 +281,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const roleSelect = screen.getByDisplayValue('Tous les roles')
+      const roleSelect = screen.getByDisplayValue('admin.users.allRoles')
       fireEvent.change(roleSelect, { target: { value: 'admin' } })
 
       await waitFor(() => {
@@ -280,7 +295,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const statusSelect = screen.getByDisplayValue('Tous les statuts')
+      const statusSelect = screen.getByDisplayValue('admin.users.allStatuses')
       fireEvent.change(statusSelect, { target: { value: 'suspended' } })
 
       await waitFor(() => {
@@ -296,11 +311,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Mot de passe')).toBeInTheDocument()
-        expect(screen.getByText('Prenom')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.password')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.firstName')).toBeInTheDocument()
       })
     })
 
@@ -308,13 +323,13 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
-        expect(screen.getByText('Aucun groupe')).toBeInTheDocument()
-        expect(screen.getByText('Langue')).toBeInTheDocument()
-        expect(screen.getByText('Devise')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.noGroup')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.language')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.currency')).toBeInTheDocument()
       })
     })
 
@@ -322,16 +337,16 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Mot de passe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.password')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Annuler'))
+      fireEvent.click(screen.getByText('common.cancel'))
 
       await waitFor(() => {
-        expect(screen.queryByText('Mot de passe')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.form.password')).not.toBeInTheDocument()
       })
     })
 
@@ -339,10 +354,10 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Creer')).toBeInTheDocument()
+        expect(screen.getByText('common.create')).toBeInTheDocument()
       })
     })
 
@@ -351,7 +366,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
@@ -382,11 +397,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1]) // Click edit on second user (John Doe)
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
     })
 
@@ -394,11 +409,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText('Enregistrer')).toBeInTheDocument()
+        expect(screen.getByText('common.save')).toBeInTheDocument()
       })
     })
 
@@ -406,45 +421,45 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
-      expect(screen.queryByText('Mot de passe')).not.toBeInTheDocument()
+      expect(screen.queryByText('admin.users.form.password')).not.toBeInTheDocument()
     })
 
     it('shows simple group dropdown in edit mode for user role', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // User role shows "Groupe" (singular) with simple dropdown
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
       // Multi-group section "Groupes" (plural) should NOT be shown
-      expect(screen.queryByText('Groupes')).not.toBeInTheDocument()
+      expect(screen.queryByText('admin.users.form.groups')).not.toBeInTheDocument()
     })
 
     it('shows locale and currency fields in edit mode', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText('Langue')).toBeInTheDocument()
-        expect(screen.getByText('Devise')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.language')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.currency')).toBeInTheDocument()
       })
     })
 
@@ -452,11 +467,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Check email field is pre-filled
@@ -468,11 +483,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Wait for getUser query to resolve and group to be selected
@@ -482,7 +497,7 @@ describe('AdminUsers', () => {
 
       // Group A should be selected in the dropdown
       await waitFor(() => {
-        const groupLabel = screen.getByText('Groupe')
+        const groupLabel = screen.getByText('admin.users.form.group')
         const groupSelect = groupLabel.closest('div').querySelector('select')
         expect(groupSelect.value).toBe('g1')
       })
@@ -492,12 +507,12 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       // Wait for the edit modal to appear
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Wait for the getUser query to resolve and groups to render
@@ -518,11 +533,11 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       // Open edit modal for user u2
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       // Wait for modal
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // The UserModal is rendered inside the Modal portal (fixed inset-0)
@@ -554,11 +569,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Wait for getUser query to resolve
@@ -567,7 +582,7 @@ describe('AdminUsers', () => {
       })
 
       // Change from Group A to Group B via dropdown
-      const groupLabel = screen.getByText('Groupe')
+      const groupLabel = screen.getByText('admin.users.form.group')
       const groupSelect = groupLabel.closest('div').querySelector('select')
       await waitFor(() => {
         expect(groupSelect.value).toBe('g1')
@@ -608,22 +623,22 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
         expect(screen.getByText('Group A')).toBeInTheDocument()
       })
 
       // Click "Ajouter"
-      fireEvent.click(screen.getByText('Ajouter'))
+      fireEvent.click(screen.getByText('admin.users.addGroup'))
       await waitFor(() => {
-        expect(screen.getByText('Choisir...')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.chooseGroup')).toBeInTheDocument()
       })
 
       // Select Group B
-      const groupSelect = screen.getByText('Choisir...').closest('select')
+      const groupSelect = screen.getByText('admin.users.chooseGroup').closest('select')
       fireEvent.change(groupSelect, { target: { value: 'g2' } })
-      fireEvent.click(screen.getByText('OK'))
+      fireEvent.click(screen.getByText('common.ok'))
 
       // Group B should appear locally
       await waitFor(() => {
@@ -662,11 +677,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Wait for groups to render
@@ -675,7 +690,7 @@ describe('AdminUsers', () => {
       })
 
       // Click remove button (locally removes the group)
-      const removeBtn = screen.getByTitle('Retirer du groupe')
+      const removeBtn = screen.getByTitle('admin.users.removeFromGroup')
       await act(async () => {
         fireEvent.click(removeBtn)
       })
@@ -714,11 +729,11 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Wait for groups to render
@@ -753,62 +768,49 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const editButtons = screen.getAllByText('Modifier')
+      const editButtons = screen.getAllByTitle('common.edit')
       fireEvent.click(editButtons[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Annuler'))
+      fireEvent.click(screen.getByText('common.cancel'))
 
       await waitFor(() => {
-        expect(screen.queryByText("Modifier l'utilisateur")).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.editUser')).not.toBeInTheDocument()
       })
     })
   })
 
-  describe('suspend and reactivate', () => {
-    it('calls suspendUser API when confirming suspension', async () => {
-      adminApi.suspendUser.mockResolvedValue({ data: {} })
+  describe('delete user', () => {
+    it('calls deleteUser API when confirming deletion', async () => {
+      adminApi.deleteUser.mockResolvedValue({ data: {} })
       vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
       await act(async () => {
-        fireEvent.click(screen.getAllByText('Suspendre')[0])
+        fireEvent.click(screen.getAllByTitle('common.delete')[0])
       })
 
-      expect(adminApi.suspendUser).toHaveBeenCalledWith('u1', expect.anything())
+      expect(adminApi.deleteUser).toHaveBeenCalledWith('u1', expect.anything())
 
       window.confirm.mockRestore()
     })
 
-    it('does not call suspendUser when cancelling confirmation', async () => {
+    it('does not call deleteUser when cancelling confirmation', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(false)
 
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByText('Suspendre')[0])
+      fireEvent.click(screen.getAllByTitle('common.delete')[0])
 
-      expect(adminApi.suspendUser).not.toHaveBeenCalled()
+      expect(adminApi.deleteUser).not.toHaveBeenCalled()
 
       window.confirm.mockRestore()
-    })
-
-    it('calls reactivateUser API when clicking reactivate', async () => {
-      adminApi.reactivateUser.mockResolvedValue({ data: {} })
-
-      renderWithProviders(<AdminUsers />)
-      await waitForUsersLoaded()
-
-      await act(async () => {
-        fireEvent.click(screen.getByText('Reactiver'))
-      })
-
-      expect(adminApi.reactivateUser).toHaveBeenCalledWith('u3', expect.anything())
     })
   })
 
@@ -817,14 +819,14 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         // Default role is user: should show singular "Groupe" dropdown
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
-        expect(screen.getByText('Aucun groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.noGroup')).toBeInTheDocument()
         // Should NOT show multi-group section "Groupes"
-        expect(screen.queryByText('Groupes')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.form.groups')).not.toBeInTheDocument()
       })
     })
 
@@ -832,25 +834,25 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Find the role select inside the modal form (the one with the "Role" label)
       const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
       const form = modalOverlay.querySelector('form')
-      const roleLabel = within(form).getByText('Role')
+      const roleLabel = within(form).getByText('admin.users.form.role')
       const roleSelectEl = roleLabel.closest('div').querySelector('select')
       fireEvent.change(roleSelectEl, { target: { value: 'admin' } })
 
       await waitFor(() => {
         // Should now show multi-group section
-        expect(screen.getByText('Groupes')).toBeInTheDocument()
-        expect(screen.getByText('Ajouter')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.groups')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.addGroup')).toBeInTheDocument()
         // Simple dropdown should be gone
-        expect(screen.queryByText('Groupe')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.form.group')).not.toBeInTheDocument()
       })
     })
 
@@ -858,22 +860,22 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Find role select inside the modal form
       const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
       const form = modalOverlay.querySelector('form')
-      const roleLabel = within(form).getByText('Role')
+      const roleLabel = within(form).getByText('admin.users.form.role')
       const roleSelectEl = roleLabel.closest('div').querySelector('select')
       fireEvent.change(roleSelectEl, { target: { value: 'super_admin' } })
 
       await waitFor(() => {
-        expect(screen.queryByText('Groupe')).not.toBeInTheDocument()
-        expect(screen.queryByText('Groupes')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.form.group')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.form.groups')).not.toBeInTheDocument()
       })
     })
 
@@ -881,26 +883,26 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Select a group in user mode
-      const groupSelect = screen.getByText('Aucun groupe').closest('select')
+      const groupSelect = screen.getByText('admin.users.noGroup').closest('select')
       fireEvent.change(groupSelect, { target: { value: 'g1' } })
 
       // Find role select inside the modal form
       const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
       const form = modalOverlay.querySelector('form')
-      const roleLabel = within(form).getByText('Role')
+      const roleLabel = within(form).getByText('admin.users.form.role')
       const roleSelectEl = roleLabel.closest('div').querySelector('select')
       fireEvent.change(roleSelectEl, { target: { value: 'admin' } })
 
       await waitFor(() => {
         // The group should appear as a pending group in the multi-group section
-        expect(screen.getByText('Groupes')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.groups')).toBeInTheDocument()
         expect(screen.getByText('Group A')).toBeInTheDocument()
       })
     })
@@ -909,31 +911,31 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Find role select inside the modal form
       const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
       const form = modalOverlay.querySelector('form')
-      const roleLabel = within(form).getByText('Role')
+      const roleLabel = within(form).getByText('admin.users.form.role')
       const roleSelectEl = roleLabel.closest('div').querySelector('select')
 
       // Switch to admin first
       fireEvent.change(roleSelectEl, { target: { value: 'admin' } })
 
       await waitFor(() => {
-        expect(screen.getByText('Groupes')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.groups')).toBeInTheDocument()
       })
 
       // Switch to super_admin
       fireEvent.change(roleSelectEl, { target: { value: 'super_admin' } })
 
       await waitFor(() => {
-        expect(screen.queryByText('Groupes')).not.toBeInTheDocument()
-        expect(screen.queryByText('Groupe')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.form.groups')).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.form.group')).not.toBeInTheDocument()
       })
     })
 
@@ -946,10 +948,10 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Fill required fields
@@ -959,35 +961,35 @@ describe('AdminUsers', () => {
       fireEvent.change(form.querySelector('input[type="password"]'), { target: { value: 'password123' } })
 
       // Switch to admin role
-      const roleLabel = within(form).getByText('Role')
+      const roleLabel = within(form).getByText('admin.users.form.role')
       const roleSelectEl = roleLabel.closest('div').querySelector('select')
       fireEvent.change(roleSelectEl, { target: { value: 'admin' } })
 
       await waitFor(() => {
-        expect(screen.getByText('Ajouter')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.addGroup')).toBeInTheDocument()
       })
 
       // Add first group
-      fireEvent.click(screen.getByText('Ajouter'))
+      fireEvent.click(screen.getByText('admin.users.addGroup'))
       await waitFor(() => {
-        expect(screen.getByText('Choisir...')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.chooseGroup')).toBeInTheDocument()
       })
-      const addGroupSelect = screen.getByText('Choisir...').closest('select')
+      const addGroupSelect = screen.getByText('admin.users.chooseGroup').closest('select')
       fireEvent.change(addGroupSelect, { target: { value: 'g1' } })
-      fireEvent.click(screen.getByText('OK'))
+      fireEvent.click(screen.getByText('common.ok'))
 
       await waitFor(() => {
         expect(screen.getByText('Group A')).toBeInTheDocument()
       })
 
       // Add second group
-      fireEvent.click(screen.getByText('Ajouter'))
+      fireEvent.click(screen.getByText('admin.users.addGroup'))
       await waitFor(() => {
-        expect(screen.getByText('Choisir...')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.chooseGroup')).toBeInTheDocument()
       })
-      const addGroupSelect2 = screen.getByText('Choisir...').closest('select')
+      const addGroupSelect2 = screen.getByText('admin.users.chooseGroup').closest('select')
       fireEvent.change(addGroupSelect2, { target: { value: 'g2' } })
-      fireEvent.click(screen.getByText('OK'))
+      fireEvent.click(screen.getByText('common.ok'))
 
       await waitFor(() => {
         expect(screen.getByText('Group B')).toBeInTheDocument()
@@ -1033,14 +1035,14 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       // Click edit on first user (super_admin)
-      fireEvent.click(screen.getAllByText('Modifier')[0])
+      fireEvent.click(screen.getAllByTitle('common.edit')[0])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Groups section should NOT be visible
-      expect(screen.queryByText('Groupes')).not.toBeInTheDocument()
+      expect(screen.queryByText('admin.users.form.groups')).not.toBeInTheDocument()
     })
 
     it('hides Ajouter button when editing a user with 1 group', async () => {
@@ -1049,10 +1051,10 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       // Click edit on user u2 (user role, 1 group)
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       await waitFor(() => {
@@ -1060,7 +1062,7 @@ describe('AdminUsers', () => {
       })
 
       // "Ajouter" button should NOT be visible since user role is limited to 1 group
-      expect(screen.queryByText('Ajouter')).not.toBeInTheDocument()
+      expect(screen.queryByText('admin.users.addGroup')).not.toBeInTheDocument()
     })
 
     it('shows simple group dropdown with no selection when editing a user with 0 groups', async () => {
@@ -1077,25 +1079,25 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // User role shows simple dropdown "Groupe" (singular)
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       // Dropdown should show empty value (no group selected)
-      const groupLabel = screen.getByText('Groupe')
+      const groupLabel = screen.getByText('admin.users.form.group')
       const groupSelect = groupLabel.closest('div').querySelector('select')
       expect(groupSelect.value).toBe('')
 
       // No multi-group section or "Ajouter" button
-      expect(screen.queryByText('Groupes')).not.toBeInTheDocument()
-      expect(screen.queryByText('Ajouter')).not.toBeInTheDocument()
+      expect(screen.queryByText('admin.users.form.groups')).not.toBeInTheDocument()
+      expect(screen.queryByText('admin.users.addGroup')).not.toBeInTheDocument()
     })
 
     it('shows Ajouter button when editing an admin user', async () => {
@@ -1120,10 +1122,10 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       // Click edit on second user (admin)
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       await waitFor(() => {
@@ -1131,7 +1133,7 @@ describe('AdminUsers', () => {
       })
 
       // "Ajouter" should be visible for admin role even with 1 group
-      expect(screen.getByText('Ajouter')).toBeInTheDocument()
+      expect(screen.getByText('admin.users.addGroup')).toBeInTheDocument()
     })
   })
 
@@ -1143,7 +1145,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
@@ -1167,7 +1169,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
@@ -1191,7 +1193,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
@@ -1225,10 +1227,10 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
-        expect(screen.getByText('Groupe')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.form.group')).toBeInTheDocument()
       })
 
       const modalOverlay = document.querySelector('.fixed.inset-0.bg-black\\/50')
@@ -1237,21 +1239,21 @@ describe('AdminUsers', () => {
       fireEvent.change(form.querySelector('input[type="password"]'), { target: { value: 'Password1' } })
 
       // Switch to admin and add a group
-      const roleLabel = within(form).getByText('Role')
+      const roleLabel = within(form).getByText('admin.users.form.role')
       const roleSelectEl = roleLabel.closest('div').querySelector('select')
       fireEvent.change(roleSelectEl, { target: { value: 'admin' } })
 
       await waitFor(() => {
-        expect(screen.getByText('Ajouter')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.addGroup')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Ajouter'))
+      fireEvent.click(screen.getByText('admin.users.addGroup'))
       await waitFor(() => {
-        expect(screen.getByText('Choisir...')).toBeInTheDocument()
+        expect(screen.getByText('admin.users.chooseGroup')).toBeInTheDocument()
       })
-      const addGroupSelect = screen.getByText('Choisir...').closest('select')
+      const addGroupSelect = screen.getByText('admin.users.chooseGroup').closest('select')
       fireEvent.change(addGroupSelect, { target: { value: 'g1' } })
-      fireEvent.click(screen.getByText('OK'))
+      fireEvent.click(screen.getByText('common.ok'))
 
       await act(async () => {
         fireEvent.submit(form)
@@ -1271,10 +1273,10 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Change first name
@@ -1296,10 +1298,10 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Submit without changing anything
@@ -1312,7 +1314,7 @@ describe('AdminUsers', () => {
       // Should close modal without calling updateUser
       expect(adminApi.updateUser).not.toHaveBeenCalled()
       await waitFor(() => {
-        expect(screen.queryByText("Modifier l'utilisateur")).not.toBeInTheDocument()
+        expect(screen.queryByText('admin.users.editUser')).not.toBeInTheDocument()
       })
     })
 
@@ -1335,14 +1337,14 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
         expect(screen.getByText('Group A')).toBeInTheDocument()
       })
 
       // Remove the group
-      const removeBtn = screen.getByTitle('Retirer du groupe')
+      const removeBtn = screen.getByTitle('admin.users.removeFromGroup')
       await act(async () => {
         fireEvent.click(removeBtn)
       })
@@ -1360,10 +1362,10 @@ describe('AdminUsers', () => {
     })
   })
 
-  describe('error handling - suspend and reactivate', () => {
-    it('shows toast error when suspendUser API fails', async () => {
-      adminApi.suspendUser.mockRejectedValue({
-        response: { data: { error: { message: 'Cannot suspend super admin' } } },
+  describe('error handling - delete user', () => {
+    it('shows toast error when deleteUser API fails', async () => {
+      adminApi.deleteUser.mockRejectedValue({
+        response: { data: { error: { message: 'Cannot delete super admin' } } },
       })
       vi.spyOn(window, 'confirm').mockReturnValue(true)
 
@@ -1371,29 +1373,14 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       await act(async () => {
-        fireEvent.click(screen.getAllByText('Suspendre')[0])
+        fireEvent.click(screen.getAllByTitle('common.delete')[0])
       })
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Cannot suspend super admin')
+        expect(mockToast.error).toHaveBeenCalledWith('Cannot delete super admin')
       })
 
       window.confirm.mockRestore()
-    })
-
-    it('shows toast error when reactivateUser API fails', async () => {
-      adminApi.reactivateUser.mockRejectedValue(new Error('Server error'))
-
-      renderWithProviders(<AdminUsers />)
-      await waitForUsersLoaded()
-
-      await act(async () => {
-        fireEvent.click(screen.getByText('Reactiver'))
-      })
-
-      await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Server error')
-      })
     })
   })
 
@@ -1407,7 +1394,7 @@ describe('AdminUsers', () => {
       await waitForUsersLoaded()
 
       const tableBody = document.querySelector('tbody')
-      const superAdminBadge = within(tableBody).getByText('Super Admin')
+      const superAdminBadge = within(tableBody).getByText('admin.users.roles.super_admin')
       fireEvent.click(superAdminBadge.closest('button'))
 
       await waitFor(() => {
@@ -1416,7 +1403,7 @@ describe('AdminUsers', () => {
       })
 
       const dropdownMenu = document.querySelector('.absolute.right-0')
-      const adminOption = within(dropdownMenu).getByText('Admin')
+      const adminOption = within(dropdownMenu).getByText('admin.users.roles.admin')
 
       await act(async () => {
         fireEvent.click(adminOption)
@@ -1434,7 +1421,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
@@ -1461,7 +1448,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
@@ -1475,7 +1462,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="password"]')).toBeInTheDocument()
@@ -1502,10 +1489,10 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByText('Modifier')[1])
+      fireEvent.click(screen.getAllByTitle('common.edit')[1])
 
       await waitFor(() => {
-        expect(screen.getByText("Modifier l'utilisateur")).toBeInTheDocument()
+        expect(screen.getByText('admin.users.editUser')).toBeInTheDocument()
       })
 
       // Modal should still render with data from the users list
@@ -1520,7 +1507,7 @@ describe('AdminUsers', () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getByText('Nouvel utilisateur'))
+      fireEvent.click(screen.getByText('admin.users.newUser'))
 
       await waitFor(() => {
         expect(document.querySelector('input[type="email"]')).toBeInTheDocument()
@@ -1539,7 +1526,7 @@ describe('AdminUsers', () => {
       })
 
       // Modal should still be open so user can fix the error
-      expect(screen.getByRole('heading', { name: 'Nouvel utilisateur' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'admin.users.newUser' })).toBeInTheDocument()
       expect(document.querySelector('input[type="email"]').value).toBe('new@test.com')
     })
   })
@@ -1551,7 +1538,7 @@ describe('AdminUsers', () => {
 
       // Find the Super Admin badge inside the table and click its parent button
       const tableBody = document.querySelector('tbody')
-      const superAdminBadge = within(tableBody).getByText('Super Admin')
+      const superAdminBadge = within(tableBody).getByText('admin.users.roles.super_admin')
       fireEvent.click(superAdminBadge.closest('button'))
 
       await waitFor(() => {
@@ -1568,7 +1555,7 @@ describe('AdminUsers', () => {
 
       // Open dropdown for first user (super_admin)
       const tableBody = document.querySelector('tbody')
-      const superAdminBadge = within(tableBody).getByText('Super Admin')
+      const superAdminBadge = within(tableBody).getByText('admin.users.roles.super_admin')
       fireEvent.click(superAdminBadge.closest('button'))
 
       await waitFor(() => {
@@ -1578,7 +1565,7 @@ describe('AdminUsers', () => {
 
       // Click "Admin" in the dropdown menu
       const dropdownMenu = document.querySelector('.absolute.right-0')
-      const adminOption = within(dropdownMenu).getByText('Admin')
+      const adminOption = within(dropdownMenu).getByText('admin.users.roles.admin')
 
       await act(async () => {
         fireEvent.click(adminOption)

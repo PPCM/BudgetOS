@@ -32,5 +32,5 @@ export const getAccountStats = async (req, res) => {
 
 export const recalculateBalances = async (req, res) => {
   await Account.recalculateAllBalances(req.user.id);
-  res.json({ success: true, message: 'Soldes recalculés' });
+  res.json({ success: true, message: 'Balances recalculated' });
 };

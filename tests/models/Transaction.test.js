@@ -677,7 +677,7 @@ describe('Transaction.findByIdOrFail', () => {
 
   it('throws NotFoundError when transaction not found', async () => {
     await expect(Transaction.findByIdOrFail('non-existent', userId))
-      .rejects.toThrow('Transaction non trouvée')
+      .rejects.toThrow('Transaction not found')
   })
 })
 
@@ -715,7 +715,7 @@ describe('Transaction.delete', () => {
 
   it('throws NotFoundError for non-existent transaction', async () => {
     await expect(Transaction.delete('non-existent', userId))
-      .rejects.toThrow('Transaction non trouvée')
+      .rejects.toThrow('Transaction not found')
   })
 })
 

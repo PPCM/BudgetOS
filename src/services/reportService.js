@@ -27,7 +27,7 @@ export class ReportService {
 
     return results.map(r => ({
       categoryId: r.id,
-      categoryName: r.name || 'Non catégorisé',
+      categoryName: r.name || 'Uncategorized',
       color: r.color || '#9CA3AF',
       icon: r.icon || 'tag',
       total: roundAmount(r.total || 0),
@@ -55,7 +55,7 @@ export class ReportService {
     const total = results.reduce((sum, r) => sum + Number(r.total || 0), 0);
     return results.map(r => ({
       categoryId: r.id,
-      categoryName: r.name || 'Non catégorisé',
+      categoryName: r.name || 'Uncategorized',
       color: r.color || '#10B981',
       total: roundAmount(r.total || 0),
       count: Number(r.count),

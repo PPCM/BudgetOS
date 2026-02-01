@@ -16,16 +16,19 @@ export class Group {
    * @returns {Promise<Object>}
    */
   static async create(data) {
-    const { name, description, createdBy } = data;
+    const { name, description, createdBy, defaultLocale } = data;
     const id = generateId();
 
-    await knex('groups').insert({
+    const row = {
       id,
       name,
       description: description || null,
       is_active: true,
       created_by: createdBy,
-    });
+    };
+    if (defaultLocale !== undefined) row.default_locale = defaultLocale;
+
+    await knex('groups').insert(row);
 
     return Group.findById(id);
   }
@@ -48,7 +51,7 @@ export class Group {
   static async findByIdOrFail(id) {
     const group = await Group.findById(id);
     if (!group) {
-      throw new NotFoundError('Groupe non trouvé');
+      throw new NotFoundError('Group not found', 'GROUP_NOT_FOUND');
     }
     return group;
   }
@@ -102,6 +105,7 @@ export class Group {
     if (data.name !== undefined) updates.name = data.name;
     if (data.description !== undefined) updates.description = data.description;
     if (data.isActive !== undefined) updates.is_active = data.isActive;
+    if (data.defaultLocale !== undefined) updates.default_locale = data.defaultLocale;
 
     if (Object.keys(updates).length > 0) {
       await knex('groups').where('id', id).update(updates);
@@ -137,7 +141,7 @@ export class Group {
       .first();
 
     if (existing) {
-      throw new ConflictError('Cet utilisateur est déjà membre de ce groupe');
+      throw new ConflictError('This user is already a member of this group', 'MEMBER_EXISTS');
     }
 
     // If role is 'member', check the user is not already member of another group
@@ -148,7 +152,7 @@ export class Group {
           .where({ user_id: userId, role: 'member' })
           .first();
         if (existingMembership) {
-          throw new BadRequestError('Un utilisateur ne peut être membre que d\'un seul groupe');
+          throw new BadRequestError('A user can only be a member of one group', 'SINGLE_GROUP_MEMBERSHIP');
         }
       }
     }
@@ -175,7 +179,7 @@ export class Group {
       .first();
 
     if (!member) {
-      throw new NotFoundError('Membre non trouvé dans ce groupe');
+      throw new NotFoundError('Member not found in this group', 'MEMBER_NOT_FOUND');
     }
 
     await knex('group_members')
@@ -196,7 +200,7 @@ export class Group {
       .first();
 
     if (!member) {
-      throw new NotFoundError('Membre non trouvé dans ce groupe');
+      throw new NotFoundError('Member not found in this group', 'MEMBER_NOT_FOUND');
     }
 
     // If changing to 'member', verify user won't have two member roles
@@ -208,7 +212,7 @@ export class Group {
           .whereNot({ group_id: groupId })
           .first();
         if (otherMembership) {
-          throw new BadRequestError('Un utilisateur ne peut être membre que d\'un seul groupe');
+          throw new BadRequestError('A user can only be a member of one group', 'SINGLE_GROUP_MEMBERSHIP');
         }
       }
     }
@@ -375,6 +379,7 @@ export class Group {
       id: group.id,
       name: group.name,
       description: group.description,
+      defaultLocale: group.default_locale || 'fr',
       isActive: Boolean(group.is_active),
       createdBy: group.created_by,
       createdAt: group.created_at,

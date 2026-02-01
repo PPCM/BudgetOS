@@ -9,6 +9,7 @@ import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema 
 const router = Router();
 
 // Routes publiques
+router.get('/setup-status', asyncHandler(authController.getSetupStatus));
 router.post('/register', authRateLimiter, validate({ body: registerSchema }), asyncHandler(authController.register));
 router.post('/login', authRateLimiter, validate({ body: loginSchema }), asyncHandler(authController.login));
 

@@ -390,6 +390,65 @@ describe('Auth - Settings', () => {
   })
 })
 
+describe('Auth - Setup Status', () => {
+  it('should return needsSetup=true when no users exist', async () => {
+    const res = await supertest(app).get('/api/v1/auth/setup-status')
+    expect(res.status).toBe(200)
+    expect(res.body.success).toBe(true)
+    expect(res.body.data.needsSetup).toBe(true)
+  })
+
+  it('should return needsSetup=false when a user exists', async () => {
+    await insertTestUser('exists@test.com', 'TestPass1234')
+
+    const res = await supertest(app).get('/api/v1/auth/setup-status')
+    expect(res.status).toBe(200)
+    expect(res.body.data.needsSetup).toBe(false)
+  })
+
+  it('should be accessible without authentication', async () => {
+    const res = await supertest(app).get('/api/v1/auth/setup-status')
+    expect(res.status).toBe(200)
+    expect(res.body.success).toBe(true)
+  })
+})
+
+describe('Auth - Bootstrap Flow', () => {
+  it('should complete full bootstrap: empty DB → register first user → super_admin → setup done', async () => {
+    // Step 1: Verify setup is needed
+    const setupRes = await supertest(app).get('/api/v1/auth/setup-status')
+    expect(setupRes.body.data.needsSetup).toBe(true)
+
+    // Step 2: Register first user
+    const agent = supertest.agent(app)
+    const csrf = await getCsrf(agent)
+
+    const registerRes = await agent
+      .post('/api/v1/auth/register')
+      .set('X-CSRF-Token', csrf)
+      .send({
+        email: 'admin@bootstrap.com',
+        password: 'TestPass1234',
+        passwordConfirm: 'TestPass1234',
+        firstName: 'Admin',
+        lastName: 'Bootstrap',
+      })
+
+    expect(registerRes.status).toBe(201)
+    expect(registerRes.body.data.user.role).toBe('super_admin')
+
+    // Step 3: Verify setup is no longer needed
+    const setupAfterRes = await supertest(app).get('/api/v1/auth/setup-status')
+    expect(setupAfterRes.body.data.needsSetup).toBe(false)
+
+    // Step 4: Verify GET /me works with the session
+    const meRes = await agent.get('/api/v1/auth/me')
+    expect(meRes.status).toBe(200)
+    expect(meRes.body.data.user.email).toBe('admin@bootstrap.com')
+    expect(meRes.body.data.user.role).toBe('super_admin')
+  })
+})
+
 describe('Auth - CSRF Token', () => {
   it('should return a CSRF token', async () => {
     const res = await supertest(app).get('/api/v1/csrf-token')

@@ -26,6 +26,8 @@
     "test:mysql": "TEST_DB_CLIENT=mysql2 vitest",
     "test:postgres": "TEST_DB_CLIENT=pg vitest",
     "test:all-dbs": "npm run test:sqlite && npm run test:mysql && npm run test:postgres",
+    "test:global": "npm run test:all && TEST_DB_CLIENT=mysql2 MYSQL_DB=budgetos_test npm run test:integration && TEST_DB_CLIENT=pg POSTGRES_DB=budgetos_test npm run test:integration && rm -f data/budgetos.db && echo '[BudgetOS] SQLite database reset'",
+    "db:reset": "rm -f data/budgetos.db && echo '[BudgetOS] SQLite database deleted'",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "prepare": "husky"

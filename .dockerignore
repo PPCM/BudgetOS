@@ -1,0 +1,17 @@
+node_modules
+client/node_modules
+client/dist
+data
+uploads
+logs
+.env
+.env.*
+.git
+*.md
+doc
+tests
+client/tests
+coverage
+test-results
+playwright-report
+docker-db

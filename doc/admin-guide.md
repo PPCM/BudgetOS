@@ -157,7 +157,7 @@ npm run db:migrate
 
 ```bash
 # Start PostgreSQL container
-docker compose -f docker/docker-compose.postgres.yml up -d
+docker compose -f docker-db/docker-compose.postgres.yml up -d
 
 # Create the database (if not auto-created)
 docker exec budgetos-postgres psql -U budgetos -d postgres \
@@ -196,7 +196,7 @@ npm run db:migrate
 
 ```bash
 # Start MariaDB container
-docker compose -f docker/docker-compose.mariadb.yml up -d
+docker compose -f docker-db/docker-compose.mariadb.yml up -d
 
 # Create the database (if not auto-created)
 docker exec budgetos-mariadb mariadb -uroot -pbudgetos_root \
@@ -385,8 +385,8 @@ To test against PostgreSQL and MariaDB:
 
 ```bash
 # Start test database containers
-docker compose -f docker/docker-compose.mariadb.yml up -d
-docker compose -f docker/docker-compose.postgres.yml up -d
+docker compose -f docker-db/docker-compose.mariadb.yml up -d
+docker compose -f docker-db/docker-compose.postgres.yml up -d
 
 # Create test databases
 docker exec budgetos-mariadb mariadb -uroot -pbudgetos_root \
@@ -414,7 +414,7 @@ This runs all tests across all three databases. **Warning**: the SQLite database
 
 ```bash
 # Start test databases
-docker compose -f docker/docker-compose.e2e.yml up -d --wait
+docker compose -f docker-db/docker-compose.e2e.yml up -d --wait
 
 # Run on all databases
 npm run test:e2e:all-dbs
@@ -425,7 +425,7 @@ npm run test:e2e:postgres
 npm run test:e2e:mysql
 
 # Stop containers
-docker compose -f docker/docker-compose.e2e.yml down
+docker compose -f docker-db/docker-compose.e2e.yml down
 ```
 
 ---

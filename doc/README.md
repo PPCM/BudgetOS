@@ -230,7 +230,7 @@ Run the full E2E suite against SQLite, PostgreSQL, and MariaDB:
 
 ```bash
 # Start database containers
-docker compose -f docker/docker-compose.e2e.yml up -d --wait
+docker compose -f docker-db/docker-compose.e2e.yml up -d --wait
 
 # Run per database
 npm run test:e2e:sqlite
@@ -241,7 +241,7 @@ npm run test:e2e:mysql
 npm run test:e2e:all-dbs
 
 # Stop containers
-docker compose -f docker/docker-compose.e2e.yml down
+docker compose -f docker-db/docker-compose.e2e.yml down
 ```
 
 The `E2E_DB_TYPE` environment variable controls which database the E2E tests target. Each database uses a dedicated `budgetos_e2e_test` database that is cleaned before every run.

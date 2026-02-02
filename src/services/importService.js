@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import knex from '../database/connection.js';
 import { generateId, normalizeDescription, calculateMatchScore, formatDateISO } from '../utils/helpers.js';
 import { BadRequestError } from '../utils/errors.js';
@@ -372,14 +372,25 @@ export class ImportService {
     }).filter(r => r.date && !isNaN(r.amount));
   }
 
-  static parseExcel(content, config) {
+  static async parseExcel(content, config) {
     const { sheetIndex = 0, hasHeader = true, dateFormat = 'dd/MM/yyyy', columns, skipRows = 0, invertAmounts = false } = config;
-    const workbook = XLSX.read(content, { type: 'buffer', cellDates: true });
-    const sheet = workbook.Sheets[workbook.SheetNames[sheetIndex]];
-    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(content);
+    const worksheet = workbook.worksheets[sheetIndex];
+
+    // Convert worksheet rows to array-of-arrays (similar to old sheet_to_json with header:1)
+    const data = [];
+    worksheet.eachRow((row) => {
+      data.push(row.values.slice(1)); // row.values is 1-indexed, slice(1) to make 0-indexed
+    });
 
     const dataRows = data.slice(skipRows + (hasHeader ? 1 : 0));
-    const getColIndex = (col) => typeof col === 'string' ? XLSX.utils.decode_col(col) : col;
+
+    // Convert column letter to 0-based index (replaces XLSX.utils.decode_col)
+    const getColIndex = (col) => typeof col === 'string'
+      ? col.toUpperCase().split('').reduce((acc, c) => acc * 26 + c.charCodeAt(0) - 64, 0) - 1
+      : col;
 
     return dataRows.map((row, index) => {
       const amount = ImportService.parseAmount(row[getColIndex(columns.amount)], '.', invertAmounts);

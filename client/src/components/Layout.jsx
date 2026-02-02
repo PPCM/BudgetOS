@@ -121,6 +121,11 @@ export default function Layout() {
             )}
           </nav>
 
+          {/* Version */}
+          <div className="mx-4 mb-2 px-3 py-1.5 bg-gray-50 rounded-lg text-center">
+            <span className="text-xs text-gray-400 font-medium tracking-wide">BudgetOS v{__APP_VERSION__}</span>
+          </div>
+
           {/* User */}
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3">

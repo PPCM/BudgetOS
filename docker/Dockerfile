@@ -10,6 +10,22 @@ RUN npm run build
 
 # Stage 2: Production
 FROM node:20-alpine
+
+ARG VERSION=1.0.0
+ARG BUILD_DATE
+ARG VCS_REF
+
+LABEL org.opencontainers.image.title="BudgetOS" \
+      org.opencontainers.image.description="Self-hosted personal finance management application" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.url="https://github.com/PPCM/BudgetOS" \
+      org.opencontainers.image.source="https://github.com/PPCM/BudgetOS" \
+      org.opencontainers.image.documentation="https://github.com/PPCM/BudgetOS#readme" \
+      org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0" \
+      org.opencontainers.image.vendor="PPCM"
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm pkg delete scripts.prepare && npm ci --omit=dev
@@ -26,6 +42,9 @@ ENV NODE_ENV=production \
     DB_TYPE=sqlite \
     DB_PATH=./data/budgetos.db \
     COOKIE_SECURE=false
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1
 
 VOLUME ["/app/data", "/app/uploads", "/app/logs"]
 

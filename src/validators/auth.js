@@ -30,7 +30,7 @@ export const registerSchema = z.object({
     .max(100, 'Last name too long')
     .trim()
     .optional(),
-  locale: z.enum(['fr', 'en']).default('fr'),
+  locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).default('fr'),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).default('EUR'),
 }).refine((data) => data.password === data.passwordConfirm, {
   message: 'Passwords do not match',
@@ -68,7 +68,7 @@ export const updateProfileSchema = z.object({
     .max(100, 'Last name too long')
     .trim()
     .optional(),
-  locale: z.enum(['fr', 'en']).optional(),
+  locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).optional(),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).optional(),
   timezone: z.string().max(50).optional(),
 });

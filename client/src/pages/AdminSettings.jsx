@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, groupsApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import { Cog, Save } from 'lucide-react'
+import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
 
 /**
@@ -156,14 +157,11 @@ export default function AdminSettings() {
           <p className="text-sm text-gray-500 mb-2">
             {t('admin.settings.defaultLocaleDesc')}
           </p>
-          <select
+          <FormLanguageSelect
             value={formData.defaultLocale}
-            onChange={(e) => handleChange('defaultLocale', e.target.value)}
-            className="input max-w-md"
-          >
-            <option value="fr">{t('admin.users.form.french')}</option>
-            <option value="en">{t('admin.users.form.english')}</option>
-          </select>
+            onChange={(locale) => handleChange('defaultLocale', locale)}
+            className="max-w-md"
+          />
         </div>
 
         {/* Save button */}

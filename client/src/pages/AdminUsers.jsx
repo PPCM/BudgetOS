@@ -14,6 +14,7 @@ import {
   ChevronDown, Pencil, Trash2, UserPlus
 } from 'lucide-react'
 import Modal from '../components/Modal'
+import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
 
 /**
@@ -303,14 +304,10 @@ function UserModal({ user, userGroups, onClose, onSave, groups, appDefaultLocale
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.language')}</label>
-              <select
+              <FormLanguageSelect
                 value={formData.locale}
-                onChange={(e) => setFormData({ ...formData, locale: e.target.value })}
-                className="input"
-              >
-                <option value="fr">{t('admin.users.form.french')}</option>
-                <option value="en">{t('admin.users.form.english')}</option>
-              </select>
+                onChange={(locale) => setFormData({ ...formData, locale })}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.currency')}</label>

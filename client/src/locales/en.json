@@ -547,7 +547,13 @@
       "saved": "Preferences updated",
       "languages": {
         "fr": "Français",
-        "en": "English"
+        "en": "English",
+        "de": "Deutsch",
+        "es": "Español",
+        "it": "Italiano",
+        "pt": "Português",
+        "ru": "Русский",
+        "zh": "中文"
       },
       "currencies": {
         "EUR": "Euro (€)",
@@ -618,7 +624,13 @@
         "group": "Group",
         "groups": "Groups",
         "french": "Français",
-        "english": "English"
+        "english": "English",
+        "german": "Deutsch",
+        "spanish": "Español",
+        "italian": "Italiano",
+        "portuguese": "Português",
+        "russian": "Русский",
+        "chinese": "中文"
       }
     },
     "groups": {

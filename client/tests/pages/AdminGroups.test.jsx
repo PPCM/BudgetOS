@@ -276,7 +276,59 @@ describe('AdminGroups', () => {
       expect(callArgs).toMatchObject({
         name: 'New Group',
         description: 'A new group',
+        defaultLocale: 'fr',
       })
+    })
+
+    it('renders FormLanguageSelect for default locale', async () => {
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      fireEvent.click(screen.getByText('admin.groups.newGroup'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.groups.defaultLocale')).toBeInTheDocument()
+      })
+
+      // FormLanguageSelect renders a button with aria-haspopup="listbox"
+      const modal = document.querySelector('.fixed.inset-0')
+      const langTrigger = modal.querySelector('button[aria-haspopup="listbox"]')
+      expect(langTrigger).toBeInTheDocument()
+      expect(langTrigger).toHaveTextContent('Français')
+    })
+
+    it('allows changing locale via FormLanguageSelect in create modal', async () => {
+      groupsApi.create.mockResolvedValue({ data: { data: { id: 'new' } } })
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      fireEvent.click(screen.getByText('admin.groups.newGroup'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.groups.defaultLocale')).toBeInTheDocument()
+      })
+
+      const modal = document.querySelector('.fixed.inset-0')
+
+      // Open the language dropdown
+      const langTrigger = modal.querySelector('button[aria-haspopup="listbox"]')
+      fireEvent.click(langTrigger)
+
+      // Select English
+      const englishOption = screen.getByRole('option', { name: /English/ })
+      fireEvent.click(englishOption)
+
+      // Fill required fields and submit
+      const nameInput = modal.querySelector('input[type="text"]')
+      fireEvent.change(nameInput, { target: { value: 'English Group' } })
+
+      await act(async () => {
+        fireEvent.submit(modal.querySelector('form'))
+      })
+
+      expect(groupsApi.create).toHaveBeenCalled()
+      const callArgs = groupsApi.create.mock.calls[0][0]
+      expect(callArgs.defaultLocale).toBe('en')
     })
   })
 
@@ -576,6 +628,88 @@ describe('AdminGroups', () => {
           locale: 'fr',
           currency: 'EUR',
         })
+      })
+    })
+
+    it('renders FormLanguageSelect in new member tab', async () => {
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
+
+      await waitFor(() => {
+        expect(screen.getByText('common.add')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('common.add'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.groups.newMember')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('admin.groups.newMember'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.users.form.language')).toBeInTheDocument()
+      })
+
+      // FormLanguageSelect renders a button with aria-haspopup="listbox"
+      const modal = document.querySelectorAll('.fixed.inset-0')
+      const addMemberModal = modal[modal.length - 1]
+      const langTrigger = addMemberModal.querySelector('button[aria-haspopup="listbox"]')
+      expect(langTrigger).toBeInTheDocument()
+      expect(langTrigger).toHaveTextContent('Français')
+    })
+
+    it('allows changing locale via FormLanguageSelect when adding new member', async () => {
+      groupsApi.addMember.mockResolvedValue({ data: { data: {} } })
+      renderWithProviders(<AdminGroups />)
+      await waitForGroupsLoaded()
+
+      fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
+
+      await waitFor(() => {
+        expect(screen.getByText('common.add')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('common.add'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.groups.newMember')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('admin.groups.newMember'))
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.users.form.email')).toBeInTheDocument()
+      })
+
+      const modal = document.querySelectorAll('.fixed.inset-0')
+      const addMemberModal = modal[modal.length - 1]
+
+      // Open language dropdown and select Deutsch
+      const langTrigger = addMemberModal.querySelector('button[aria-haspopup="listbox"]')
+      fireEvent.click(langTrigger)
+
+      const deutschOption = screen.getByRole('option', { name: /Deutsch/ })
+      fireEvent.click(deutschOption)
+
+      // Fill required fields
+      const emailInput = addMemberModal.querySelector('input[type="email"]')
+      const passwordInput = addMemberModal.querySelector('input[type="password"]')
+      fireEvent.change(emailInput, { target: { value: 'german@test.com' } })
+      fireEvent.change(passwordInput, { target: { value: 'Test1234!' } })
+
+      const form = addMemberModal.querySelector('form')
+      await act(async () => {
+        fireEvent.submit(form)
+      })
+
+      await waitFor(() => {
+        expect(groupsApi.addMember).toHaveBeenCalledWith('g1', expect.objectContaining({
+          locale: 'de',
+          email: 'german@test.com',
+        }))
       })
     })
   })

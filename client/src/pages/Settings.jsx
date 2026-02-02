@@ -7,6 +7,7 @@ import {
   User, Lock, Bell, Palette, Globe,
   Save, CheckCircle, AlertCircle
 } from 'lucide-react'
+import FormLanguageSelect from '../components/FormLanguageSelect'
 import axios from 'axios'
 
 export default function Settings() {
@@ -266,14 +267,10 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.preferences.language')}</label>
-          <select
+          <FormLanguageSelect
             value={formData.locale}
-            onChange={(e) => setFormData({ ...formData, locale: e.target.value })}
-            className="input"
-          >
-            <option value="fr">{t('settings.preferences.languages.fr')}</option>
-            <option value="en">{t('settings.preferences.languages.en')}</option>
-          </select>
+            onChange={(locale) => setFormData({ ...formData, locale })}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.preferences.currency')}</label>

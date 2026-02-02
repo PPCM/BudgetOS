@@ -14,6 +14,7 @@ import {
   ChevronDown, ChevronUp, FolderTree
 } from 'lucide-react'
 import Modal from '../components/Modal'
+import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
 
 /**
@@ -70,14 +71,10 @@ function GroupModal({ group, onClose, onSave, appDefaultLocale }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultLocale')}</label>
             <p className="text-xs text-gray-500 mb-1">{t('admin.groups.defaultLocaleDesc')}</p>
-            <select
+            <FormLanguageSelect
               value={formData.defaultLocale}
-              onChange={(e) => setFormData({ ...formData, defaultLocale: e.target.value })}
-              className="input"
-            >
-              <option value="fr">{t('admin.users.form.french')}</option>
-              <option value="en">{t('admin.users.form.english')}</option>
-            </select>
+              onChange={(locale) => setFormData({ ...formData, defaultLocale: locale })}
+            />
           </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
@@ -265,14 +262,10 @@ function AddMemberModal({ onClose, onSave, users, existingMemberIds, isSuperAdmi
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.language')}</label>
-                <select
+                <FormLanguageSelect
                   value={newMemberData.locale}
-                  onChange={(e) => setNewMemberData({ ...newMemberData, locale: e.target.value })}
-                  className="input"
-                >
-                  <option value="fr">{t('admin.users.form.french')}</option>
-                  <option value="en">{t('admin.users.form.english')}</option>
-                </select>
+                  onChange={(locale) => setNewMemberData({ ...newMemberData, locale })}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.currency')}</label>

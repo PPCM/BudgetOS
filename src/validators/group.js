@@ -14,7 +14,7 @@ export const createGroupSchema = z.object({
     .max(500, 'Description too long')
     .trim()
     .optional(),
-  defaultLocale: z.enum(['fr', 'en']).optional(),
+  defaultLocale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).optional(),
 });
 
 /**
@@ -33,7 +33,7 @@ export const updateGroupSchema = z.object({
     .trim()
     .optional(),
   isActive: z.boolean().optional(),
-  defaultLocale: z.enum(['fr', 'en']).optional(),
+  defaultLocale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).optional(),
 });
 
 /**
@@ -53,7 +53,7 @@ export const addMemberSchema = z.object({
   firstName: z.string().max(100).trim().optional(),
   lastName: z.string().max(100).trim().optional(),
   role: z.enum(['admin', 'member']).default('member'),
-  locale: z.enum(['fr', 'en']).optional(),
+  locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).optional(),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF']).optional(),
 });
 

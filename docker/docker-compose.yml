@@ -1,0 +1,117 @@
+services:
+  budgetos:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: budgetos:1.0.0
+    container_name: budgetos
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SESSION_SECRET=change-me-in-production
+      - DB_TYPE=sqlite
+      - DB_PATH=./data/budgetos.db
+      # Set COOKIE_SECURE=true when behind an HTTPS reverse proxy
+      # - COOKIE_SECURE=true
+    volumes:
+      - budgetos_data:/app/data
+      - budgetos_uploads:/app/uploads
+      - budgetos_logs:/app/logs
+
+  # ──────────────────────────────────────────────
+  # MariaDB example (uncomment to use)
+  # ──────────────────────────────────────────────
+  # budgetos:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile
+  #   image: budgetos:1.0.0
+  #   container_name: budgetos
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - SESSION_SECRET=change-me-in-production
+  #     - DB_TYPE=mariadb
+  #     - MYSQL_HOST=mariadb
+  #     - MYSQL_PORT=3306
+  #     - MYSQL_DB=budgetos
+  #     - MYSQL_USER=budgetos
+  #     - MYSQL_PASSWORD=budgetos
+  #   volumes:
+  #     - budgetos_uploads:/app/uploads
+  #     - budgetos_logs:/app/logs
+  #   depends_on:
+  #     mariadb:
+  #       condition: service_healthy
+  #
+  # mariadb:
+  #   image: mariadb:11
+  #   container_name: budgetos-mariadb
+  #   restart: unless-stopped
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=budgetos_root
+  #     - MYSQL_DATABASE=budgetos
+  #     - MYSQL_USER=budgetos
+  #     - MYSQL_PASSWORD=budgetos
+  #   volumes:
+  #     - mariadb_data:/var/lib/mysql
+  #   healthcheck:
+  #     test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # ──────────────────────────────────────────────
+  # PostgreSQL example (uncomment to use)
+  # ──────────────────────────────────────────────
+  # budgetos:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile
+  #   image: budgetos:1.0.0
+  #   container_name: budgetos
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - SESSION_SECRET=change-me-in-production
+  #     - DB_TYPE=postgres
+  #     - POSTGRES_HOST=postgres
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_DB=budgetos
+  #     - POSTGRES_USER=budgetos
+  #     - POSTGRES_PASSWORD=budgetos
+  #   volumes:
+  #     - budgetos_uploads:/app/uploads
+  #     - budgetos_logs:/app/logs
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: budgetos-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_DB=budgetos
+  #     - POSTGRES_USER=budgetos
+  #     - POSTGRES_PASSWORD=budgetos
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U budgetos"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  budgetos_data:
+  budgetos_uploads:
+  budgetos_logs:
+  # mariadb_data:
+  # postgres_data:

@@ -452,11 +452,6 @@ function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
               {members.map((member) => (
                 <div key={member.userId || member.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50">
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-600 text-xs font-medium">
-                        {member.firstName?.[0] || member.email?.[0]?.toUpperCase()}
-                      </span>
-                    </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">
                         {member.firstName || member.lastName

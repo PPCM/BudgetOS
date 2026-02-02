@@ -734,11 +734,6 @@ export default function AdminUsers() {
                   <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                          <span className="text-primary-700 text-sm font-medium">
-                            {u.firstName?.[0] || u.email?.[0]?.toUpperCase()}
-                          </span>
-                        </div>
                         <div>
                           <p className="font-medium text-gray-900">
                             {u.firstName || u.lastName

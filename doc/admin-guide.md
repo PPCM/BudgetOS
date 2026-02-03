@@ -23,21 +23,207 @@ Installation, configuration, and administration reference for BudgetOS.
 
 ## 1. Requirements
 
+### Docker Installation
+
+| Requirement | Version |
+|-------------|---------|
+| **Docker** | >= 20.10 |
+| **Docker Compose** | >= 2.0 |
+
+### Manual Installation
+
 | Requirement | Version |
 |-------------|---------|
 | **Node.js** | >= 18.0.0 |
 | **npm** | >= 9.0.0 |
-| **Docker** (optional) | For PostgreSQL/MariaDB |
+| **Git** | Any recent version |
 
 ---
 
 ## 2. Installation
 
-### Standard Installation
+### Option A: Docker (Recommended)
+
+Docker is the easiest way to deploy BudgetOS. The image includes everything needed to run the application.
+
+#### Quick Start with SQLite
+
+```bash
+docker run -d \
+  --name budgetos \
+  -p 3000:3000 \
+  -v budgetos-data:/app/data \
+  -v budgetos-uploads:/app/uploads \
+  -v budgetos-logs:/app/logs \
+  -e SESSION_SECRET=your-secret-key-change-me \
+  ppcm/budgetos:latest
+```
+
+#### Docker Compose with SQLite
+
+Create a `docker-compose.yml` file:
+
+```yaml
+services:
+  budgetos:
+    image: ppcm/budgetos:latest
+    container_name: budgetos
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    environment:
+      - SESSION_SECRET=your-secret-key-change-me
+      - NODE_ENV=production
+    restart: unless-stopped
+```
+
+Then run:
+
+```bash
+docker compose up -d
+```
+
+#### Docker Compose with PostgreSQL
+
+```yaml
+services:
+  budgetos:
+    image: ppcm/budgetos:latest
+    container_name: budgetos
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    environment:
+      - SESSION_SECRET=your-secret-key-change-me
+      - NODE_ENV=production
+      - DB_TYPE=postgres
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=budgetos
+      - POSTGRES_USER=budgetos
+      - POSTGRES_PASSWORD=budgetos-password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: budgetos-postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=budgetos
+      - POSTGRES_USER=budgetos
+      - POSTGRES_PASSWORD=budgetos-password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budgetos -d budgetos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+```
+
+#### Docker Compose with MariaDB
+
+```yaml
+services:
+  budgetos:
+    image: ppcm/budgetos:latest
+    container_name: budgetos
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    environment:
+      - SESSION_SECRET=your-secret-key-change-me
+      - NODE_ENV=production
+      - DB_TYPE=mysql
+      - MYSQL_HOST=mariadb
+      - MYSQL_PORT=3306
+      - MYSQL_DB=budgetos
+      - MYSQL_USER=budgetos
+      - MYSQL_PASSWORD=budgetos-password
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:11
+    container_name: budgetos-mariadb
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    environment:
+      - MARIADB_DATABASE=budgetos
+      - MARIADB_USER=budgetos
+      - MARIADB_PASSWORD=budgetos-password
+      - MARIADB_ROOT_PASSWORD=root-password
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mariadb-data:
+```
+
+#### Docker Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SESSION_SECRET` | — | **Required**. Secret key for session encryption |
+| `NODE_ENV` | `production` | Environment mode |
+| `PORT` | `3000` | HTTP port |
+| `HOST` | `0.0.0.0` | Bind address |
+| `COOKIE_SECURE` | `false` | Set to `true` behind HTTPS proxy |
+| `DB_TYPE` | `sqlite` | Database: `sqlite`, `postgres`, or `mysql` |
+| `DB_PATH` | `./data/budgetos.db` | SQLite file path |
+| `POSTGRES_HOST` | `localhost` | PostgreSQL host |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `POSTGRES_DB` | `budgetos` | PostgreSQL database name |
+| `POSTGRES_USER` | `budgetos` | PostgreSQL user |
+| `POSTGRES_PASSWORD` | — | PostgreSQL password |
+| `MYSQL_HOST` | `localhost` | MariaDB/MySQL host |
+| `MYSQL_PORT` | `3306` | MariaDB/MySQL port |
+| `MYSQL_DB` | `budgetos` | MariaDB/MySQL database name |
+| `MYSQL_USER` | `budgetos` | MariaDB/MySQL user |
+| `MYSQL_PASSWORD` | — | MariaDB/MySQL password |
+
+#### Docker Volumes
+
+| Path | Purpose |
+|------|---------|
+| `/app/data` | SQLite database file |
+| `/app/uploads` | User-uploaded files |
+| `/app/logs` | Application logs |
+
+#### Seed Demo Data (Docker)
+
+```bash
+docker exec budgetos npm run db:seed
+```
+
+---
+
+### Option B: Manual Installation (GitHub)
+
+For development or when Docker is not available.
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/PPCM/BudgetOS.git
 cd BudgetOS
 
 # Install dependencies
@@ -45,6 +231,9 @@ npm install
 
 # Copy environment configuration
 cp .env.example .env
+
+# Edit .env and set SESSION_SECRET
+nano .env
 
 # Run database migrations
 npm run db:migrate
@@ -58,16 +247,18 @@ npm run db:seed
 
 The application is now accessible at `http://localhost:3000`.
 
-### Production Deployment
+---
+
+### Production Recommendations
 
 For production environments:
 
-1. Set `NODE_ENV=production` in `.env`
-2. Use PostgreSQL or MariaDB instead of SQLite
-3. Set a strong `SESSION_SECRET`
-4. Configure `BCRYPT_ROUNDS=12` or higher
-5. Set up a reverse proxy (nginx/Apache) with HTTPS
-6. Consider using Redis for session storage
+1. Set `NODE_ENV=production`
+2. Use PostgreSQL or MariaDB instead of SQLite for multi-user setups
+3. Set a strong, random `SESSION_SECRET` (at least 32 characters)
+4. Set up a reverse proxy (nginx/Traefik) with HTTPS
+5. Set `COOKIE_SECURE=true` when behind HTTPS
+6. Regular backups of database and uploads
 
 ---
 

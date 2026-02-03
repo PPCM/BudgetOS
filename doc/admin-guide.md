@@ -17,7 +17,6 @@ Installation, configuration, and administration reference for BudgetOS.
 9. [CLI Reference](#9-cli-reference)
 10. [Testing](#10-testing)
 11. [Security](#11-security)
-12. [Backup & Restore](#12-backup--restore)
 
 ---
 
@@ -650,79 +649,6 @@ docker compose -f docker-db/docker-compose.e2e.yml down
 5. Use PostgreSQL or MariaDB for production (file-level locking in SQLite can be limiting)
 6. Set `RATE_LIMIT_MAX_REQUESTS` appropriately for your expected traffic
 7. Regularly review user accounts and suspend unused ones
-
----
-
-## 12. Backup & Restore
-
-### SQLite
-
-```bash
-# Backup
-cp data/budgetos.db data/budgetos.db.backup
-
-# Restore
-cp data/budgetos.db.backup data/budgetos.db
-./budgetos.sh restart
-```
-
-### PostgreSQL
-
-```bash
-# Backup
-pg_dump -U budgetos budgetos > backup.sql
-
-# Restore
-psql -U budgetos budgetos < backup.sql
-```
-
-### MariaDB
-
-```bash
-# Backup
-mysqldump -u budgetos -p budgetos > backup.sql
-
-# Restore
-mysql -u budgetos -p budgetos < backup.sql
-```
-
-### Upload Files
-
-The `uploads/` directory contains user-uploaded files (attachments). Include it in your backup strategy:
-
-```bash
-# Backup uploads
-tar -czf uploads-backup.tar.gz uploads/
-
-# Restore uploads
-tar -xzf uploads-backup.tar.gz
-```
-
-### Full Backup Script Example
-
-```bash
-#!/bin/bash
-DATE=$(date +%Y-%m-%d)
-BACKUP_DIR="./backups/$DATE"
-mkdir -p "$BACKUP_DIR"
-
-# Stop server
-./budgetos.sh stop
-
-# Backup database (SQLite example)
-cp data/budgetos.db "$BACKUP_DIR/budgetos.db"
-
-# Backup uploads
-tar -czf "$BACKUP_DIR/uploads.tar.gz" uploads/
-
-# Backup configuration
-cp .env "$BACKUP_DIR/.env"
-
-# Restart server
-./budgetos.sh start
-
-echo "Backup completed: $BACKUP_DIR"
-```
 
 ---
 

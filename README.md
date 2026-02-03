@@ -126,16 +126,42 @@ docker compose up -d
 
 ### Environment Variables
 
+#### General
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SESSION_SECRET` | — | **Required**. Secret key for session encryption |
 | `NODE_ENV` | `production` | Environment mode |
 | `PORT` | `3000` | HTTP port |
-| `DB_TYPE` | `sqlite` | Database: `sqlite`, `postgres`, or `mysql` |
-| `DB_PATH` | `./data/budgetos.db` | SQLite file path |
+| `HOST` | `0.0.0.0` | Bind address |
 | `COOKIE_SECURE` | `false` | Set to `true` behind HTTPS proxy |
 
-For PostgreSQL/MariaDB configuration, see the [Admin Guide](doc/admin-guide.md#database-setup).
+#### Database
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_TYPE` | `sqlite` | Database: `sqlite`, `postgres`, or `mysql` |
+| `DB_PATH` | `./data/budgetos.db` | SQLite file path (when `DB_TYPE=sqlite`) |
+
+#### PostgreSQL (when `DB_TYPE=postgres`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_HOST` | `localhost` | PostgreSQL host |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `POSTGRES_DB` | `budgetos` | Database name |
+| `POSTGRES_USER` | `budgetos` | Database user |
+| `POSTGRES_PASSWORD` | — | Database password |
+
+#### MariaDB / MySQL (when `DB_TYPE=mysql`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MYSQL_HOST` | `localhost` | MySQL/MariaDB host |
+| `MYSQL_PORT` | `3306` | MySQL/MariaDB port |
+| `MYSQL_DB` | `budgetos` | Database name |
+| `MYSQL_USER` | `budgetos` | Database user |
+| `MYSQL_PASSWORD` | — | Database password |
 
 ### Demo Data
 
@@ -171,8 +197,6 @@ This creates:
 |----------|-------------|
 | [User Guide](doc/user-guide.md) | Complete guide for end users with screenshots |
 | [Admin Guide](doc/admin-guide.md) | Installation, configuration, user management |
-| [Developer Guide](doc/developer-guide.md) | Tech stack, project structure, testing, API |
-| [CLI Reference](doc/budgetos-cli.md) | Server management script documentation |
 
 ---
 

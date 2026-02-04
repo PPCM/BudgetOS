@@ -8,7 +8,7 @@
  *
  * These tests validate the LanguageSelector dropdown component:
  * - Trigger button displays current flag + language code (e.g. 🇫🇷 FR)
- * - Dropdown shows 8 languages with emoji flags and native names
+ * - Dropdown shows 9 languages with emoji flags and native names
  * - Selecting a language changes the UI text (i18n switch)
  * - Dropdown closes after selection and on click outside
  * - Language persists in localStorage across page navigations
@@ -62,9 +62,9 @@ describe('LanguageSelector - Login page (UI)', () => {
       //   3. Take snapshot
       // Expected:
       //   - Dropdown appears below trigger button
-      //   - 8 language options visible:
+      //   - 9 language options visible:
       //     🇫🇷 Français, 🇬🇧 English, 🇩🇪 Deutsch, 🇪🇸 Español,
-      //     🇮🇹 Italiano, 🇵🇹 Português, 🇷🇺 Русский, 🇨🇳 中文
+      //     🇮🇹 Italiano, 🇵🇹 Português, 🇷🇺 Русский, 🇸🇪 Svenska, 🇨🇳 中文
       //   - Dropdown has white background with shadow (bg-white shadow-xl rounded-xl)
       //   - aria-expanded="true" on trigger button
       //   - ChevronDown icon rotated 180° (rotate-180 class)
@@ -149,9 +149,9 @@ describe('LanguageSelector - Login page (UI)', () => {
       // Result: PASS
     })
 
-    it('should switch through all 8 languages without errors', () => {
+    it('should switch through all 9 languages without errors', () => {
       // Steps:
-      //   1. Starting from FR, cycle through: EN → DE → ES → IT → PT → RU → ZH → FR
+      //   1. Starting from FR, cycle through: EN → DE → ES → IT → PT → RU → SV → ZH → FR
       //   2. For each: open dropdown, select language, verify trigger updates
       // Expected:
       //   - Each switch: trigger shows correct flag + code
@@ -209,12 +209,12 @@ describe('LanguageSelector - Register page (UI)', () => {
   })
 
   describe('dropdown open/close', () => {
-    it('should open the dropdown with 8 languages on register page', () => {
+    it('should open the dropdown with 9 languages on register page', () => {
       // Steps:
       //   1. Click the language trigger button
       //   2. Take snapshot
       // Expected:
-      //   - 8 language options visible with flags and native names
+      //   - 9 language options visible with flags and native names
       //   - Active language highlighted with check icon
       //   - Same behavior as login page dropdown
       // Result: PASS
@@ -266,6 +266,22 @@ describe('LanguageSelector - Register page (UI)', () => {
       //   - All form labels switch to Russian
       //   - localStorage "budgetos-lang" = "ru"
       // Result: PASS
+    })
+
+    it('should switch register page to Swedish', () => {
+      // Steps:
+      //   1. Open dropdown
+      //   2. Click "Svenska"
+      // Expected:
+      //   - Trigger shows "🇸🇪 SV"
+      //   - Title: "Skapa ett konto"
+      //   - Subtitle: "Börja hantera din ekonomi"
+      //   - Form labels: "Förnamn", "Efternamn", "E-post", "Lösenord", "Bekräfta"
+      //   - Placeholders: "Johan", "Svensson", "du@exempel.se"
+      //   - Submit button: "Skapa mitt konto"
+      //   - Link: "Har du redan ett konto?" + "Logga in"
+      //   - localStorage "budgetos-lang" = "sv"
+      // Result: PASS (tested 2026-02-04)
     })
   })
 

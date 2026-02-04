@@ -7,6 +7,7 @@ import fr from './locales/fr.json'
 import it from './locales/it.json'
 import pt from './locales/pt.json'
 import ru from './locales/ru.json'
+import sv from './locales/sv.json'
 import zh from './locales/zh.json'
 
 const savedLang = localStorage.getItem('budgetos-lang') || 'fr'
@@ -20,6 +21,7 @@ i18n.use(initReactI18next).init({
     it: { translation: it },
     pt: { translation: pt },
     ru: { translation: ru },
+    sv: { translation: sv },
     zh: { translation: zh },
   },
   lng: savedLang,

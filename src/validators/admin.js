@@ -31,7 +31,7 @@ export const createUserSchema = z.object({
     .optional(),
   role: z.enum(['user', 'admin']).default('user'),
   groupId: z.string().min(1, 'Group ID required').optional(),
-  locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).default('fr'),
+  locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).default('fr'),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).default('EUR'),
 });
 
@@ -59,7 +59,7 @@ export const updateUserSchema = z.object({
     .trim()
     .optional(),
   role: z.enum(['user', 'admin', 'super_admin']).optional(),
-  locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).optional(),
+  locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).optional(),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).optional(),
 });
 
@@ -79,7 +79,7 @@ export const updateRoleSchema = z.object({
 export const updateSettingsSchema = z.object({
   allowPublicRegistration: z.boolean().optional(),
   defaultRegistrationGroupId: z.string().nullable().optional(),
-  defaultLocale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'zh']).optional(),
+  defaultLocale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).optional(),
 });
 
 /**

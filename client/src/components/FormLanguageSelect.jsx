@@ -9,6 +9,7 @@ const LANGUAGES = [
   { code: 'it', flag: '🇮🇹', name: 'Italiano' },
   { code: 'pt', flag: '🇵🇹', name: 'Português' },
   { code: 'ru', flag: '🇷🇺', name: 'Русский' },
+  { code: 'sv', flag: '🇸🇪', name: 'Svenska' },
   { code: 'zh', flag: '🇨🇳', name: '中文' },
 ]
 

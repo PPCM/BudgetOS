@@ -553,6 +553,7 @@
         "it": "Italiano",
         "pt": "Português",
         "ru": "Русский",
+        "sv": "Svenska",
         "zh": "中文"
       },
       "currencies": {
@@ -630,7 +631,8 @@
         "italian": "Italiano",
         "portuguese": "Português",
         "russian": "Русский",
-        "chinese": "中文"
+        "chinese": "中文",
+        "swedish": "Svenska"
       }
     },
     "groups": {

@@ -17,7 +17,7 @@
 
 ## Supported Tags
 
-- `1.0.0`, `1.0`, `1`, `latest`
+- `1.0.1`, `1.0`, `1`, `latest`
 
 ## Quick Reference
 

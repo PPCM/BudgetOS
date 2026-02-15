@@ -216,9 +216,9 @@ BudgetOS supports three database backends via [Knex.js](https://knexjs.org/):
 
 | Path | Purpose |
 |------|---------|
-| `/app/data` | SQLite database |
-| `/app/uploads` | User-uploaded files |
-| `/app/logs` | Application logs |
+| `/app/data` | SQLite database file (`budgetos.db`). Not needed when using PostgreSQL or MariaDB |
+| `/app/uploads` | Temporary storage for bank import files (CSV, Excel, QIF, OFX/QFX) |
+| `/app/logs` | Application logs (`budgetos.log`) |
 
 ---
 

@@ -23,7 +23,7 @@ vi.mock('react-i18next', () => ({
 
 const LANGUAGE_NAMES = [
   'Français', 'English', 'Deutsch', 'Español',
-  'Italiano', 'Português', 'Русский', '中文',
+  'Italiano', 'Português', 'Русский', 'Svenska', '中文',
 ]
 
 describe('LanguageSelector', () => {
@@ -66,12 +66,12 @@ describe('LanguageSelector', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('shows all 8 language options in the dropdown', () => {
+  it('shows all 9 language options in the dropdown', () => {
     render(<LanguageSelector />)
     fireEvent.click(screen.getByRole('button', { name: /🇫🇷\s*FR/i }))
 
     const options = screen.getAllByRole('option')
-    expect(options).toHaveLength(8)
+    expect(options).toHaveLength(9)
 
     for (const name of LANGUAGE_NAMES) {
       expect(screen.getByText(name)).toBeInTheDocument()

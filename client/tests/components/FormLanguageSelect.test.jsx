@@ -10,7 +10,7 @@ vi.mock('lucide-react', () => ({
 
 const LANGUAGE_NAMES = [
   'Français', 'English', 'Deutsch', 'Español',
-  'Italiano', 'Português', 'Русский', '中文',
+  'Italiano', 'Português', 'Русский', 'Svenska', '中文',
 ]
 
 describe('FormLanguageSelect', () => {
@@ -50,12 +50,12 @@ describe('FormLanguageSelect', () => {
     expect(listbox.className).toContain('pointer-events-auto')
   })
 
-  it('shows all 8 language options', () => {
+  it('shows all 9 language options', () => {
     render(<FormLanguageSelect value="fr" onChange={onChange} />)
     fireEvent.click(screen.getByRole('button', { name: /🇫🇷\s*Français/i }))
 
     const options = screen.getAllByRole('option')
-    expect(options).toHaveLength(8)
+    expect(options).toHaveLength(9)
 
     // Check each option has the expected language name
     const optionTexts = options.map((opt) => opt.textContent)

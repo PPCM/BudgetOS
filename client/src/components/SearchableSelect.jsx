@@ -175,7 +175,7 @@ export default function SearchableSelect({
           className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-primary-50 text-primary-600"
         >
           <Plus className="w-4 h-4" />
-          <span>{creating ? 'Création...' : `${createLabel} "${inputValue}"`}</span>
+          <span>{creating ? 'Création...' : createLabel.replace('{{name}}', inputValue)}</span>
         </button>
       )}
     </div>

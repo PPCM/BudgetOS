@@ -173,6 +173,7 @@ function SecuritySettings({ onSuccess, onError }) {
     mutation.mutate({
       currentPassword: formData.currentPassword,
       newPassword: formData.newPassword,
+      newPasswordConfirm: formData.confirmPassword,
     })
   }
 

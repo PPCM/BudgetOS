@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:20-alpine AS frontend
+FROM node:24-alpine AS frontend
 WORKDIR /app
 COPY package.json ./
 WORKDIR /app/client
@@ -9,7 +9,7 @@ COPY client/ ./
 RUN npm run build
 
 # Stage 2: Production
-FROM node:20-alpine
+FROM node:24-alpine
 
 ARG VERSION=1.0.0
 ARG BUILD_DATE
@@ -32,7 +32,10 @@ RUN npm pkg delete scripts.prepare && npm ci --omit=dev
 COPY src/ ./src/
 COPY knexfile.js ./
 COPY --from=frontend /app/client/dist ./client/dist/
-RUN mkdir -p data uploads logs
+RUN mkdir -p data uploads logs client/public/uploads/payees && \
+    chown -R node:node data uploads logs client/public/uploads
+
+USER node
 
 EXPOSE 3000
 

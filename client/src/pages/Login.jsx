@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
-import { LogIn, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react'
+import PasswordInput from '../components/PasswordInput'
 import { preloadCsrfToken } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import LanguageSelector from '../components/LanguageSelector'
@@ -10,7 +11,6 @@ import LanguageSelector from '../components/LanguageSelector'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
@@ -86,22 +86,14 @@ export default function Login() {
                 {t('auth.login.password')}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10 pointer-events-none" />
+                <PasswordInput
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input pl-10 pr-10"
+                  className="input pl-10"
                   placeholder="••••••••"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
             </div>
 

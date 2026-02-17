@@ -8,6 +8,7 @@ import {
   User, Lock, Bell, Palette, Globe,
   Save, CheckCircle, AlertCircle
 } from 'lucide-react'
+import PasswordInput from '../components/PasswordInput'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import axios from 'axios'
 
@@ -184,8 +185,7 @@ function SecuritySettings({ onSuccess, onError }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.security.currentPassword')}</label>
-          <input
-            type="password"
+          <PasswordInput
             value={formData.currentPassword}
             onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
             className="input"
@@ -194,8 +194,7 @@ function SecuritySettings({ onSuccess, onError }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.security.newPassword')}</label>
-          <input
-            type="password"
+          <PasswordInput
             value={formData.newPassword}
             onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
             className="input"
@@ -205,8 +204,7 @@ function SecuritySettings({ onSuccess, onError }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.security.confirmPassword')}</label>
-          <input
-            type="password"
+          <PasswordInput
             value={formData.confirmPassword}
             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
             className="input"

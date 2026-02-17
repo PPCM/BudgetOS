@@ -44,10 +44,15 @@
  *   [ ] Below form text: "Déjà un compte ?"
  *   [ ] Link: "Se connecter" pointing to /login
  *
- * 1.4 Password visibility toggle
- *   [ ] Click Eye icon on password field — both password and confirm switch to type="text"
- *   [ ] Icons change to EyeOff on both fields
- *   [ ] Click EyeOff — both fields switch back to type="password"
+ * 1.4 Password visibility toggle (independent per field)
+ *   [ ] Each password field has its own Eye icon toggle button
+ *   [ ] Click Eye icon on password field — only password switches to type="text"
+ *   [ ] Confirm field remains type="password" (independent toggle)
+ *   [ ] Icon changes to EyeOff on password field only
+ *   [ ] Click EyeOff on password — password switches back to type="password"
+ *   [ ] Click Eye icon on confirm field — only confirm switches to type="text"
+ *   [ ] Password field remains type="password" (independent toggle)
+ *   [ ] Toggle buttons have tabIndex=-1 (not reachable via Tab key)
  *
  * ═══════════════════════════════════════════════════════════
  * STEP 2 — SUCCESSFUL REGISTRATION
@@ -288,7 +293,7 @@
  * RESULTS LOG
  * ═══════════════════════════════════════════════════════════
  *
- * Last tested: 2026-02-02
+ * Last tested: 2026-02-17
  * Login: (no login needed - public page)
  *
  * STEP 1 — Page display:
@@ -296,7 +301,9 @@
  *   ✅ 1.2 Language selector FR/EN
  *   ✅ 1.3 Fields: Prénom (placeholder "Jean"), Nom ("Dupont"), Email (required, "vous@exemple.com"),
  *          Mot de passe (required, hint complexité), Confirmer (required), eye toggles
- *   ✅ 1.4 Button "Créer mon compte", link "Se connecter" → /login
+ *   ✅ 1.4 Password toggles are independent: clicking Eye on password reveals only
+ *          password field, confirm stays masked (and vice versa). tabIndex=-1 on buttons.
+ *   ✅ 1.5 Button "Créer mon compte", link "Se connecter" → /login
  *
  * STEP 2 — Successful registration: ⬜ Not tested (would create real user)
  *

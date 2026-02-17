@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
-import { UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
+import { UserPlus, Mail, Lock, User } from 'lucide-react'
+import PasswordInput from '../components/PasswordInput'
 import { preloadCsrfToken } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import { useToast } from '../components/Toast'
@@ -16,7 +17,6 @@ export default function Register() {
     firstName: '',
     lastName: '',
   })
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const { register, needsSetup } = useAuth()
   const navigate = useNavigate()
@@ -117,46 +117,30 @@ export default function Register() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.register.password')}</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10 pointer-events-none" />
+                <PasswordInput
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="input pl-10 pr-10"
+                  className="input pl-10"
                   placeholder={t('auth.register.passwordPlaceholder')}
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.register.confirm')}</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10 pointer-events-none" />
+                <PasswordInput
                   name="passwordConfirm"
                   value={formData.passwordConfirm}
                   onChange={handleChange}
-                  className="input pl-10 pr-10"
+                  className="input pl-10"
                   placeholder={t('auth.register.confirmPlaceholder')}
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
             </div>
 

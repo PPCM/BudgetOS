@@ -63,10 +63,20 @@
  * 3.1 Security form display
  *   [ ] Click "Sécurité" tab
  *   [ ] Card title: "Changer le mot de passe"
- *   [ ] "Mot de passe actuel": password input, required
- *   [ ] "Nouveau mot de passe": password input, required, minLength=8
- *   [ ] "Confirmer": password input, required
+ *   [ ] "Mot de passe actuel": password input, required, Eye toggle button
+ *   [ ] "Nouveau mot de passe": password input, required, minLength=8, Eye toggle button
+ *   [ ] "Confirmer": password input, required, Eye toggle button
  *   [ ] "Modifier le mot de passe" button with Lock icon
+ *
+ * 3.1b Password visibility toggle (all 3 fields)
+ *   [ ] Each password field has its own Eye icon toggle button (3 independent toggles)
+ *   [ ] Click Eye on "Mot de passe actuel" — field switches to type="text", value visible
+ *   [ ] Other 2 fields remain type="password" (independent)
+ *   [ ] Click EyeOff — field switches back to type="password"
+ *   [ ] Click Eye on "Nouveau mot de passe" — only that field reveals text
+ *   [ ] Click Eye on "Confirmer" — only that field reveals text
+ *   [ ] Toggle buttons have tabIndex=-1 (not reachable via Tab key)
+ *   [ ] Toggle only reveals typed password, not stored password from database
  *
  * 3.2 Change password (success)
  *   [ ] Enter current password: "Admin123!"
@@ -323,7 +333,7 @@
  * RESULTS LOG
  * ═══════════════════════════════════════════════════════════
  *
- * Last tested: 2026-02-02
+ * Last tested: 2026-02-17
  * Login: admin@budgetos.local / Admin123!
  *
  * STEP 1 — Profile tab:
@@ -334,7 +344,10 @@
  * STEP 2 — Security tab:
  *   ✅ 2.1 "Changer le mot de passe" heading
  *   ✅ 2.2 3 fields: Mot de passe actuel, Nouveau mot de passe, Confirmer (all required)
+ *          Each field has Eye toggle button for password visibility
  *   ✅ 2.3 Button: "Modifier le mot de passe"
+ *   ✅ 2.4 Password toggle: typed "MonSecret123", clicked Eye → value visible in clear,
+ *          clicked EyeOff → value masked again. All 3 fields have independent toggles.
  *
  * STEP 3 — Preferences tab:
  *   ✅ 3.1 Langue (Français/English), Devise (Euro/Dollar/Livre/CHF),

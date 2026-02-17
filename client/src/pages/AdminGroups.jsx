@@ -14,6 +14,7 @@ import {
   ChevronDown, ChevronUp, FolderTree
 } from 'lucide-react'
 import Modal from '../components/Modal'
+import PasswordInput from '../components/PasswordInput'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
 
@@ -278,8 +279,7 @@ function AddMemberModal({ onClose, onSave, users, existingMemberIds, isSuperAdmi
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.users.form.password')}</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={newMemberData.password}
                 onChange={(e) => setNewMemberData({ ...newMemberData, password: e.target.value })}
                 className="input"

@@ -65,7 +65,7 @@ export class User {
    * Create a new user with default categories and settings
    */
   static async create(data) {
-    const { email, password, firstName, lastName, locale, currency } = data;
+    const { email, password, firstName, lastName, locale, currency, decimalSeparator, digitGrouping } = data;
 
     const existing = await knex('users').where('email', email).first();
     if (existing) {
@@ -76,11 +76,15 @@ export class User {
     const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
 
     await knex.transaction(async (trx) => {
-      await trx('users').insert({
+      const userRow = {
         id, email, password_hash: passwordHash,
         first_name: firstName || null, last_name: lastName || null,
         locale, currency,
-      });
+      };
+      if (decimalSeparator !== undefined) userRow.decimal_separator = decimalSeparator;
+      if (digitGrouping !== undefined) userRow.digit_grouping = digitGrouping;
+
+      await trx('users').insert(userRow);
 
       await User._insertDefaults(trx, id);
     });
@@ -94,6 +98,7 @@ export class User {
   static async findById(id) {
     const user = await knex('users')
       .select('id', 'email', 'first_name', 'last_name', 'role', 'locale', 'currency', 'timezone',
+        'decimal_separator', 'digit_grouping',
         'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
       .where({ id, is_active: true })
       .first();
@@ -107,6 +112,7 @@ export class User {
   static async findByIdAny(id) {
     const user = await knex('users')
       .select('id', 'email', 'first_name', 'last_name', 'role', 'locale', 'currency', 'timezone',
+        'decimal_separator', 'digit_grouping',
         'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
       .where({ id })
       .first();
@@ -120,7 +126,8 @@ export class User {
   static async findByEmail(email) {
     const user = await knex('users')
       .select('id', 'email', 'password_hash', 'first_name', 'last_name', 'role', 'locale',
-        'currency', 'timezone', 'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
+        'currency', 'timezone', 'decimal_separator', 'digit_grouping',
+        'is_active', 'email_verified', 'last_login_at', 'created_at', 'updated_at')
       .where({ email: email.toLowerCase() })
       .first();
 
@@ -141,7 +148,7 @@ export class User {
     const user = await User.findById(id);
     if (!user) throw new NotFoundError('User not found', 'USER_NOT_FOUND');
 
-    const allowedFields = ['first_name', 'last_name', 'locale', 'currency', 'timezone'];
+    const allowedFields = ['first_name', 'last_name', 'locale', 'currency', 'timezone', 'decimal_separator', 'digit_grouping'];
     const updates = buildUpdates(data, allowedFields);
 
     if (Object.keys(updates).length > 0) {
@@ -222,7 +229,7 @@ export class User {
       }
     }
 
-    const allowedFields = ['email', 'first_name', 'last_name', 'role', 'locale', 'currency'];
+    const allowedFields = ['email', 'first_name', 'last_name', 'role', 'locale', 'currency', 'decimal_separator', 'digit_grouping'];
     const updates = buildUpdates(data, allowedFields);
 
     if (Object.keys(updates).length > 0) {
@@ -238,7 +245,7 @@ export class User {
    * @returns {Promise<Object>}
    */
   static async createByAdmin(data) {
-    const { email, password, firstName, lastName, locale, currency, role } = data;
+    const { email, password, firstName, lastName, locale, currency, role, decimalSeparator, digitGrouping } = data;
 
     const existing = await knex('users').where('email', email).first();
     if (existing) {
@@ -249,12 +256,16 @@ export class User {
     const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
 
     await knex.transaction(async (trx) => {
-      await trx('users').insert({
+      const userRow = {
         id, email, password_hash: passwordHash,
         first_name: firstName || null, last_name: lastName || null,
         locale: locale || 'fr', currency: currency || 'EUR',
         role: role || 'user',
-      });
+      };
+      if (decimalSeparator !== undefined) userRow.decimal_separator = decimalSeparator;
+      if (digitGrouping !== undefined) userRow.digit_grouping = digitGrouping;
+
+      await trx('users').insert(userRow);
 
       await User._insertDefaults(trx, id);
     });
@@ -276,7 +287,8 @@ export class User {
 
     let query = knex('users')
       .select('users.id', 'users.email', 'users.first_name', 'users.last_name', 'users.role',
-        'users.locale', 'users.currency', 'users.is_active', 'users.email_verified',
+        'users.locale', 'users.currency', 'users.decimal_separator', 'users.digit_grouping',
+        'users.is_active', 'users.email_verified',
         'users.last_login_at', 'users.created_at');
 
     if (role) query = query.where('users.role', role);
@@ -355,6 +367,8 @@ export class User {
       role: user.role,
       locale: user.locale,
       currency: user.currency,
+      decimalSeparator: user.decimal_separator || ',',
+      digitGrouping: user.digit_grouping || ' ',
       timezone: user.timezone,
       isActive: Boolean(user.is_active),
       status: Boolean(user.is_active) ? 'active' : 'suspended',

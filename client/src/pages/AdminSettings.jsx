@@ -22,6 +22,8 @@ export default function AdminSettings() {
     publicRegistration: false,
     defaultGroupId: '',
     defaultLocale: 'fr',
+    defaultDecimalSeparator: ',',
+    defaultDigitGrouping: ' ',
   })
   const [dirty, setDirty] = useState(false)
   const queryClient = useQueryClient()
@@ -44,6 +46,8 @@ export default function AdminSettings() {
         publicRegistration: settingsData.data.allowPublicRegistration ?? false,
         defaultGroupId: settingsData.data.defaultRegistrationGroupId || '',
         defaultLocale: settingsData.data.defaultLocale || 'fr',
+        defaultDecimalSeparator: settingsData.data.defaultDecimalSeparator || ',',
+        defaultDigitGrouping: settingsData.data.defaultDigitGrouping || ' ',
       })
       setDirty(false)
     }
@@ -72,6 +76,8 @@ export default function AdminSettings() {
       allowPublicRegistration: formData.publicRegistration,
       defaultRegistrationGroupId: formData.defaultGroupId || null,
       defaultLocale: formData.defaultLocale,
+      defaultDecimalSeparator: formData.defaultDecimalSeparator,
+      defaultDigitGrouping: formData.defaultDigitGrouping,
     }
     updateMutation.mutate(data)
   }
@@ -162,6 +168,44 @@ export default function AdminSettings() {
             onChange={(locale) => handleChange('defaultLocale', locale)}
             className="max-w-md"
           />
+        </div>
+
+        {/* Default decimal separator */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            {t('admin.settings.defaultDecimalSeparator')}
+          </label>
+          <p className="text-sm text-gray-500 mb-2">
+            {t('admin.settings.defaultDecimalSeparatorDesc')}
+          </p>
+          <select
+            value={formData.defaultDecimalSeparator}
+            onChange={(e) => handleChange('defaultDecimalSeparator', e.target.value)}
+            className="input max-w-md"
+          >
+            <option value=",">{t('settings.preferences.decimalSeparators.comma')}</option>
+            <option value=".">{t('settings.preferences.decimalSeparators.dot')}</option>
+          </select>
+        </div>
+
+        {/* Default digit grouping */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            {t('admin.settings.defaultDigitGrouping')}
+          </label>
+          <p className="text-sm text-gray-500 mb-2">
+            {t('admin.settings.defaultDigitGroupingDesc')}
+          </p>
+          <select
+            value={formData.defaultDigitGrouping}
+            onChange={(e) => handleChange('defaultDigitGrouping', e.target.value)}
+            className="input max-w-md"
+          >
+            <option value=" ">{t('settings.preferences.digitGroupings.space')}</option>
+            <option value=",">{t('settings.preferences.digitGroupings.comma')}</option>
+            <option value=".">{t('settings.preferences.digitGroupings.dot')}</option>
+            <option value="">{t('settings.preferences.digitGroupings.none')}</option>
+          </select>
         </div>
 
         {/* Save button */}

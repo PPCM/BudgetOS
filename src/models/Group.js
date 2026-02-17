@@ -16,7 +16,7 @@ export class Group {
    * @returns {Promise<Object>}
    */
   static async create(data) {
-    const { name, description, createdBy, defaultLocale } = data;
+    const { name, description, createdBy, defaultLocale, defaultDecimalSeparator, defaultDigitGrouping } = data;
     const id = generateId();
 
     const row = {
@@ -27,6 +27,8 @@ export class Group {
       created_by: createdBy,
     };
     if (defaultLocale !== undefined) row.default_locale = defaultLocale;
+    if (defaultDecimalSeparator !== undefined) row.default_decimal_separator = defaultDecimalSeparator;
+    if (defaultDigitGrouping !== undefined) row.default_digit_grouping = defaultDigitGrouping;
 
     await knex('groups').insert(row);
 
@@ -106,6 +108,8 @@ export class Group {
     if (data.description !== undefined) updates.description = data.description;
     if (data.isActive !== undefined) updates.is_active = data.isActive;
     if (data.defaultLocale !== undefined) updates.default_locale = data.defaultLocale;
+    if (data.defaultDecimalSeparator !== undefined) updates.default_decimal_separator = data.defaultDecimalSeparator;
+    if (data.defaultDigitGrouping !== undefined) updates.default_digit_grouping = data.defaultDigitGrouping;
 
     if (Object.keys(updates).length > 0) {
       await knex('groups').where('id', id).update(updates);
@@ -380,6 +384,8 @@ export class Group {
       name: group.name,
       description: group.description,
       defaultLocale: group.default_locale || 'fr',
+      defaultDecimalSeparator: group.default_decimal_separator || ',',
+      defaultDigitGrouping: group.default_digit_grouping || ' ',
       isActive: Boolean(group.is_active),
       createdBy: group.created_by,
       createdAt: group.created_at,

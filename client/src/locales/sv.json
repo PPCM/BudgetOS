@@ -566,7 +566,20 @@
         "monday": "Måndag",
         "sunday": "Söndag",
         "saturday": "Lördag"
-      }
+      },
+      "decimalSeparator": "Decimaltecken",
+      "digitGrouping": "Siffergrupperingssymbol",
+      "decimalSeparators": {
+        "comma": ",  Komma",
+        "dot": ".  Punkt"
+      },
+      "digitGroupings": {
+        "space": "␣  Mellanslag",
+        "comma": ",  Komma",
+        "dot": ".  Punkt",
+        "none": "Ingen"
+      },
+      "preview": "Preview: {{value}}"
     }
   },
   "admin": {
@@ -664,6 +677,8 @@
       "administrator": "Administratör",
       "defaultLocale": "Standardspråk",
       "defaultLocaleDesc": "Språk som tilldelas nya medlemmar skapade i denna grupp",
+      "defaultDecimalSeparator": "Standard decimaltecken",
+      "defaultDigitGrouping": "Standard siffergrupperingssymbol",
       "existingUser": "Befintlig användare",
       "newMember": "Ny användare"
     },
@@ -679,6 +694,10 @@
       "noDefaultGroup": "Ingen standardgrupp",
       "defaultLocale": "Standardspråk",
       "defaultLocaleDesc": "Standardspråk som föreslås när en användare eller grupp skapas",
+      "defaultDecimalSeparator": "Standard decimaltecken",
+      "defaultDecimalSeparatorDesc": "Standard decimaltecken för nya användare",
+      "defaultDigitGrouping": "Standard siffergrupperingssymbol",
+      "defaultDigitGroupingDesc": "Standard siffergrupperingssymbol för nya användare",
       "saving": "Sparar...",
       "saved": "Inställningar uppdaterade"
     }

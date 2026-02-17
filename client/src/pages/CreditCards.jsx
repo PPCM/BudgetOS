@@ -7,7 +7,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { creditCardsApi, accountsApi } from '../lib/api'
-import { useFormatters } from '../hooks/useFormatters'
+import { useFormatters, parseAmount } from '../hooks/useFormatters'
+import FormattedAmountInput from '../components/FormattedAmountInput'
 import { translateError } from '../lib/errorHelper'
 import { CreditCard, Calendar, Clock, Plus, Pencil, Trash2, X, Filter, ArrowUpDown } from 'lucide-react'
 import Modal from '../components/Modal'
@@ -33,7 +34,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
     debitType: card?.debitType || 'deferred',
     cycleStartDay: card?.cycleStartDay || 1,
     debitDay: card?.debitDay || 5,
-    creditLimit: card?.creditLimit || '',
+    creditLimit: card?.creditLimit ? String(card.creditLimit) : '',
     color: card?.color || '#EF4444',
   })
 
@@ -50,7 +51,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
     if (formData.linkedAccountId) data.linkedAccountId = formData.linkedAccountId
     if (formData.cardNumberLast4) data.cardNumberLast4 = formData.cardNumberLast4
     if (formData.debitType === 'deferred') data.debitDay = parseInt(formData.debitDay)
-    if (formData.creditLimit) data.creditLimit = parseFloat(formData.creditLimit)
+    if (formData.creditLimit) data.creditLimit = parseAmount(formData.creditLimit)
     onSave(data)
   }
 
@@ -124,12 +125,10 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('creditCards.creditLimit')}</label>
-              <input
-                type="number"
+              <FormattedAmountInput
                 value={formData.creditLimit}
-                onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
+                onChange={(val) => setFormData({ ...formData, creditLimit: val })}
                 className="input"
-                placeholder="3000"
               />
             </div>
           </div>

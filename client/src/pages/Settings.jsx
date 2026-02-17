@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { useMutation } from '@tanstack/react-query'
 import { translateError } from '../lib/errorHelper'
+import { formatNumber } from '../hooks/useFormatters'
 import {
   User, Lock, Bell, Palette, Globe,
   Save, CheckCircle, AlertCircle
@@ -227,6 +228,8 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
   const [formData, setFormData] = useState({
     locale: user?.locale || 'fr',
     currency: user?.currency || 'EUR',
+    decimalSeparator: user?.decimalSeparator || ',',
+    digitGrouping: user?.digitGrouping || ' ',
   })
   const [settingsData, setSettingsData] = useState({
     weekStartDay: userSettings?.weekStartDay ?? 1,
@@ -297,6 +300,35 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
             <option value={0}>{t('settings.preferences.weekDays.sunday')}</option>
             <option value={6}>{t('settings.preferences.weekDays.saturday')}</option>
           </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.preferences.decimalSeparator')}</label>
+          <select
+            value={formData.decimalSeparator}
+            onChange={(e) => setFormData({ ...formData, decimalSeparator: e.target.value })}
+            className="input"
+          >
+            <option value=",">{t('settings.preferences.decimalSeparators.comma')}</option>
+            <option value=".">{t('settings.preferences.decimalSeparators.dot')}</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.preferences.digitGrouping')}</label>
+          <select
+            value={formData.digitGrouping}
+            onChange={(e) => setFormData({ ...formData, digitGrouping: e.target.value })}
+            className="input"
+          >
+            <option value=" ">{t('settings.preferences.digitGroupings.space')}</option>
+            <option value=",">{t('settings.preferences.digitGroupings.comma')}</option>
+            <option value=".">{t('settings.preferences.digitGroupings.dot')}</option>
+            <option value="">{t('settings.preferences.digitGroupings.none')}</option>
+          </select>
+        </div>
+        <div className="p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-600">
+            {t('settings.preferences.preview', { value: formatNumber(1234567.89, formData.decimalSeparator, formData.digitGrouping) })}
+          </p>
         </div>
         <button type="submit" disabled={profileMutation.isPending || settingsMutation.isPending} className="btn btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" />

@@ -566,7 +566,20 @@
         "monday": "星期一",
         "sunday": "星期日",
         "saturday": "星期六"
-      }
+      },
+      "decimalSeparator": "小数点符号",
+      "digitGrouping": "数字分组符号",
+      "decimalSeparators": {
+        "comma": ",  逗号",
+        "dot": ".  点号"
+      },
+      "digitGroupings": {
+        "space": "␣  空格",
+        "comma": ",  逗号",
+        "dot": ".  点号",
+        "none": "无"
+      },
+      "preview": "Preview: {{value}}"
     }
   },
   "admin": {
@@ -664,6 +677,8 @@
       "administrator": "管理员",
       "defaultLocale": "默认语言",
       "defaultLocaleDesc": "在此群组中创建新成员时分配的语言",
+      "defaultDecimalSeparator": "默认小数点符号",
+      "defaultDigitGrouping": "默认数字分组符号",
       "existingUser": "现有用户",
       "newMember": "新建用户"
     },
@@ -679,6 +694,10 @@
       "noDefaultGroup": "无默认群组",
       "defaultLocale": "默认语言",
       "defaultLocaleDesc": "创建用户或群组时默认选择的语言",
+      "defaultDecimalSeparator": "默认小数点符号",
+      "defaultDecimalSeparatorDesc": "为新用户提供的默认小数点符号",
+      "defaultDigitGrouping": "默认数字分组符号",
+      "defaultDigitGroupingDesc": "为新用户提供的默认数字分组符号",
       "saving": "保存中...",
       "saved": "设置已更新"
     }

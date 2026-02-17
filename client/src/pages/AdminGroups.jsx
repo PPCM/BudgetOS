@@ -24,12 +24,14 @@ import { useToast } from '../components/Toast'
  * @param {Function} props.onClose - Close callback
  * @param {Function} props.onSave - Save callback with form data
  */
-function GroupModal({ group, onClose, onSave, appDefaultLocale }) {
+function GroupModal({ group, onClose, onSave, appDefaults }) {
   const { t } = useTranslation()
   const [formData, setFormData] = useState({
     name: group?.name || '',
     description: group?.description || '',
-    defaultLocale: group?.defaultLocale || appDefaultLocale || 'fr',
+    defaultLocale: group?.defaultLocale || appDefaults?.defaultLocale || 'fr',
+    defaultDecimalSeparator: group?.defaultDecimalSeparator || appDefaults?.defaultDecimalSeparator || ',',
+    defaultDigitGrouping: group?.defaultDigitGrouping || appDefaults?.defaultDigitGrouping || ' ',
   })
 
   const handleSubmit = (e) => {
@@ -75,6 +77,32 @@ function GroupModal({ group, onClose, onSave, appDefaultLocale }) {
               value={formData.defaultLocale}
               onChange={(locale) => setFormData({ ...formData, defaultLocale: locale })}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultDecimalSeparator')}</label>
+              <select
+                value={formData.defaultDecimalSeparator}
+                onChange={(e) => setFormData({ ...formData, defaultDecimalSeparator: e.target.value })}
+                className="input"
+              >
+                <option value=",">{t('settings.preferences.decimalSeparators.comma')}</option>
+                <option value=".">{t('settings.preferences.decimalSeparators.dot')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultDigitGrouping')}</label>
+              <select
+                value={formData.defaultDigitGrouping}
+                onChange={(e) => setFormData({ ...formData, defaultDigitGrouping: e.target.value })}
+                className="input"
+              >
+                <option value=" ">{t('settings.preferences.digitGroupings.space')}</option>
+                <option value=",">{t('settings.preferences.digitGroupings.comma')}</option>
+                <option value=".">{t('settings.preferences.digitGroupings.dot')}</option>
+                <option value="">{t('settings.preferences.digitGroupings.none')}</option>
+              </select>
+            </div>
           </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">
@@ -532,7 +560,11 @@ export default function AdminGroups() {
     enabled: isSuperAdmin,
   })
 
-  const appDefaultLocale = settingsData?.data?.defaultLocale || 'fr'
+  const appDefaults = {
+    defaultLocale: settingsData?.data?.defaultLocale || 'fr',
+    defaultDecimalSeparator: settingsData?.data?.defaultDecimalSeparator || ',',
+    defaultDigitGrouping: settingsData?.data?.defaultDigitGrouping || ' ',
+  }
 
   const createMutation = useMutation({
     mutationFn: groupsApi.create,
@@ -631,7 +663,7 @@ export default function AdminGroups() {
           group={editingGroup}
           onClose={() => { setModalOpen(false); setEditingGroup(null) }}
           onSave={handleSave}
-          appDefaultLocale={appDefaultLocale}
+          appDefaults={appDefaults}
         />
       )}
     </div>

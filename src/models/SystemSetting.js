@@ -64,6 +64,8 @@ export class SystemSetting {
       allowPublicRegistration: settings.allow_public_registration === 'true',
       defaultRegistrationGroupId: settings.default_registration_group_id || null,
       defaultLocale: settings.default_locale || 'fr',
+      defaultDecimalSeparator: settings.default_decimal_separator || ',',
+      defaultDigitGrouping: settings.default_digit_grouping || ' ',
     };
   }
 }

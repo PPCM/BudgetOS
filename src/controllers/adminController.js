@@ -183,7 +183,7 @@ export const getSettings = async (req, res) => {
  * Update system settings (super_admin only)
  */
 export const updateSettings = async (req, res) => {
-  const { allowPublicRegistration, defaultRegistrationGroupId, defaultLocale } = req.body;
+  const { allowPublicRegistration, defaultRegistrationGroupId, defaultLocale, defaultDecimalSeparator, defaultDigitGrouping } = req.body;
 
   if (allowPublicRegistration !== undefined) {
     // If enabling public registration, verify default group is set
@@ -217,6 +217,14 @@ export const updateSettings = async (req, res) => {
 
   if (defaultLocale !== undefined) {
     await SystemSetting.set('default_locale', defaultLocale, req.user.id);
+  }
+
+  if (defaultDecimalSeparator !== undefined) {
+    await SystemSetting.set('default_decimal_separator', defaultDecimalSeparator, req.user.id);
+  }
+
+  if (defaultDigitGrouping !== undefined) {
+    await SystemSetting.set('default_digit_grouping', defaultDigitGrouping, req.user.id);
   }
 
   const settings = await SystemSetting.getAllFormatted();

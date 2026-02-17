@@ -15,6 +15,8 @@ export const createGroupSchema = z.object({
     .trim()
     .optional(),
   defaultLocale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).optional(),
+  defaultDecimalSeparator: z.enum(['.', ',']).optional(),
+  defaultDigitGrouping: z.enum([',', '.', ' ']).optional(),
 });
 
 /**
@@ -34,6 +36,8 @@ export const updateGroupSchema = z.object({
     .optional(),
   isActive: z.boolean().optional(),
   defaultLocale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).optional(),
+  defaultDecimalSeparator: z.enum(['.', ',']).optional(),
+  defaultDigitGrouping: z.enum([',', '.', ' ']).optional(),
 });
 
 /**

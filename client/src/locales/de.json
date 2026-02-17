@@ -566,7 +566,20 @@
         "monday": "Montag",
         "sunday": "Sonntag",
         "saturday": "Samstag"
-      }
+      },
+      "decimalSeparator": "Dezimaltrennzeichen",
+      "digitGrouping": "Zifferngruppierungssymbol",
+      "decimalSeparators": {
+        "comma": ",  Komma",
+        "dot": ".  Punkt"
+      },
+      "digitGroupings": {
+        "space": "␣  Leerzeichen",
+        "comma": ",  Komma",
+        "dot": ".  Punkt",
+        "none": "Keins"
+      },
+      "preview": "Preview: {{value}}"
     }
   },
   "admin": {
@@ -664,6 +677,8 @@
       "administrator": "Administrator",
       "defaultLocale": "Standardsprache",
       "defaultLocaleDesc": "Sprache, die neuen Mitgliedern in dieser Gruppe zugewiesen wird",
+      "defaultDecimalSeparator": "Standard-Dezimaltrennzeichen",
+      "defaultDigitGrouping": "Standard-Zifferngruppierungssymbol",
       "existingUser": "Bestehender Benutzer",
       "newMember": "Neuer Benutzer"
     },
@@ -679,6 +694,10 @@
       "noDefaultGroup": "Keine Standardgruppe",
       "defaultLocale": "Standardsprache",
       "defaultLocaleDesc": "Standardsprache bei der Erstellung eines Benutzers oder einer Gruppe",
+      "defaultDecimalSeparator": "Standard-Dezimaltrennzeichen",
+      "defaultDecimalSeparatorDesc": "Standard-Dezimaltrennzeichen für neue Benutzer",
+      "defaultDigitGrouping": "Standard-Zifferngruppierungssymbol",
+      "defaultDigitGroupingDesc": "Standard-Zifferngruppierungssymbol für neue Benutzer",
       "saving": "Speichern...",
       "saved": "Einstellungen aktualisiert"
     }

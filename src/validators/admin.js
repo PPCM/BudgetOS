@@ -33,6 +33,8 @@ export const createUserSchema = z.object({
   groupId: z.string().min(1, 'Group ID required').optional(),
   locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).default('fr'),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).default('EUR'),
+  decimalSeparator: z.enum(['.', ',']).optional(),
+  digitGrouping: z.enum([',', '.', ' ']).optional(),
 });
 
 /**
@@ -61,6 +63,8 @@ export const updateUserSchema = z.object({
   role: z.enum(['user', 'admin', 'super_admin']).optional(),
   locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).optional(),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).optional(),
+  decimalSeparator: z.enum(['.', ',']).optional(),
+  digitGrouping: z.enum([',', '.', ' ']).optional(),
 });
 
 /**
@@ -80,6 +84,8 @@ export const updateSettingsSchema = z.object({
   allowPublicRegistration: z.boolean().optional(),
   defaultRegistrationGroupId: z.string().nullable().optional(),
   defaultLocale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).optional(),
+  defaultDecimalSeparator: z.enum(['.', ',']).optional(),
+  defaultDigitGrouping: z.enum([',', '.', ' ']).optional(),
 });
 
 /**

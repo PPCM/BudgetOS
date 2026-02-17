@@ -566,7 +566,20 @@
         "monday": "Понедельник",
         "sunday": "Воскресенье",
         "saturday": "Суббота"
-      }
+      },
+      "decimalSeparator": "Десятичный разделитель",
+      "digitGrouping": "Символ группировки цифр",
+      "decimalSeparators": {
+        "comma": ",  Запятая",
+        "dot": ".  Точка"
+      },
+      "digitGroupings": {
+        "space": "␣  Пробел",
+        "comma": ",  Запятая",
+        "dot": ".  Точка",
+        "none": "Нет"
+      },
+      "preview": "Preview: {{value}}"
     }
   },
   "admin": {
@@ -664,6 +677,8 @@
       "administrator": "Администратор",
       "defaultLocale": "Язык по умолчанию",
       "defaultLocaleDesc": "Язык, назначаемый новым участникам этой группы",
+      "defaultDecimalSeparator": "Десятичный разделитель по умолчанию",
+      "defaultDigitGrouping": "Символ группировки по умолчанию",
       "existingUser": "Существующий пользователь",
       "newMember": "Новый пользователь"
     },
@@ -679,6 +694,10 @@
       "noDefaultGroup": "Нет группы по умолчанию",
       "defaultLocale": "Язык по умолчанию",
       "defaultLocaleDesc": "Язык по умолчанию при создании пользователя или группы",
+      "defaultDecimalSeparator": "Десятичный разделитель по умолчанию",
+      "defaultDecimalSeparatorDesc": "Десятичный разделитель по умолчанию для новых пользователей",
+      "defaultDigitGrouping": "Символ группировки по умолчанию",
+      "defaultDigitGroupingDesc": "Символ группировки по умолчанию для новых пользователей",
       "saving": "Сохранение...",
       "saved": "Настройки обновлены"
     }

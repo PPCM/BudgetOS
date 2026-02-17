@@ -9,7 +9,8 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { transactionsApi, accountsApi, categoriesApi, payeesApi, creditCardsApi } from '../lib/api'
 import { getDatePeriod } from '../lib/utils'
 import { translateError } from '../lib/errorHelper'
-import { useFormatters } from '../hooks/useFormatters'
+import { useFormatters, parseAmount } from '../hooks/useFormatters'
+import FormattedAmountInput from '../components/FormattedAmountInput'
 import { getIconComponent } from '../lib/iconMap'
 import {
   Plus, Search, TrendingUp, TrendingDown,
@@ -107,17 +108,22 @@ const TransactionTypeIcon = ({ type, amount }) => {
  */
 function TransactionModal({ transaction, accounts, categories, payees, creditCards, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
   const { t } = useTranslation()
-  const [formData, setFormData] = useState(transaction || {
-    accountId: accounts?.[0]?.id || '',
-    toAccountId: '',
-    categoryId: '',
-    payeeId: '',
-    amount: '',
-    description: '',
-    date: new Date().toISOString().split('T')[0],
-    type: 'expense',
-    checkNumber: '',
-    creditCardId: '',
+  const [formData, setFormData] = useState(() => {
+    if (transaction) {
+      return { ...transaction, amount: transaction.amount != null ? String(Math.abs(transaction.amount)) : '' }
+    }
+    return {
+      accountId: accounts?.[0]?.id || '',
+      toAccountId: '',
+      categoryId: '',
+      payeeId: '',
+      amount: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      type: 'expense',
+      checkNumber: '',
+      creditCardId: '',
+    }
   })
 
   const handleSubmit = (e) => {
@@ -182,13 +188,10 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.amount')}</label>
-            <input
-              type="number"
-              step="0.01"
+            <FormattedAmountInput
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              onChange={(val) => setFormData({ ...formData, amount: val })}
               className="input text-2xl font-bold text-center"
-              placeholder="0.00"
               required
             />
           </div>
@@ -708,7 +711,7 @@ export default function Transactions() {
       accountId: formData.accountId || null,
       categoryId: formData.categoryId || null,
       payeeId: formData.payeeId || null,
-      amount: Math.abs(parseFloat(formData.amount)),
+      amount: Math.abs(parseAmount(formData.amount)),
       description: formData.description,
       date: formData.date,
       type: formData.type,

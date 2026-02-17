@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
-import { useFormatters } from '../hooks/useFormatters'
+import { useFormatters, parseAmount } from '../hooks/useFormatters'
+import FormattedAmountInput from '../components/FormattedAmountInput'
 import * as LucideIcons from 'lucide-react'
 import {
   Plus, Calendar, Clock, Repeat, Trash2, X, Pencil, Tag,
@@ -35,26 +36,31 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
     { value: 'annual', label: t('planned.frequencies.annual') },
   ]
 
-  const [formData, setFormData] = useState(planned || {
-    accountId: accounts?.[0]?.id || '',
-    toAccountId: '',
-    categoryId: '',
-    payeeId: '',
-    amount: '',
-    description: '',
-    type: 'expense',
-    frequency: 'monthly',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    executeBeforeHoliday: false,
-    deleteOnEnd: false,
+  const [formData, setFormData] = useState(() => {
+    if (planned) {
+      return { ...planned, amount: planned.amount != null ? String(Math.abs(planned.amount)) : '' }
+    }
+    return {
+      accountId: accounts?.[0]?.id || '',
+      toAccountId: '',
+      categoryId: '',
+      payeeId: '',
+      amount: '',
+      description: '',
+      type: 'expense',
+      frequency: 'monthly',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: '',
+      executeBeforeHoliday: false,
+      deleteOnEnd: false,
+    }
   })
 
   const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const amount = parseFloat(formData.amount)
+    const amount = parseAmount(formData.amount)
     // Filter data to only send required fields
     const data = {
       accountId: formData.accountId,
@@ -114,13 +120,10 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.amount')}</label>
-            <input
-              type="number"
-              step="0.01"
+            <FormattedAmountInput
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              onChange={(val) => setFormData({ ...formData, amount: val })}
               className="input text-xl font-bold text-center"
-              placeholder="0.00"
               required
             />
           </div>

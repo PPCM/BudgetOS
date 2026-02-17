@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
-import { useFormatters } from '../hooks/useFormatters'
+import { useFormatters, parseAmount } from '../hooks/useFormatters'
+import FormattedAmountInput from '../components/FormattedAmountInput'
 import {
   Plus, Wallet, PiggyBank, Landmark,
   Pencil, Trash2, X, HandCoins
@@ -39,7 +40,7 @@ function AccountModal({ account, onClose, onSave }) {
     name: account?.name || '',
     type: account?.type || 'checking',
     institution: account?.institution || '',
-    initialBalance: account?.initialBalance || 0,
+    initialBalance: '',
     color: account?.color || '#3b82f6'
   })
 
@@ -64,7 +65,7 @@ function AccountModal({ account, onClose, onSave }) {
     }
     // Initial balance only for new accounts
     if (!account) {
-      data.initialBalance = parseFloat(formData.initialBalance) || 0
+      data.initialBalance = parseAmount(formData.initialBalance)
     }
     onSave(data)
   }
@@ -116,12 +117,10 @@ function AccountModal({ account, onClose, onSave }) {
           {!account && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('accounts.initialBalance')}</label>
-              <input
-                type="number"
-                step="0.01"
+              <FormattedAmountInput
                 value={formData.initialBalance}
-                onChange={(e) => setFormData({ ...formData, initialBalance: parseFloat(e.target.value) || 0 })}
-                className="input"
+                onChange={(val) => setFormData({ ...formData, initialBalance: val })}
+                className="input text-2xl font-bold text-center"
               />
             </div>
           )}

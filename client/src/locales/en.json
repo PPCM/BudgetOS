@@ -579,7 +579,8 @@
         "dot": ".  Dot",
         "none": "None"
       },
-      "preview": "Preview: {{value}}"
+      "preview": "Preview: {{value}}",
+      "sameSeparatorError": "Decimal separator and digit grouping symbol cannot be the same"
     }
   },
   "admin": {

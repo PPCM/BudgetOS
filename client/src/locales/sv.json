@@ -579,7 +579,8 @@
         "dot": ".  Punkt",
         "none": "Ingen"
       },
-      "preview": "Preview: {{value}}"
+      "preview": "Preview: {{value}}",
+      "sameSeparatorError": "Decimalavskiljare och siffergrupper kan inte vara samma"
     }
   },
   "admin": {

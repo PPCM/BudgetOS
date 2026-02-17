@@ -370,10 +370,80 @@
  *   [ ] Click "Description" header — sort alphabetically
  *
  * ═══════════════════════════════════════════════════════════
+ * STEP 13 — FORMATTED AMOUNT INPUT (Number Format Preferences)
+ * ═══════════════════════════════════════════════════════════
+ *
+ * Pre-condition: User preferences set to:
+ *   - Decimal separator: comma (,)
+ *   - Digit grouping: dot (.)
+ *   (Settings > Préférences d'affichage > Séparateur décimal / Symbole de groupement)
+ *
+ * 13.1 Amount field type and placeholder
+ *   [ ] Open "Nouvelle transaction" modal
+ *   [ ] Amount field is type="text" with inputMode="decimal"
+ *   [ ] Placeholder shows "0,00" (using user's decimal separator)
+ *
+ * 13.2 Small amount (no grouping needed)
+ *   [ ] Type "42" → field displays "42"
+ *   [ ] Clear, type "999" → field displays "999"
+ *   [ ] No dot grouping symbol inserted (less than 4 digits)
+ *
+ * 13.3 Amount over 999 — dot grouping applied
+ *   [ ] Clear, type "1234" → field displays "1.234"
+ *   [ ] Clear, type "12345" → field displays "12.345"
+ *   [ ] Clear, type "123456" → field displays "123.456"
+ *   [ ] Clear, type "1234567" → field displays "1.234.567"
+ *
+ * 13.4 Amount with decimal part (comma as decimal separator)
+ *   [ ] Clear, type "1234" then "," then "56" → field displays "1.234,56"
+ *   [ ] Comma triggers decimal part, dot stays as grouping
+ *   [ ] Only 2 decimal digits allowed (third digit rejected)
+ *
+ * 13.5 Dot key treated as grouping symbol (not decimal)
+ *   [ ] Clear, type "100" then "." → field displays "100" (dot ignored)
+ *   [ ] Only comma triggers decimal separator when grouping is dot
+ *
+ * 13.6 Large amount with decimals
+ *   [ ] Clear, type "1234567" then "," then "89" → field displays "1.234.567,89"
+ *   [ ] Full European format with multiple grouping dots and comma decimal
+ *
+ * 13.7 Saving transaction with formatted amount
+ *   [ ] Enter amount "123456,78" (displays "123.456,78")
+ *   [ ] Fill other required fields (description, account)
+ *   [ ] Click "Créer"
+ *   [ ] Transaction created successfully
+ *   [ ] Amount in table shows correctly: "123.456,78 €" (or "-123.456,78 €")
+ *
+ * --- Alternative format: space grouping with comma decimal ---
+ *
+ * Pre-condition: Change user preferences to:
+ *   - Decimal separator: comma (,)
+ *   - Digit grouping: space ( )
+ *
+ * 13.8 Space grouping
+ *   [ ] Open "Nouvelle transaction" modal
+ *   [ ] Type "1234567" → field displays "1 234 567"
+ *   [ ] Type "," then "50" → field displays "1 234 567,50"
+ *   [ ] Dot key also works as decimal separator (not a grouping symbol)
+ *
+ * --- Alternative format: dot decimal with comma grouping ---
+ *
+ * Pre-condition: Change user preferences to:
+ *   - Decimal separator: dot (.)
+ *   - Digit grouping: comma (,)
+ *
+ * 13.9 Comma grouping with dot decimal
+ *   [ ] Open "Nouvelle transaction" modal
+ *   [ ] Placeholder shows "0.00"
+ *   [ ] Type "1234567" → field displays "1,234,567"
+ *   [ ] Type "." then "99" → field displays "1,234,567.99"
+ *   [ ] Comma key ignored as decimal (it's the grouping symbol)
+ *
+ * ═══════════════════════════════════════════════════════════
  * RESULTS LOG
  * ═══════════════════════════════════════════════════════════
  *
- * Last tested: 2026-02-02
+ * Last tested: 2026-02-17
  * Login: admin@budgetos.local / Admin123!
  *
  * STEP 1 — Page display:
@@ -387,5 +457,11 @@
  *
  * STEP 2-12 — CRUD/filters/i18n: ⬜ Not tested in detail
  * FR labels confirmed ✅
+ *
+ * STEP 13 — Formatted amount input (decimal=comma, grouping=dot):
+ *   ✅ 13.1 Amount field: type="text", inputMode="decimal", placeholder "0,00"
+ *   ✅ 13.3 "123456" → displays "123.456" (dot grouping applied correctly)
+ *   ✅ 13.4 "123456,78" → displays "123.456,78" (comma as decimal, dot as grouping)
+ *   ✅ 13.6 "1234567,89" → displays "1.234.567,89" (multiple grouping dots)
  *
  */

@@ -17,7 +17,7 @@ import { useAuth } from '../contexts/AuthContext'
 export default function FormattedAmountInput({ value, onChange, className, placeholder, required, ...props }) {
   const { user } = useAuth()
   const decimalSep = user?.decimalSeparator || ','
-  const digitGroup = user?.digitGrouping || ' '
+  const digitGroup = user?.digitGrouping ?? ' '
   const inputRef = useRef(null)
 
   // Format raw value (digits + optional '.') for display
@@ -76,6 +76,8 @@ export default function FormattedAmountInput({ value, onChange, className, place
         } else {
           raw += ch
         }
+      } else if (digitGroup && ch === digitGroup) {
+        // Skip grouping symbols — they are formatting, not data
       } else if ((ch === ',' || ch === '.' || ch === decimalSep) && !hasDecimal) {
         raw += '.'
         hasDecimal = true
@@ -88,7 +90,7 @@ export default function FormattedAmountInput({ value, onChange, className, place
     }
 
     return raw
-  }, [decimalSep])
+  }, [decimalSep, digitGroup])
 
   const setCursor = useCallback((pos) => {
     requestAnimationFrame(() => {
@@ -125,6 +127,23 @@ export default function FormattedAmountInput({ value, onChange, className, place
 
     // If there's a selection, let onChange handle it
     if (pos !== selEnd) return
+
+    // When user presses a key that matches the grouping symbol (e.g. "." when
+    // digitGroup="."), treat it as a decimal separator instead of letting it
+    // through as a grouping character (which extractRaw would strip).
+    if ((e.key === '.' || e.key === ',') && e.key === digitGroup) {
+      e.preventDefault()
+      if (value.includes('.')) return // already has decimal
+      const sigPos = countSignificant(display, pos)
+      const rawChars = value.split('')
+      rawChars.splice(sigPos, 0, '.')
+      const newRaw = rawChars.join('')
+      onChange(newRaw)
+      const newDisplay = toDisplay(newRaw)
+      const newCursorPos = findDisplayPos(newDisplay, sigPos + 1)
+      setCursor(newCursorPos)
+      return
+    }
 
     if (e.key === 'ArrowLeft') {
       // Skip grouping symbols when moving left

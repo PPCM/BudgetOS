@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { useMutation } from '@tanstack/react-query'
 import { translateError } from '../lib/errorHelper'
 import { formatNumber } from '../hooks/useFormatters'
-import {
-  User, Lock, Bell, Palette, Globe,
-  Save, CheckCircle, AlertCircle
-} from 'lucide-react'
+import { User, Lock, Palette, Save } from 'lucide-react'
+import { useToast } from '../components/Toast'
 import PasswordInput from '../components/PasswordInput'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import axios from 'axios'
@@ -16,8 +14,6 @@ export default function Settings() {
   const { t } = useTranslation()
   const { user, checkAuth } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
-  const [success, setSuccess] = useState('')
-  const [error, setError] = useState('')
 
   const tabs = [
     { id: 'profile', label: t('settings.tabs.profile'), icon: User },
@@ -32,20 +28,6 @@ export default function Settings() {
         <p className="text-gray-600">{t('settings.subtitle')}</p>
       </div>
 
-      {success && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-700">
-          <CheckCircle className="w-5 h-5" />
-          <p>{success}</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-          <AlertCircle className="w-5 h-5" />
-          <p>{error}</p>
-        </div>
-      )}
-
       <div className="flex gap-6">
         {/* Sidebar */}
         <div className="w-48 flex-shrink-0">
@@ -53,7 +35,7 @@ export default function Settings() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); setSuccess(''); setError(''); }}
+                onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-colors ${
                   activeTab === tab.id
                     ? 'bg-primary-50 text-primary-700'
@@ -70,13 +52,13 @@ export default function Settings() {
         {/* Content */}
         <div className="flex-1">
           {activeTab === 'profile' && (
-            <ProfileSettings user={user} onSuccess={setSuccess} onError={setError} checkAuth={checkAuth} />
+            <ProfileSettings user={user} checkAuth={checkAuth} />
           )}
           {activeTab === 'security' && (
-            <SecuritySettings onSuccess={setSuccess} onError={setError} />
+            <SecuritySettings />
           )}
           {activeTab === 'preferences' && (
-            <PreferencesSettings user={user} onSuccess={setSuccess} onError={setError} checkAuth={checkAuth} />
+            <PreferencesSettings user={user} checkAuth={checkAuth} />
           )}
         </div>
       </div>
@@ -84,8 +66,9 @@ export default function Settings() {
   )
 }
 
-function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
+function ProfileSettings({ user, checkAuth }) {
   const { t } = useTranslation()
+  const toast = useToast()
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -100,10 +83,10 @@ function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
       })
     },
     onSuccess: () => {
-      onSuccess(t('settings.profile.saved'))
+      toast.success(t('settings.profile.saved'))
       checkAuth()
     },
-    onError: (err) => onError(translateError(err)),
+    onError: (err) => toast.error(translateError(err)),
   })
 
   return (
@@ -143,8 +126,9 @@ function ProfileSettings({ user, onSuccess, onError, checkAuth }) {
   )
 }
 
-function SecuritySettings({ onSuccess, onError }) {
+function SecuritySettings() {
   const { t } = useTranslation()
+  const toast = useToast()
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -160,16 +144,16 @@ function SecuritySettings({ onSuccess, onError }) {
       })
     },
     onSuccess: () => {
-      onSuccess(t('settings.security.saved'))
+      toast.success(t('settings.security.saved'))
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' })
     },
-    onError: (err) => onError(translateError(err)),
+    onError: (err) => toast.error(translateError(err)),
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (formData.newPassword !== formData.confirmPassword) {
-      onError(t('settings.security.passwordMismatch'))
+      toast.error(t('settings.security.passwordMismatch'))
       return
     }
     mutation.mutate({
@@ -220,14 +204,15 @@ function SecuritySettings({ onSuccess, onError }) {
   )
 }
 
-function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
+function PreferencesSettings({ user, checkAuth }) {
   const { t } = useTranslation()
+  const toast = useToast()
   const { userSettings, updateSettings } = useAuth()
   const [formData, setFormData] = useState({
     locale: user?.locale || 'fr',
     currency: user?.currency || 'EUR',
     decimalSeparator: user?.decimalSeparator || ',',
-    digitGrouping: user?.digitGrouping || ' ',
+    digitGrouping: user?.digitGrouping ?? ' ',
   })
   const [settingsData, setSettingsData] = useState({
     weekStartDay: userSettings?.weekStartDay ?? 1,
@@ -244,20 +229,24 @@ function PreferencesSettings({ user, onSuccess, onError, checkAuth }) {
     onSuccess: () => {
       checkAuth()
     },
-    onError: (err) => onError(translateError(err)),
+    onError: (err) => toast.error(translateError(err)),
   })
 
   const settingsMutation = useMutation({
     mutationFn: async (data) => updateSettings(data),
-    onError: (err) => onError(translateError(err)),
+    onError: (err) => toast.error(translateError(err)),
   })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (formData.digitGrouping && formData.digitGrouping === formData.decimalSeparator) {
+      toast.error(t('settings.preferences.sameSeparatorError'))
+      return
+    }
     try {
       await profileMutation.mutateAsync(formData)
       await settingsMutation.mutateAsync(settingsData)
-      onSuccess(t('settings.preferences.saved'))
+      toast.success(t('settings.preferences.saved'))
     } catch {
       // Error handled by mutation
     }

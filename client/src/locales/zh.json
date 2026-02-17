@@ -579,7 +579,8 @@
         "dot": ".  点号",
         "none": "无"
       },
-      "preview": "Preview: {{value}}"
+      "preview": "Preview: {{value}}",
+      "sameSeparatorError": "小数点分隔符和数字分组符号不能相同"
     }
   },
   "admin": {

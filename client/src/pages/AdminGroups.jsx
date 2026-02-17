@@ -35,8 +35,14 @@ function GroupModal({ group, onClose, onSave, appDefaults }) {
     defaultDigitGrouping: group?.defaultDigitGrouping || appDefaults?.defaultDigitGrouping || ' ',
   })
 
+  const toast = useToast()
+
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (formData.defaultDigitGrouping && formData.defaultDigitGrouping === formData.defaultDecimalSeparator) {
+      toast.error(t('settings.preferences.sameSeparatorError'))
+      return
+    }
     onSave(formData)
   }
 
@@ -79,31 +85,29 @@ function GroupModal({ group, onClose, onSave, appDefaults }) {
               onChange={(locale) => setFormData({ ...formData, defaultLocale: locale })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultDecimalSeparator')}</label>
-              <select
-                value={formData.defaultDecimalSeparator}
-                onChange={(e) => setFormData({ ...formData, defaultDecimalSeparator: e.target.value })}
-                className="input"
-              >
-                <option value=",">{t('settings.preferences.decimalSeparators.comma')}</option>
-                <option value=".">{t('settings.preferences.decimalSeparators.dot')}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultDigitGrouping')}</label>
-              <select
-                value={formData.defaultDigitGrouping}
-                onChange={(e) => setFormData({ ...formData, defaultDigitGrouping: e.target.value })}
-                className="input"
-              >
-                <option value=" ">{t('settings.preferences.digitGroupings.space')}</option>
-                <option value=",">{t('settings.preferences.digitGroupings.comma')}</option>
-                <option value=".">{t('settings.preferences.digitGroupings.dot')}</option>
-                <option value="">{t('settings.preferences.digitGroupings.none')}</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultDecimalSeparator')}</label>
+            <select
+              value={formData.defaultDecimalSeparator}
+              onChange={(e) => setFormData({ ...formData, defaultDecimalSeparator: e.target.value })}
+              className="input"
+            >
+              <option value=",">{t('settings.preferences.decimalSeparators.comma')}</option>
+              <option value=".">{t('settings.preferences.decimalSeparators.dot')}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.groups.defaultDigitGrouping')}</label>
+            <select
+              value={formData.defaultDigitGrouping}
+              onChange={(e) => setFormData({ ...formData, defaultDigitGrouping: e.target.value })}
+              className="input"
+            >
+              <option value=" ">{t('settings.preferences.digitGroupings.space')}</option>
+              <option value=",">{t('settings.preferences.digitGroupings.comma')}</option>
+              <option value=".">{t('settings.preferences.digitGroupings.dot')}</option>
+              <option value="">{t('settings.preferences.digitGroupings.none')}</option>
+            </select>
           </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">

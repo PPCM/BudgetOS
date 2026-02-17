@@ -33,10 +33,13 @@ export const registerSchema = z.object({
   locale: z.enum(['fr', 'en', 'de', 'es', 'it', 'pt', 'ru', 'sv', 'zh']).default('fr'),
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).default('EUR'),
   decimalSeparator: z.enum(['.', ',']).optional(),
-  digitGrouping: z.enum([',', '.', ' ']).optional(),
+  digitGrouping: z.enum([',', '.', ' ', '']).optional(),
 }).refine((data) => data.password === data.passwordConfirm, {
   message: 'Passwords do not match',
   path: ['passwordConfirm'],
+}).refine((data) => !data.digitGrouping || data.digitGrouping !== data.decimalSeparator, {
+  message: 'Decimal separator and digit grouping cannot be the same',
+  path: ['digitGrouping'],
 });
 
 /**
@@ -74,7 +77,10 @@ export const updateProfileSchema = z.object({
   currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'CAD']).optional(),
   timezone: z.string().max(50).optional(),
   decimalSeparator: z.enum(['.', ',']).optional(),
-  digitGrouping: z.enum([',', '.', ' ']).optional(),
+  digitGrouping: z.enum([',', '.', ' ', '']).optional(),
+}).refine((data) => !data.digitGrouping || data.digitGrouping !== data.decimalSeparator, {
+  message: 'Decimal separator and digit grouping cannot be the same',
+  path: ['digitGrouping'],
 });
 
 /**

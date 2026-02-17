@@ -579,7 +579,8 @@
         "dot": ".  Punto",
         "none": "Ninguno"
       },
-      "preview": "Preview: {{value}}"
+      "preview": "Preview: {{value}}",
+      "sameSeparatorError": "El separador decimal y el símbolo de agrupación no pueden ser iguales"
     }
   },
   "admin": {

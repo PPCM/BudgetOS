@@ -368,7 +368,7 @@ export class User {
       locale: user.locale,
       currency: user.currency,
       decimalSeparator: user.decimal_separator || ',',
-      digitGrouping: user.digit_grouping || ' ',
+      digitGrouping: user.digit_grouping ?? ' ',
       timezone: user.timezone,
       isActive: Boolean(user.is_active),
       status: Boolean(user.is_active) ? 'active' : 'suspended',

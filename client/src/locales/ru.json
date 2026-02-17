@@ -579,7 +579,8 @@
         "dot": ".  Точка",
         "none": "Нет"
       },
-      "preview": "Preview: {{value}}"
+      "preview": "Preview: {{value}}",
+      "sameSeparatorError": "Десятичный разделитель и символ группировки цифр не могут совпадать"
     }
   },
   "admin": {

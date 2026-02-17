@@ -1,6 +1,6 @@
 {
   "name": "budgetos",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Application Web de gestion financière personnelle",
   "main": "src/server.js",
   "type": "module",

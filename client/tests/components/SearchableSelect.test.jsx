@@ -115,7 +115,7 @@ describe('SearchableSelect', () => {
         <SearchableSelect
           {...defaultProps}
           allowCreate
-          createLabel="Create"
+          createLabel='Create "{{name}}"'
           onCreate={vi.fn()}
         />
       )
@@ -138,7 +138,7 @@ describe('SearchableSelect', () => {
           {...defaultProps}
           onChange={onChange}
           allowCreate
-          createLabel="Create"
+          createLabel='Create "{{name}}"'
           onCreate={onCreate}
         />
       )
@@ -167,7 +167,7 @@ describe('SearchableSelect', () => {
           value=""
           onChange={onChange}
           allowCreate
-          createLabel="Create"
+          createLabel='Create "{{name}}"'
           onCreate={onCreate}
         />
       )

@@ -63,9 +63,9 @@ describe('Layout - version display', () => {
   it('displays the correct version from package.json', () => {
     render(<Layout />)
 
-    // Verify the version matches the root package.json exactly
-    expect(rootPkg.version).toBe('1.0.0')
-    expect(screen.getByText('BudgetOS v1.0.0')).toBeInTheDocument()
+    // Verify the version matches the root package.json dynamically
+    expect(rootPkg.version).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(screen.getByText(`BudgetOS v${rootPkg.version}`)).toBeInTheDocument()
   })
 
   it('version badge is visible (not hidden)', () => {

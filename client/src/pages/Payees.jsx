@@ -11,11 +11,11 @@ import { findKnownLogo } from '../lib/knownLogos'
 
 // Delete confirmation modal with transaction handling
 function DeletePayeeModal({ payee, payees, transactionCount, onClose, onConfirm, onCreatePayee }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [reassignTo, setReassignTo] = useState(null)
   const [action, setAction] = useState('none') // 'none' = dissociate, 'reassign' = reassign
 
-  const otherPayees = payees?.filter(p => p.id !== payee.id).sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
+  const otherPayees = payees?.filter(p => p.id !== payee.id).sort((a, b) => a.name.localeCompare(b.name, i18n.language)) || []
 
   const handleConfirm = () => {
     const toPayeeId = action === 'reassign' ? reassignTo : null

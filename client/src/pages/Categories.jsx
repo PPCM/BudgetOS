@@ -169,7 +169,7 @@ function CategoryModal({ category, onClose, onSave }) {
 }
 
 export default function Categories() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const typeConfig = getTypeConfig(t)
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -286,7 +286,7 @@ export default function Categories() {
     </div>
   }
 
-  const sortByName = (a, b) => a.name.localeCompare(b.name, 'fr')
+  const sortByName = (a, b) => a.name.localeCompare(b.name, i18n.language)
 
   const groupedCategories = {
     income: data?.filter(c => c.type === 'income').sort(sortByName) || [],

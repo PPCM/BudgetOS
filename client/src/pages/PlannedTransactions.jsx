@@ -22,7 +22,7 @@ const getIconComponent = (iconName) => {
 }
 
 function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const frequencies = [
     { value: 'once', label: t('planned.frequencies.once') },
@@ -56,7 +56,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
     }
   })
 
-  const sortedPayees = payees?.sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
+  const sortedPayees = payees ? [...payees].sort((a, b) => a.name.localeCompare(b.name, i18n.language)) : []
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -270,7 +270,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
               value={formData.categoryId}
               onChange={(id) => setFormData({ ...formData, categoryId: id })}
               options={categories?.filter(c => c.type === formData.type || c.type === 'transfer')
-                .sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []}
+                .sort((a, b) => a.name.localeCompare(b.name, i18n.language)) || []}
               placeholder={t('transactions.searchCategories')}
               emptyMessage={t('transactions.noCategory')}
               allowCreate={!!onCreateCategory}

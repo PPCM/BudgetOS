@@ -107,7 +107,7 @@ const TransactionTypeIcon = ({ type, amount }) => {
  * @param {Function} props.onCreateCategory - Callback to create a new category inline
  */
 export function TransactionModal({ transaction, accounts, categories, payees, creditCards, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [formData, setFormData] = useState(() => {
     if (transaction) {
       return { ...transaction, amount: transaction.amount != null ? String(Math.abs(transaction.amount)) : '' }
@@ -155,11 +155,11 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
   // Filter categories by selected type, memoized to avoid re-sorting on every render
   const filteredCategories = useMemo(() =>
     categories?.filter(c => c.type === formData.type || c.type === 'transfer')
-      .sort((a, b) => a.name.localeCompare(b.name, 'fr')) || []
+      .sort((a, b) => a.name.localeCompare(b.name, i18n.language)) || []
   , [categories, formData.type])
 
   const sortedPayees = useMemo(() =>
-    payees ? [...payees].sort((a, b) => a.name.localeCompare(b.name, 'fr')) : []
+    payees ? [...payees].sort((a, b) => a.name.localeCompare(b.name, i18n.language)) : []
   , [payees])
 
   // Derived variables for card/check ↔ account consistency

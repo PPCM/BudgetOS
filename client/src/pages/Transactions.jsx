@@ -371,11 +371,27 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('transactions.account')}</label>
+              <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
+                {t('transactions.account')}
+                {(isAccountCardMismatch || isCheckWithNonChecking) && (
+                  <span className="relative group">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 cursor-help" />
+                    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 w-64 rounded bg-gray-800 px-3 py-2 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                      {isAccountCardMismatch
+                        ? t('transactions.accountCardMismatch', {
+                            cardName: selectedCard.name,
+                            accountName: accounts?.find(a => a.id === selectedCard.accountId)?.name || ''
+                          })
+                        : t('transactions.checkRequiresChecking')
+                      }
+                    </span>
+                  </span>
+                )}
+              </label>
               <select
                 value={formData.accountId}
                 onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-                className="input"
+                className={`input ${isAccountCardMismatch || isCheckWithNonChecking ? 'border-amber-400 ring-1 ring-amber-200' : ''}`}
                 required
               >
                 <option value="">{t('transactions.selectAccount')}</option>
@@ -383,21 +399,6 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
-              {isAccountCardMismatch && (
-                <p className="mt-1 text-sm text-amber-600 flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  {t('transactions.accountCardMismatch', {
-                    cardName: selectedCard.name,
-                    accountName: accounts?.find(a => a.id === selectedCard.accountId)?.name || ''
-                  })}
-                </p>
-              )}
-              {isCheckWithNonChecking && (
-                <p className="mt-1 text-sm text-amber-600 flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  {t('transactions.checkRequiresChecking')}
-                </p>
-              )}
             </div>
           )}
 

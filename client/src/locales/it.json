@@ -305,6 +305,8 @@
     "selectAccount": "Selezionare un conto",
     "selectOneAccount": "Selezionare un conto",
     "selectAccountRequired": "Selezionare almeno un conto (origine o destinazione)",
+    "accountCardMismatch": "Questo conto non corrisponde alla carta \"{{cardName}}\" (collegata a {{accountName}})",
+    "checkRequiresChecking": "Gli assegni possono essere utilizzati solo con un conto corrente",
     "category": "Categoria",
     "payee": "Beneficiario",
     "payeeOptional": "Beneficiario (facoltativo)",

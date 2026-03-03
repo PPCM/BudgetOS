@@ -305,6 +305,8 @@
     "selectAccount": "Please select an account",
     "selectOneAccount": "Please select an account",
     "selectAccountRequired": "Please select at least one account (source or destination)",
+    "accountCardMismatch": "This account does not match the card \"{{cardName}}\" (linked to {{accountName}})",
+    "checkRequiresChecking": "Checks can only be used with a checking account",
     "category": "Category",
     "payee": "Payee",
     "payeeOptional": "Payee (optional)",

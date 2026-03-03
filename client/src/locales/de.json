@@ -305,6 +305,8 @@
     "selectAccount": "Bitte wählen Sie ein Konto aus",
     "selectOneAccount": "Bitte wählen Sie ein Konto aus",
     "selectAccountRequired": "Bitte wählen Sie mindestens ein Konto aus (Quell- oder Zielkonto)",
+    "accountCardMismatch": "Dieses Konto stimmt nicht mit der Karte ‚{{cardName}}' überein (verknüpft mit {{accountName}})",
+    "checkRequiresChecking": "Schecks können nur mit einem Girokonto verwendet werden",
     "category": "Kategorie",
     "payee": "Zahlungsempfänger",
     "payeeOptional": "Zahlungsempfänger (optional)",

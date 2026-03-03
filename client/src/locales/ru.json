@@ -305,6 +305,8 @@
     "selectAccount": "Пожалуйста, выберите счёт",
     "selectOneAccount": "Пожалуйста, выберите счёт",
     "selectAccountRequired": "Пожалуйста, выберите хотя бы один счёт (списания или зачисления)",
+    "accountCardMismatch": "Этот счёт не соответствует карте «{{cardName}}» (привязана к {{accountName}})",
+    "checkRequiresChecking": "Чеки можно использовать только с расчётным счётом",
     "category": "Категория",
     "payee": "Контрагент",
     "payeeOptional": "Контрагент (необязательно)",

@@ -305,6 +305,8 @@
     "selectAccount": "Selecione uma conta",
     "selectOneAccount": "Selecione uma conta",
     "selectAccountRequired": "Selecione pelo menos uma conta (origem ou destino)",
+    "accountCardMismatch": "Esta conta não corresponde ao cartão \"{{cardName}}\" (vinculado a {{accountName}})",
+    "checkRequiresChecking": "Cheques só podem ser usados com uma conta corrente",
     "category": "Categoria",
     "payee": "Beneficiário",
     "payeeOptional": "Beneficiário (opcional)",

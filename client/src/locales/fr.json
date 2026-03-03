@@ -305,6 +305,8 @@
     "selectAccount": "Veuillez sélectionner un compte",
     "selectOneAccount": "Veuillez sélectionner un compte",
     "selectAccountRequired": "Veuillez sélectionner au moins un compte (source ou destination)",
+    "accountCardMismatch": "Ce compte ne correspond pas à la carte « {{cardName}} » (liée à {{accountName}})",
+    "checkRequiresChecking": "Les chèques ne peuvent être utilisés qu'avec un compte courant",
     "category": "Catégorie",
     "payee": "Tiers",
     "payeeOptional": "Tiers (optionnel)",

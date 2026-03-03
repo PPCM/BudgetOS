@@ -16,7 +16,7 @@ import {
   Plus, Search, TrendingUp, TrendingDown,
   ArrowLeftRight, X, Calendar, Pencil, Trash2, Tag, Users, Loader2,
   CheckCircle2, Scale, ArrowUpDown, ArrowUp, ArrowDown,
-  ChevronDown, ChevronRight, RotateCcw, CreditCard
+  ChevronDown, ChevronRight, RotateCcw, CreditCard, AlertTriangle
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
@@ -106,7 +106,7 @@ const TransactionTypeIcon = ({ type, amount }) => {
  * @param {Function} props.onCreatePayee - Callback to create a new payee inline
  * @param {Function} props.onCreateCategory - Callback to create a new category inline
  */
-function TransactionModal({ transaction, accounts, categories, payees, creditCards, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
+export function TransactionModal({ transaction, accounts, categories, payees, creditCards, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
   const { t } = useTranslation()
   const [formData, setFormData] = useState(() => {
     if (transaction) {
@@ -138,6 +138,17 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
       toast.error(t('transactions.selectAccountRequired'))
       return
     }
+    // Card/account consistency: selected account must match the card's account
+    if (isAccountCardMismatch) {
+      const cardAccount = accounts?.find(a => a.id === selectedCard.accountId)
+      toast.error(t('transactions.accountCardMismatch', { cardName: selectedCard.name, accountName: cardAccount?.name || '' }))
+      return
+    }
+    // Check/account consistency: checks can only be used with checking accounts
+    if (isCheckWithNonChecking) {
+      toast.error(t('transactions.checkRequiresChecking'))
+      return
+    }
     onSave(formData)
   }
 
@@ -150,6 +161,12 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
   const sortedPayees = useMemo(() =>
     payees ? [...payees].sort((a, b) => a.name.localeCompare(b.name, 'fr')) : []
   , [payees])
+
+  // Derived variables for card/check ↔ account consistency
+  const selectedCard = creditCards?.find(cc => cc.id === formData.creditCardId && formData.creditCardId !== '__selecting__')
+  const selectedAccount = accounts?.find(a => a.id === formData.accountId)
+  const isAccountCardMismatch = selectedCard && formData.accountId && formData.accountId !== selectedCard.accountId
+  const isCheckWithNonChecking = formData.checkNumber && formData.checkNumber !== '__selecting__' && selectedAccount && selectedAccount.type !== 'checking'
 
   return (
     <Modal onClose={onClose}>
@@ -246,7 +263,16 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                 <div className="flex gap-2">
                   <select
                     value={formData.creditCardId === '__selecting__' ? '' : formData.creditCardId}
-                    onChange={(e) => setFormData({ ...formData, creditCardId: e.target.value || '', checkNumber: '' })}
+                    onChange={(e) => {
+                      const cardId = e.target.value || ''
+                      const card = creditCards?.find(cc => cc.id === cardId)
+                      setFormData({
+                        ...formData,
+                        creditCardId: cardId,
+                        checkNumber: '',
+                        ...(card?.accountId ? { accountId: card.accountId } : {})
+                      })
+                    }}
                     className="input flex-1"
                   >
                     <option value="">{t('transactions.selectCard')}</option>
@@ -268,7 +294,18 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                   <input
                     type="text"
                     value={formData.checkNumber === '__selecting__' ? '' : (formData.checkNumber || '')}
-                    onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value, creditCardId: '' })}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      const currentAcct = accounts?.find(a => a.id === formData.accountId)
+                      const needsSwitch = val && currentAcct && currentAcct.type !== 'checking'
+                      const firstChecking = needsSwitch ? accounts?.find(a => a.type === 'checking') : null
+                      setFormData({
+                        ...formData,
+                        checkNumber: val,
+                        creditCardId: '',
+                        ...(firstChecking ? { accountId: firstChecking.id } : {})
+                      })
+                    }}
                     className="input flex-1"
                     maxLength={50}
                     placeholder="Ex: 0001234"
@@ -346,6 +383,21 @@ function TransactionModal({ transaction, accounts, categories, payees, creditCar
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
+              {isAccountCardMismatch && (
+                <p className="mt-1 text-sm text-amber-600 flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  {t('transactions.accountCardMismatch', {
+                    cardName: selectedCard.name,
+                    accountName: accounts?.find(a => a.id === selectedCard.accountId)?.name || ''
+                  })}
+                </p>
+              )}
+              {isCheckWithNonChecking && (
+                <p className="mt-1 text-sm text-amber-600 flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  {t('transactions.checkRequiresChecking')}
+                </p>
+              )}
             </div>
           )}
 

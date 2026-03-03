@@ -305,6 +305,8 @@
     "selectAccount": "Välj ett konto",
     "selectOneAccount": "Välj ett konto",
     "selectAccountRequired": "Välj minst ett konto (källa eller destination)",
+    "accountCardMismatch": "Detta konto matchar inte kortet \"{{cardName}}\" (kopplat till {{accountName}})",
+    "checkRequiresChecking": "Checkar kan bara användas med ett lönekonto",
     "category": "Kategori",
     "payee": "Mottagare",
     "payeeOptional": "Mottagare (valfritt)",

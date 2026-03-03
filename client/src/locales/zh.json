@@ -305,6 +305,8 @@
     "selectAccount": "请选择账户",
     "selectOneAccount": "请选择账户",
     "selectAccountRequired": "请至少选择一个账户（来源或目标）",
+    "accountCardMismatch": "此账户与卡片「{{cardName}}」不匹配（关联至{{accountName}}）",
+    "checkRequiresChecking": "支票只能用于活期账户",
     "category": "分类",
     "payee": "收款方",
     "payeeOptional": "收款方（可选）",

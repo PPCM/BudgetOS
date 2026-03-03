@@ -330,15 +330,20 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('transactions.sourceAccountOptional')}
-                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">({t('transactions.disabledPayee')})</span>}
                 </label>
                 <select
                   value={formData.accountId}
-                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({
+                      ...formData,
+                      accountId: val,
+                      ...(val && formData.toAccountId ? { payeeId: '' } : {})
+                    })
+                  }}
                   className="input"
-                  disabled={!!formData.payeeId}
                 >
-                  <option value="">{t('transactions.noSourceExternal')}</option>
+                  <option value="" disabled={!formData.toAccountId}>{t('transactions.noSourceExternal')}</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id} disabled={a.id === formData.toAccountId}>
                       {a.name}
@@ -352,15 +357,20 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('transactions.destAccount')}
-                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">({t('transactions.disabledPayee')})</span>}
                 </label>
                 <select
                   value={formData.toAccountId}
-                  onChange={(e) => setFormData({ ...formData, toAccountId: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({
+                      ...formData,
+                      toAccountId: val,
+                      ...(val && formData.accountId ? { payeeId: '' } : {})
+                    })
+                  }}
                   className="input"
-                  disabled={!!formData.payeeId}
                 >
-                  <option value="">{t('transactions.noSourceExternal')}</option>
+                  <option value="" disabled={!formData.accountId}>{t('transactions.noSourceExternal')}</option>
                   {accounts?.map((a) => (
                     <option key={a.id} value={a.id} disabled={a.id === formData.accountId}>
                       {a.name}
@@ -430,8 +440,8 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t('transactions.payeeOptional')}
-              {formData.type === 'transfer' && formData.toAccountId && (
-                <span className="text-xs text-amber-600 ml-2">({t('transactions.disabledDestAccount')})</span>
+              {formData.type === 'transfer' && formData.accountId && formData.toAccountId && (
+                <span className="text-xs text-gray-400 ml-2">{t('transactions.disabledInternalTransfer')}</span>
               )}
             </label>
             <SearchableSelect
@@ -443,7 +453,7 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
               allowCreate={!!onCreatePayee}
               createLabel={t('transactions.createPayee')}
               onCreate={onCreatePayee}
-              disabled={formData.type === 'transfer' && !!formData.toAccountId}
+              disabled={formData.type === 'transfer' && !!formData.accountId && !!formData.toAccountId}
               renderOption={(p) => (
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-400" />

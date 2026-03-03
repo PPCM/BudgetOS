@@ -147,7 +147,14 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('planned.sourceAccount')}</label>
                 <select
                   value={formData.accountId}
-                  onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({
+                      ...formData,
+                      accountId: val,
+                      ...(val && formData.toAccountId ? { payeeId: '' } : {})
+                    })
+                  }}
                   className="input"
                   required
                 >
@@ -165,13 +172,18 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('planned.destAccount')}
-                  {formData.payeeId && <span className="text-xs text-amber-600 ml-2">({t('planned.disabledPayee')})</span>}
                 </label>
                 <select
                   value={formData.toAccountId}
-                  onChange={(e) => setFormData({ ...formData, toAccountId: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({
+                      ...formData,
+                      toAccountId: val,
+                      ...(val && formData.accountId ? { payeeId: '' } : {})
+                    })
+                  }}
                   className="input"
-                  disabled={!!formData.payeeId}
                 >
                   <option value="">{t('planned.noDestExternal')}</option>
                   {accounts?.map((a) => (
@@ -281,8 +293,8 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t('transactions.payeeOptional')}
-              {formData.type === 'transfer' && formData.toAccountId && (
-                <span className="text-xs text-amber-600 ml-2">({t('planned.disabledDestAccount')})</span>
+              {formData.type === 'transfer' && formData.accountId && formData.toAccountId && (
+                <span className="text-xs text-gray-400 ml-2">{t('transactions.disabledInternalTransfer')}</span>
               )}
             </label>
             <SearchableSelect
@@ -294,7 +306,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
               allowCreate={!!onCreatePayee}
               createLabel={t('transactions.createPayee')}
               onCreate={onCreatePayee}
-              disabled={formData.type === 'transfer' && !!formData.toAccountId}
+              disabled={formData.type === 'transfer' && !!formData.accountId && !!formData.toAccountId}
               renderOption={(p) => (
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-400" />

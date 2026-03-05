@@ -211,7 +211,7 @@ volumes:
 #### Seed Demo Data (Docker)
 
 ```bash
-docker exec budgetos npm run db:seed
+docker exec budgetos node src/database/seed.js
 ```
 
 ---

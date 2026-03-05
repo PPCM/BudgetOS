@@ -26,9 +26,13 @@ LABEL org.opencontainers.image.title="BudgetOS" \
       org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0" \
       org.opencontainers.image.vendor="PPCM"
 
+# Patch Alpine packages and install production deps, then remove npm/npx/corepack
 WORKDIR /app
 COPY package*.json ./
-RUN npm pkg delete scripts.prepare && npm ci --omit=dev
+RUN apk upgrade --no-cache && \
+    npm pkg delete scripts.prepare && npm ci --omit=dev && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 COPY src/ ./src/
 COPY knexfile.js ./
 COPY --from=frontend /app/client/dist ./client/dist/

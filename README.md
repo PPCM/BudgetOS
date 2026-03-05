@@ -168,7 +168,7 @@ docker compose up -d
 To start with sample data for testing:
 
 ```bash
-docker exec budgetos npm run db:seed
+docker exec budgetos node src/database/seed.js
 ```
 
 This creates:

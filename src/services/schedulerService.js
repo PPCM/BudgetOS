@@ -21,6 +21,11 @@ class SchedulerService {
       this.processPlannedTransactions();
     });
 
+    // Clean up expired password reset tokens daily at 3:00 AM
+    cron.schedule('0 3 * * *', () => {
+      this.cleanupExpiredTokens();
+    });
+
     // Also run on server start
     setTimeout(() => {
       this.processPlannedTransactions();
@@ -94,6 +99,21 @@ class SchedulerService {
       logger.error('Error processing planned transactions:', error);
     } finally {
       this.isRunning = false;
+    }
+  }
+
+  /**
+   * Clean up expired password reset tokens
+   */
+  async cleanupExpiredTokens() {
+    try {
+      const { default: PasswordResetToken } = await import('../models/PasswordResetToken.js');
+      const deleted = await PasswordResetToken.deleteExpired();
+      if (deleted > 0) {
+        logger.info(`Cleaned up ${deleted} expired password reset tokens`);
+      }
+    } catch (error) {
+      logger.error('Error cleaning up expired tokens:', error);
     }
   }
 

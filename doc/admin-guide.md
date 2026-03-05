@@ -199,6 +199,13 @@ volumes:
 | `MYSQL_DB` | `budgetos` | MariaDB/MySQL database name |
 | `MYSQL_USER` | `budgetos` | MariaDB/MySQL user |
 | `MYSQL_PASSWORD` | — | MariaDB/MySQL password |
+| `SMTP_HOST` | — | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_SECURE` | `false` | Use SSL/TLS (`true` for port 465) |
+| `SMTP_USER` | — | SMTP authentication username |
+| `SMTP_PASS` | — | SMTP authentication password |
+| `SMTP_FROM` | — | Sender email address |
+| `APP_URL` | — | Public application URL for email links |
 
 #### Docker Volumes
 
@@ -324,6 +331,18 @@ All configuration is managed through the `.env` file at the project root.
 | `UPLOAD_MAX_SIZE` | `10485760` | Max upload size in bytes (10 MB) |
 | `UPLOAD_PATH` | `./uploads` | Upload storage directory |
 | `LOG_LEVEL` | `debug` | Logging level (`error`, `warn`, `info`, `debug`) |
+
+### SMTP / Email
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SMTP_HOST` | — | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_SECURE` | `false` | Use SSL/TLS (`true` for port 465) |
+| `SMTP_USER` | — | SMTP authentication username |
+| `SMTP_PASS` | — | SMTP authentication password |
+| `SMTP_FROM` | — | Sender email address (e.g., `BudgetOS <noreply@example.com>`) |
+| `APP_URL` | — | Public application URL for email links (e.g., `https://budgetos.example.com`) |
 
 ---
 
@@ -514,6 +533,38 @@ Accessible from **Administration > System** (requires Super Admin role).
 |---------|-------------|
 | **Public Registration** | Toggle to allow or prevent self-service account creation |
 | **Default Group** | Group to which new users are automatically added upon registration |
+
+### SMTP Configuration
+
+The SMTP section allows configuring email sending for password reset and future notifications.
+
+| Setting | Description |
+|---------|-------------|
+| **SMTP Host** | SMTP server hostname (e.g., `smtp.gmail.com`) |
+| **SMTP Port** | SMTP server port (default: `587`) |
+| **SSL/TLS** | Enable SSL/TLS encryption (use with port `465`) |
+| **Username** | SMTP authentication username |
+| **Password** | SMTP authentication password |
+| **Sender Address** | Email address used as the "From" field (e.g., `BudgetOS <noreply@example.com>`) |
+| **Application URL** | Public URL of the application, used to generate links in emails |
+
+Click **Test connection** to verify the SMTP settings are correct.
+
+SMTP can also be configured via environment variables (see below). Settings configured through the admin UI take priority over environment variables.
+
+### Password Reset
+
+When SMTP is configured, users can reset their password from the login page:
+
+1. Click **Forgot password?** on the login page
+2. Enter the account email address
+3. A reset link is sent via email (valid for 1 hour)
+4. Click the link and set a new password
+
+**Security notes:**
+- The same response is returned regardless of whether the email exists (anti-enumeration)
+- Reset tokens are single-use and expire after 1 hour
+- Expired tokens are automatically cleaned up daily
 
 ---
 

@@ -81,7 +81,34 @@
       "noAccount": "¿No tiene una cuenta?",
       "createAccount": "Crear una cuenta",
       "csrfError": "Error de seguridad, intente de nuevo",
-      "error": "Error de inicio de sesión"
+      "error": "Error de inicio de sesión",
+      "forgotPassword": "¿Olvidaste tu contraseña?"
+    },
+    "forgotPassword": {
+      "title": "Contraseña olvidada",
+      "subtitle": "Ingresa tu correo para recibir un enlace de restablecimiento",
+      "submit": "Enviar enlace",
+      "sent": "Si existe una cuenta con este correo, se ha enviado un enlace de restablecimiento. Revisa tu bandeja de entrada.",
+      "backToLogin": "Volver al inicio de sesión"
+    },
+    "resetPassword": {
+      "title": "Restablecer contraseña",
+      "subtitle": "Ingresa tu nueva contraseña",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "submit": "Restablecer",
+      "success": "Tu contraseña ha sido restablecida con éxito. Ahora puedes iniciar sesión con tu nueva contraseña.",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "invalidToken": "Enlace inválido o expirado",
+      "invalidTokenDesc": "Este enlace de restablecimiento es inválido o ha expirado. Por favor solicita uno nuevo.",
+      "requestNew": "Solicitar un nuevo enlace",
+      "strength": {
+        "weak": "Débil",
+        "fair": "Regular",
+        "good": "Buena",
+        "strong": "Fuerte",
+        "veryStrong": "Muy fuerte"
+      }
     },
     "register": {
       "welcomeTitle": "Bienvenido a BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "Símbolo de agrupación propuesto a los nuevos usuarios",
       "saving": "Guardando...",
       "saved": "Configuración actualizada"
+    },
+    "smtp": {
+      "title": "Configuración SMTP",
+      "subtitle": "Configurar el envío de correos para restablecimiento de contraseña y notificaciones",
+      "host": "Host SMTP",
+      "port": "Puerto SMTP",
+      "secure": "SSL/TLS",
+      "secureDesc": "Usar cifrado SSL/TLS (puerto 465)",
+      "user": "Usuario",
+      "password": "Contraseña",
+      "from": "Dirección del remitente",
+      "appUrl": "URL de la aplicación",
+      "appUrlDesc": "URL pública de la aplicación (usada en los enlaces de los correos)",
+      "testButton": "Probar conexión",
+      "testSuccess": "Conexión SMTP exitosa",
+      "testFail": "Fallo en la conexión SMTP",
+      "saved": "Configuración SMTP guardada"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "No puede eliminar su propia cuenta",
     "ALREADY_MEMBER": "El usuario ya es miembro de este grupo",
     "USER_NOT_IN_GROUP": "El usuario no es miembro de este grupo",
-    "IMPORT_EXPIRED": "La importación ha expirado, vuelva a comenzar"
+    "IMPORT_EXPIRED": "La importación ha expirado, vuelva a comenzar",
+    "INVALID_RESET_TOKEN": "Enlace de restablecimiento inválido o expirado",
+    "SMTP_TEST_FAILED": "Fallo en la prueba de conexión SMTP"
   },
   "validation": {
     "required": "Este campo es obligatorio",

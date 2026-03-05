@@ -79,6 +79,16 @@ const config = {
     supportedLocales: ['fr', 'en'],
   },
   
+  smtp: {
+    host: process.env.SMTP_HOST || '',
+    port: parseInt(process.env.SMTP_PORT, 10) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || '',
+    appUrl: process.env.APP_URL || '',
+  },
+
   paths: {
     root: path.resolve(__dirname, '../..'),
     src: path.resolve(__dirname, '..'),

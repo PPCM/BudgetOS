@@ -100,3 +100,39 @@ export const changePasswordSchema = z.object({
   message: 'Passwords do not match',
   path: ['newPasswordConfirm'],
 });
+
+/**
+ * Forgot password schema
+ */
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .email('Invalid email')
+    .toLowerCase()
+    .trim(),
+});
+
+/**
+ * Reset password schema
+ */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token required'),
+  password: z
+    .string()
+    .max(128, 'Password is too long')
+    .refine(
+      (val) => val.length >= 8 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(val),
+      'Password must contain at least 8 characters, one lowercase, one uppercase, and one digit'
+    ),
+  passwordConfirm: z.string(),
+}).refine((data) => data.password === data.passwordConfirm, {
+  message: 'Passwords do not match',
+  path: ['passwordConfirm'],
+});
+
+/**
+ * Validate reset token schema
+ */
+export const validateResetTokenSchema = z.object({
+  token: z.string().min(1, 'Token required'),
+});

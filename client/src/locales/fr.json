@@ -81,7 +81,34 @@
       "noAccount": "Pas encore de compte ?",
       "createAccount": "Créer un compte",
       "csrfError": "Erreur de sécurité, veuillez réessayer",
-      "error": "Erreur de connexion"
+      "error": "Erreur de connexion",
+      "forgotPassword": "Mot de passe oublié ?"
+    },
+    "forgotPassword": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Entrez votre email pour recevoir un lien de réinitialisation",
+      "submit": "Envoyer le lien",
+      "sent": "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé. Vérifiez votre boîte de réception.",
+      "backToLogin": "Retour à la connexion"
+    },
+    "resetPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "subtitle": "Entrez votre nouveau mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "submit": "Réinitialiser",
+      "success": "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "invalidToken": "Lien invalide ou expiré",
+      "invalidTokenDesc": "Ce lien de réinitialisation est invalide ou a expiré. Veuillez en demander un nouveau.",
+      "requestNew": "Demander un nouveau lien",
+      "strength": {
+        "weak": "Faible",
+        "fair": "Moyen",
+        "good": "Bon",
+        "strong": "Fort",
+        "veryStrong": "Très fort"
+      }
     },
     "register": {
       "welcomeTitle": "Bienvenue sur BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "Symbole de groupement des chiffres proposé par défaut aux nouveaux utilisateurs",
       "saving": "Enregistrement...",
       "saved": "Paramètres mis à jour"
+    },
+    "smtp": {
+      "title": "Configuration SMTP",
+      "subtitle": "Configurer l'envoi d'emails pour la réinitialisation de mot de passe et les notifications",
+      "host": "Hôte SMTP",
+      "port": "Port SMTP",
+      "secure": "SSL/TLS",
+      "secureDesc": "Utiliser le chiffrement SSL/TLS (port 465)",
+      "user": "Nom d'utilisateur",
+      "password": "Mot de passe",
+      "from": "Adresse d'expéditeur",
+      "appUrl": "URL de l'application",
+      "appUrlDesc": "URL publique de l'application (utilisée dans les liens des emails)",
+      "testButton": "Tester la connexion",
+      "testSuccess": "Connexion SMTP réussie",
+      "testFail": "Échec de la connexion SMTP",
+      "saved": "Paramètres SMTP enregistrés"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "Vous ne pouvez pas supprimer votre propre compte",
     "ALREADY_MEMBER": "L'utilisateur est déjà membre de ce groupe",
     "USER_NOT_IN_GROUP": "L'utilisateur n'est pas membre de ce groupe",
-    "IMPORT_EXPIRED": "L'import a expiré, veuillez recommencer"
+    "IMPORT_EXPIRED": "L'import a expiré, veuillez recommencer",
+    "INVALID_RESET_TOKEN": "Lien de réinitialisation invalide ou expiré",
+    "SMTP_TEST_FAILED": "Échec du test de connexion SMTP"
   },
   "validation": {
     "required": "Ce champ est requis",

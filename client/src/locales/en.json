@@ -81,7 +81,34 @@
       "noAccount": "Don't have an account?",
       "createAccount": "Create an account",
       "csrfError": "Security error, please try again",
-      "error": "Login error"
+      "error": "Login error",
+      "forgotPassword": "Forgot password?"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email to receive a reset link",
+      "submit": "Send reset link",
+      "sent": "If an account with this email exists, a password reset link has been sent. Please check your inbox.",
+      "backToLogin": "Back to login"
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "subtitle": "Enter your new password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "submit": "Reset password",
+      "success": "Your password has been reset successfully. You can now sign in with your new password.",
+      "passwordMismatch": "Passwords do not match",
+      "invalidToken": "Invalid or expired link",
+      "invalidTokenDesc": "This password reset link is invalid or has expired. Please request a new one.",
+      "requestNew": "Request a new link",
+      "strength": {
+        "weak": "Weak",
+        "fair": "Fair",
+        "good": "Good",
+        "strong": "Strong",
+        "veryStrong": "Very strong"
+      }
     },
     "register": {
       "welcomeTitle": "Welcome to BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "Default digit grouping symbol proposed to new users",
       "saving": "Saving...",
       "saved": "Settings updated"
+    },
+    "smtp": {
+      "title": "SMTP Configuration",
+      "subtitle": "Configure email sending for password reset and notifications",
+      "host": "SMTP Host",
+      "port": "SMTP Port",
+      "secure": "SSL/TLS",
+      "secureDesc": "Use SSL/TLS encryption (port 465)",
+      "user": "Username",
+      "password": "Password",
+      "from": "Sender address",
+      "appUrl": "Application URL",
+      "appUrlDesc": "Public URL of the application (used in email links)",
+      "testButton": "Test connection",
+      "testSuccess": "SMTP connection successful",
+      "testFail": "SMTP connection failed",
+      "saved": "SMTP settings saved"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "You cannot delete your own account",
     "ALREADY_MEMBER": "User is already a member of this group",
     "USER_NOT_IN_GROUP": "User is not a member of this group",
-    "IMPORT_EXPIRED": "Import has expired, please start over"
+    "IMPORT_EXPIRED": "Import has expired, please start over",
+    "INVALID_RESET_TOKEN": "Invalid or expired reset link",
+    "SMTP_TEST_FAILED": "SMTP connection test failed"
   },
   "validation": {
     "required": "This field is required",

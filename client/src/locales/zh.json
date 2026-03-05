@@ -81,7 +81,34 @@
       "noAccount": "还没有账户？",
       "createAccount": "创建账户",
       "csrfError": "安全验证错误，请重试",
-      "error": "登录错误"
+      "error": "登录错误",
+      "forgotPassword": "忘记密码？"
+    },
+    "forgotPassword": {
+      "title": "忘记密码",
+      "subtitle": "输入您的邮箱以接收重置链接",
+      "submit": "发送链接",
+      "sent": "如果该邮箱存在账户，重置链接已发送。请检查您的收件箱。",
+      "backToLogin": "返回登录"
+    },
+    "resetPassword": {
+      "title": "重置密码",
+      "subtitle": "输入您的新密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认密码",
+      "submit": "重置",
+      "success": "您的密码已成功重置。现在可以使用新密码登录。",
+      "passwordMismatch": "密码不匹配",
+      "invalidToken": "无效或过期的链接",
+      "invalidTokenDesc": "此重置链接无效或已过期。请重新申请。",
+      "requestNew": "申请新链接",
+      "strength": {
+        "weak": "弱",
+        "fair": "一般",
+        "good": "良好",
+        "strong": "强",
+        "veryStrong": "非常强"
+      }
     },
     "register": {
       "welcomeTitle": "欢迎使用 BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "为新用户提供的默认数字分组符号",
       "saving": "保存中...",
       "saved": "设置已更新"
+    },
+    "smtp": {
+      "title": "SMTP 配置",
+      "subtitle": "配置密码重置和通知的邮件发送",
+      "host": "SMTP 主机",
+      "port": "SMTP 端口",
+      "secure": "SSL/TLS",
+      "secureDesc": "使用 SSL/TLS 加密（端口 465）",
+      "user": "用户名",
+      "password": "密码",
+      "from": "发件人地址",
+      "appUrl": "应用 URL",
+      "appUrlDesc": "应用的公共 URL（用于邮件链接）",
+      "testButton": "测试连接",
+      "testSuccess": "SMTP 连接成功",
+      "testFail": "SMTP 连接失败",
+      "saved": "SMTP 设置已保存"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "您不能删除自己的账户",
     "ALREADY_MEMBER": "该用户已是此群组的成员",
     "USER_NOT_IN_GROUP": "该用户不是此群组的成员",
-    "IMPORT_EXPIRED": "导入已过期，请重新开始"
+    "IMPORT_EXPIRED": "导入已过期，请重新开始",
+    "INVALID_RESET_TOKEN": "无效或过期的重置链接",
+    "SMTP_TEST_FAILED": "SMTP 连接测试失败"
   },
   "validation": {
     "required": "此字段为必填项",

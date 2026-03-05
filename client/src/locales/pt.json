@@ -81,7 +81,34 @@
       "noAccount": "Não tem uma conta?",
       "createAccount": "Criar uma conta",
       "csrfError": "Erro de segurança, tente novamente",
-      "error": "Erro de autenticação"
+      "error": "Erro de autenticação",
+      "forgotPassword": "Esqueceu a senha?"
+    },
+    "forgotPassword": {
+      "title": "Esqueci a senha",
+      "subtitle": "Digite seu email para receber um link de redefinição",
+      "submit": "Enviar link",
+      "sent": "Se uma conta com este email existir, um link de redefinição foi enviado. Verifique sua caixa de entrada.",
+      "backToLogin": "Voltar ao login"
+    },
+    "resetPassword": {
+      "title": "Redefinir senha",
+      "subtitle": "Digite sua nova senha",
+      "newPassword": "Nova senha",
+      "confirmPassword": "Confirmar senha",
+      "submit": "Redefinir",
+      "success": "Sua senha foi redefinida com sucesso. Agora você pode fazer login com sua nova senha.",
+      "passwordMismatch": "As senhas não coincidem",
+      "invalidToken": "Link inválido ou expirado",
+      "invalidTokenDesc": "Este link de redefinição é inválido ou expirou. Por favor, solicite um novo.",
+      "requestNew": "Solicitar novo link",
+      "strength": {
+        "weak": "Fraca",
+        "fair": "Razoável",
+        "good": "Boa",
+        "strong": "Forte",
+        "veryStrong": "Muito forte"
+      }
     },
     "register": {
       "welcomeTitle": "Bem-vindo ao BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "Símbolo de agrupamento proposto aos novos utilizadores",
       "saving": "A guardar...",
       "saved": "Definições atualizadas"
+    },
+    "smtp": {
+      "title": "Configuração SMTP",
+      "subtitle": "Configurar envio de emails para redefinição de senha e notificações",
+      "host": "Host SMTP",
+      "port": "Porta SMTP",
+      "secure": "SSL/TLS",
+      "secureDesc": "Usar criptografia SSL/TLS (porta 465)",
+      "user": "Usuário",
+      "password": "Senha",
+      "from": "Endereço do remetente",
+      "appUrl": "URL da aplicação",
+      "appUrlDesc": "URL pública da aplicação (usada nos links dos emails)",
+      "testButton": "Testar conexão",
+      "testSuccess": "Conexão SMTP bem-sucedida",
+      "testFail": "Falha na conexão SMTP",
+      "saved": "Configurações SMTP salvas"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "Não pode eliminar a sua própria conta",
     "ALREADY_MEMBER": "O utilizador já é membro deste grupo",
     "USER_NOT_IN_GROUP": "O utilizador não é membro deste grupo",
-    "IMPORT_EXPIRED": "A importação expirou, comece de novo"
+    "IMPORT_EXPIRED": "A importação expirou, comece de novo",
+    "INVALID_RESET_TOKEN": "Link de redefinição inválido ou expirado",
+    "SMTP_TEST_FAILED": "Falha no teste de conexão SMTP"
   },
   "validation": {
     "required": "Este campo é obrigatório",

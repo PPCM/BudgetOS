@@ -236,3 +236,73 @@ export const updateSettings = async (req, res) => {
     data: settings,
   });
 };
+
+/**
+ * Get SMTP settings (super_admin only)
+ */
+export const getSmtpSettings = async (req, res) => {
+  const settings = await SystemSetting.getAll();
+
+  res.json({
+    success: true,
+    data: {
+      smtpHost: settings.smtp_host || '',
+      smtpPort: settings.smtp_port || '587',
+      smtpSecure: settings.smtp_secure === 'true',
+      smtpUser: settings.smtp_user || '',
+      smtpPass: settings.smtp_pass ? '********' : '',
+      smtpFrom: settings.smtp_from || '',
+      appUrl: settings.app_url || '',
+    },
+  });
+};
+
+/**
+ * Update SMTP settings (super_admin only)
+ */
+export const updateSmtpSettings = async (req, res) => {
+  const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom, appUrl } = req.body;
+
+  if (smtpHost !== undefined) await SystemSetting.set('smtp_host', smtpHost, req.user.id);
+  if (smtpPort !== undefined) await SystemSetting.set('smtp_port', String(smtpPort), req.user.id);
+  if (smtpSecure !== undefined) await SystemSetting.set('smtp_secure', String(smtpSecure), req.user.id);
+  if (smtpUser !== undefined) await SystemSetting.set('smtp_user', smtpUser, req.user.id);
+  // Only update password if not masked
+  if (smtpPass !== undefined && smtpPass !== '********') {
+    await SystemSetting.set('smtp_pass', smtpPass, req.user.id);
+  }
+  if (smtpFrom !== undefined) await SystemSetting.set('smtp_from', smtpFrom, req.user.id);
+  if (appUrl !== undefined) await SystemSetting.set('app_url', appUrl, req.user.id);
+
+  logger.info('SMTP settings updated', { updatedBy: req.user.id });
+
+  // Return fresh settings
+  const settings = await SystemSetting.getAll();
+  res.json({
+    success: true,
+    data: {
+      smtpHost: settings.smtp_host || '',
+      smtpPort: settings.smtp_port || '587',
+      smtpSecure: settings.smtp_secure === 'true',
+      smtpUser: settings.smtp_user || '',
+      smtpPass: settings.smtp_pass ? '********' : '',
+      smtpFrom: settings.smtp_from || '',
+      appUrl: settings.app_url || '',
+    },
+  });
+};
+
+/**
+ * Test SMTP connection (super_admin only)
+ */
+export const testSmtpConnection = async (req, res) => {
+  const { default: emailService } = await import('../services/emailService.js');
+
+  try {
+    await emailService.testConnection();
+    res.json({ success: true, message: 'SMTP connection successful' });
+  } catch (error) {
+    logger.error('SMTP test failed', { error: error.message });
+    throw new BadRequestError(`SMTP connection failed: ${error.message}`, 'SMTP_TEST_FAILED');
+  }
+};

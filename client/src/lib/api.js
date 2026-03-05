@@ -67,10 +67,11 @@ api.interceptors.response.use(
       originalRequest.headers['X-CSRF-Token'] = newToken
       return api(originalRequest)
     }
-    // Redirect to login on 401 (unless already on auth page)
+    // Redirect to login on 401 (unless already on a public auth page)
     if (error.response?.status === 401) {
-      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register'
-      if (!isAuthPage) {
+      const publicPages = ['/login', '/register', '/forgot-password', '/reset-password']
+      const isPublicPage = publicPages.some(p => window.location.pathname.startsWith(p))
+      if (!isPublicPage) {
         window.location.href = '/login'
       }
     }
@@ -93,6 +94,12 @@ export const authApi = {
   getSettings: () => api.get('/auth/settings'),
   /** @param {Object} data - Settings data (weekStartDay, dateFormat, etc.) */
   updateSettings: (data) => api.put('/auth/settings', data),
+  /** @param {string} email - User email for password reset */
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  /** @param {string} token - Reset token to validate */
+  validateResetToken: (token) => api.get('/auth/validate-reset-token', { params: { token } }),
+  /** @param {string} token - Reset token */
+  resetPassword: (token, password, passwordConfirm) => api.post('/auth/reset-password', { token, password, passwordConfirm }),
 }
 
 /**
@@ -268,6 +275,10 @@ export const adminApi = {
   getSettings: () => api.get('/admin/settings'),
   /** @param {Object} data - Settings data (publicRegistration, defaultGroupId) */
   updateSettings: (data) => api.put('/admin/settings', data),
+  getSmtpSettings: () => api.get('/admin/smtp'),
+  /** @param {Object} data - SMTP settings (smtpHost, smtpPort, etc.) */
+  updateSmtpSettings: (data) => api.put('/admin/smtp', data),
+  testSmtpConnection: () => api.post('/admin/smtp/test'),
 }
 
 /**

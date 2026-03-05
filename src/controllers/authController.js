@@ -194,6 +194,76 @@ export const getSettings = async (req, res) => {
   });
 };
 
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  // Always return the same response to prevent email enumeration
+  const genericResponse = {
+    success: true,
+    message: 'If an account with this email exists, a reset link has been sent',
+  };
+
+  try {
+    const user = await User.findByEmail(email);
+    if (!user || !user.isActive) {
+      // User not found or inactive — return generic response
+      return res.json(genericResponse);
+    }
+
+    const { default: PasswordResetToken } = await import('../models/PasswordResetToken.js');
+    const { default: emailService } = await import('../services/emailService.js');
+
+    const { token, hash } = PasswordResetToken.generateToken();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await PasswordResetToken.create(user.id, hash, expiresAt);
+    await emailService.sendPasswordResetEmail(user, token, user.locale);
+
+    logger.info('Password reset requested', { userId: user.id });
+  } catch (error) {
+    // Log but do not expose the error to the user
+    logger.error('Error in forgotPassword', { email, error: error.message });
+  }
+
+  res.json(genericResponse);
+};
+
+export const validateResetToken = async (req, res) => {
+  const { token } = req.query;
+  const { default: PasswordResetToken } = await import('../models/PasswordResetToken.js');
+
+  const hash = PasswordResetToken.hashToken(token);
+  const record = await PasswordResetToken.findByTokenHash(hash);
+
+  if (!record) {
+    throw new BadRequestError('Invalid or expired reset token', 'INVALID_RESET_TOKEN');
+  }
+
+  res.json({ success: true, data: { valid: true } });
+};
+
+export const resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  const { default: PasswordResetToken } = await import('../models/PasswordResetToken.js');
+
+  const hash = PasswordResetToken.hashToken(token);
+  const record = await PasswordResetToken.findByTokenHash(hash);
+
+  if (!record) {
+    throw new BadRequestError('Invalid or expired reset token', 'INVALID_RESET_TOKEN');
+  }
+
+  await User.changePassword(record.userId, password);
+  await PasswordResetToken.markUsed(record.id);
+
+  logger.info('Password reset completed', { userId: record.userId });
+
+  res.json({
+    success: true,
+    message: 'Password has been reset successfully',
+  });
+};
+
 export const getSetupStatus = async (req, res) => {
   const { default: knex } = await import('../database/connection.js');
   const userCount = await knex('users').count('* as count').first();

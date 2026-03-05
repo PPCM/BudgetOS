@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, groupsApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
-import { Cog, Save } from 'lucide-react'
+import { Cog, Save, Mail, Send, CheckCircle, XCircle } from 'lucide-react'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
 
@@ -25,13 +25,29 @@ export default function AdminSettings() {
     defaultDecimalSeparator: ',',
     defaultDigitGrouping: ' ',
   })
+  const [smtpData, setSmtpData] = useState({
+    smtpHost: '',
+    smtpPort: '587',
+    smtpSecure: false,
+    smtpUser: '',
+    smtpPass: '',
+    smtpFrom: '',
+    appUrl: '',
+  })
   const [dirty, setDirty] = useState(false)
+  const [smtpDirty, setSmtpDirty] = useState(false)
+  const [smtpTestResult, setSmtpTestResult] = useState(null)
   const queryClient = useQueryClient()
   const toast = useToast()
 
   const { data: settingsData, isLoading: settingsLoading } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: () => adminApi.getSettings().then(r => r.data),
+  })
+
+  const { data: smtpSettingsData, isLoading: smtpLoading } = useQuery({
+    queryKey: ['admin-smtp-settings'],
+    queryFn: () => adminApi.getSmtpSettings().then(r => r.data),
   })
 
   const { data: groupsData } = useQuery({
@@ -53,6 +69,22 @@ export default function AdminSettings() {
     }
   }, [settingsData])
 
+  // Sync SMTP data
+  useEffect(() => {
+    if (smtpSettingsData?.data) {
+      setSmtpData({
+        smtpHost: smtpSettingsData.data.smtpHost || '',
+        smtpPort: smtpSettingsData.data.smtpPort || '587',
+        smtpSecure: smtpSettingsData.data.smtpSecure ?? false,
+        smtpUser: smtpSettingsData.data.smtpUser || '',
+        smtpPass: smtpSettingsData.data.smtpPass || '',
+        smtpFrom: smtpSettingsData.data.smtpFrom || '',
+        appUrl: smtpSettingsData.data.appUrl || '',
+      })
+      setSmtpDirty(false)
+    }
+  }, [smtpSettingsData])
+
   const updateMutation = useMutation({
     mutationFn: adminApi.updateSettings,
     onSuccess: () => {
@@ -64,6 +96,41 @@ export default function AdminSettings() {
       toast.error(translateError(err))
     },
   })
+
+  const smtpUpdateMutation = useMutation({
+    mutationFn: adminApi.updateSmtpSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-smtp-settings'] })
+      setSmtpDirty(false)
+      toast.success(t('admin.smtp.saved'))
+    },
+    onError: (err) => {
+      toast.error(translateError(err))
+    },
+  })
+
+  const smtpTestMutation = useMutation({
+    mutationFn: adminApi.testSmtpConnection,
+    onSuccess: () => {
+      setSmtpTestResult('success')
+      toast.success(t('admin.smtp.testSuccess'))
+    },
+    onError: (err) => {
+      setSmtpTestResult('error')
+      toast.error(translateError(err) || t('admin.smtp.testFail'))
+    },
+  })
+
+  const handleSmtpChange = (key, value) => {
+    setSmtpData((prev) => ({ ...prev, [key]: value }))
+    setSmtpDirty(true)
+    setSmtpTestResult(null)
+  }
+
+  const handleSmtpSubmit = (e) => {
+    e.preventDefault()
+    smtpUpdateMutation.mutate(smtpData)
+  }
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }))
@@ -217,6 +284,150 @@ export default function AdminSettings() {
           >
             <Save className="w-4 h-4" />
             {updateMutation.isPending ? t('admin.settings.saving') : t('common.save')}
+          </button>
+        </div>
+      </form>
+
+      {/* SMTP Settings */}
+      <form onSubmit={handleSmtpSubmit} className="card max-w-2xl space-y-6">
+        <div className="flex items-center gap-3 pb-4 border-b">
+          <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+            <Mail className="w-5 h-5 text-primary-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900">{t('admin.smtp.title')}</h2>
+            <p className="text-sm text-gray-500">{t('admin.smtp.subtitle')}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              {t('admin.smtp.host')}
+            </label>
+            <input
+              type="text"
+              value={smtpData.smtpHost}
+              onChange={(e) => handleSmtpChange('smtpHost', e.target.value)}
+              className="input"
+              placeholder="smtp.example.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              {t('admin.smtp.port')}
+            </label>
+            <input
+              type="number"
+              value={smtpData.smtpPort}
+              onChange={(e) => handleSmtpChange('smtpPort', e.target.value)}
+              className="input"
+              placeholder="587"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="text-sm font-medium text-gray-900">{t('admin.smtp.secure')}</label>
+            <p className="text-sm text-gray-500">{t('admin.smtp.secureDesc')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleSmtpChange('smtpSecure', !smtpData.smtpSecure)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              smtpData.smtpSecure ? 'bg-primary-600' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                smtpData.smtpSecure ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              {t('admin.smtp.user')}
+            </label>
+            <input
+              type="text"
+              value={smtpData.smtpUser}
+              onChange={(e) => handleSmtpChange('smtpUser', e.target.value)}
+              className="input"
+              placeholder="user@example.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              {t('admin.smtp.password')}
+            </label>
+            <input
+              type="password"
+              value={smtpData.smtpPass}
+              onChange={(e) => handleSmtpChange('smtpPass', e.target.value)}
+              className="input"
+              placeholder="••••••••"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            {t('admin.smtp.from')}
+          </label>
+          <input
+            type="text"
+            value={smtpData.smtpFrom}
+            onChange={(e) => handleSmtpChange('smtpFrom', e.target.value)}
+            className="input max-w-md"
+            placeholder="BudgetOS <noreply@example.com>"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-1">
+            {t('admin.smtp.appUrl')}
+          </label>
+          <p className="text-sm text-gray-500 mb-2">
+            {t('admin.smtp.appUrlDesc')}
+          </p>
+          <input
+            type="url"
+            value={smtpData.appUrl}
+            onChange={(e) => handleSmtpChange('appUrl', e.target.value)}
+            className="input max-w-md"
+            placeholder="https://budgetos.example.com"
+          />
+        </div>
+
+        <div className="pt-4 border-t flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={!smtpDirty || smtpUpdateMutation.isPending}
+            className="btn btn-primary flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {smtpUpdateMutation.isPending ? t('admin.settings.saving') : t('common.save')}
+          </button>
+          <button
+            type="button"
+            onClick={() => smtpTestMutation.mutate()}
+            disabled={smtpTestMutation.isPending || !smtpData.smtpHost}
+            className="btn flex items-center gap-2 disabled:opacity-50"
+          >
+            {smtpTestMutation.isPending ? (
+              <div className="w-4 h-4 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
+            ) : smtpTestResult === 'success' ? (
+              <CheckCircle className="w-4 h-4 text-green-600" />
+            ) : smtpTestResult === 'error' ? (
+              <XCircle className="w-4 h-4 text-red-600" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            {t('admin.smtp.testButton')}
           </button>
         </div>
       </form>

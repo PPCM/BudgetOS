@@ -81,7 +81,34 @@
       "noAccount": "Noch kein Konto?",
       "createAccount": "Konto erstellen",
       "csrfError": "Sicherheitsfehler, bitte versuchen Sie es erneut",
-      "error": "Anmeldefehler"
+      "error": "Anmeldefehler",
+      "forgotPassword": "Passwort vergessen?"
+    },
+    "forgotPassword": {
+      "title": "Passwort vergessen",
+      "subtitle": "Geben Sie Ihre E-Mail-Adresse ein, um einen Link zum Zurücksetzen zu erhalten",
+      "submit": "Link senden",
+      "sent": "Wenn ein Konto mit dieser E-Mail existiert, wurde ein Link zum Zurücksetzen gesendet. Überprüfen Sie Ihren Posteingang.",
+      "backToLogin": "Zurück zur Anmeldung"
+    },
+    "resetPassword": {
+      "title": "Passwort zurücksetzen",
+      "subtitle": "Geben Sie Ihr neues Passwort ein",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Passwort bestätigen",
+      "submit": "Zurücksetzen",
+      "success": "Ihr Passwort wurde erfolgreich zurückgesetzt. Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
+      "passwordMismatch": "Passwörter stimmen nicht überein",
+      "invalidToken": "Ungültiger oder abgelaufener Link",
+      "invalidTokenDesc": "Dieser Link zum Zurücksetzen ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen an.",
+      "requestNew": "Neuen Link anfordern",
+      "strength": {
+        "weak": "Schwach",
+        "fair": "Mittel",
+        "good": "Gut",
+        "strong": "Stark",
+        "veryStrong": "Sehr stark"
+      }
     },
     "register": {
       "welcomeTitle": "Willkommen bei BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "Standard-Zifferngruppierungssymbol für neue Benutzer",
       "saving": "Speichern...",
       "saved": "Einstellungen aktualisiert"
+    },
+    "smtp": {
+      "title": "SMTP-Konfiguration",
+      "subtitle": "E-Mail-Versand für Passwort-Zurücksetzung und Benachrichtigungen konfigurieren",
+      "host": "SMTP-Host",
+      "port": "SMTP-Port",
+      "secure": "SSL/TLS",
+      "secureDesc": "SSL/TLS-Verschlüsselung verwenden (Port 465)",
+      "user": "Benutzername",
+      "password": "Passwort",
+      "from": "Absenderadresse",
+      "appUrl": "Anwendungs-URL",
+      "appUrlDesc": "Öffentliche URL der Anwendung (wird in E-Mail-Links verwendet)",
+      "testButton": "Verbindung testen",
+      "testSuccess": "SMTP-Verbindung erfolgreich",
+      "testFail": "SMTP-Verbindung fehlgeschlagen",
+      "saved": "SMTP-Einstellungen gespeichert"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "Sie können Ihr eigenes Konto nicht löschen",
     "ALREADY_MEMBER": "Der Benutzer ist bereits Mitglied dieser Gruppe",
     "USER_NOT_IN_GROUP": "Der Benutzer ist kein Mitglied dieser Gruppe",
-    "IMPORT_EXPIRED": "Der Import ist abgelaufen, bitte starten Sie erneut"
+    "IMPORT_EXPIRED": "Der Import ist abgelaufen, bitte starten Sie erneut",
+    "INVALID_RESET_TOKEN": "Ungültiger oder abgelaufener Link zum Zurücksetzen",
+    "SMTP_TEST_FAILED": "SMTP-Verbindungstest fehlgeschlagen"
   },
   "validation": {
     "required": "Dieses Feld ist erforderlich",

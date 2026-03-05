@@ -81,7 +81,34 @@
       "noAccount": "Har du inget konto?",
       "createAccount": "Skapa ett konto",
       "csrfError": "Säkerhetsfel, försök igen",
-      "error": "Inloggningsfel"
+      "error": "Inloggningsfel",
+      "forgotPassword": "Glömt lösenord?"
+    },
+    "forgotPassword": {
+      "title": "Glömt lösenord",
+      "subtitle": "Ange din e-post för att få en återställningslänk",
+      "submit": "Skicka länk",
+      "sent": "Om ett konto med denna e-post finns, har en återställningslänk skickats. Kontrollera din inkorg.",
+      "backToLogin": "Tillbaka till inloggning"
+    },
+    "resetPassword": {
+      "title": "Återställ lösenord",
+      "subtitle": "Ange ditt nya lösenord",
+      "newPassword": "Nytt lösenord",
+      "confirmPassword": "Bekräfta lösenord",
+      "submit": "Återställ",
+      "success": "Ditt lösenord har återställts. Du kan nu logga in med ditt nya lösenord.",
+      "passwordMismatch": "Lösenorden matchar inte",
+      "invalidToken": "Ogiltig eller utgången länk",
+      "invalidTokenDesc": "Denna återställningslänk är ogiltig eller har utgått. Begär en ny.",
+      "requestNew": "Begär en ny länk",
+      "strength": {
+        "weak": "Svagt",
+        "fair": "Hyfsat",
+        "good": "Bra",
+        "strong": "Starkt",
+        "veryStrong": "Mycket starkt"
+      }
     },
     "register": {
       "welcomeTitle": "Välkommen till BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "Standard siffergrupperingssymbol för nya användare",
       "saving": "Sparar...",
       "saved": "Inställningar uppdaterade"
+    },
+    "smtp": {
+      "title": "SMTP-konfiguration",
+      "subtitle": "Konfigurera e-postutskick för lösenordsåterställning och aviseringar",
+      "host": "SMTP-värd",
+      "port": "SMTP-port",
+      "secure": "SSL/TLS",
+      "secureDesc": "Använd SSL/TLS-kryptering (port 465)",
+      "user": "Användarnamn",
+      "password": "Lösenord",
+      "from": "Avsändaradress",
+      "appUrl": "Applikations-URL",
+      "appUrlDesc": "Publik URL för applikationen (används i e-postlänkar)",
+      "testButton": "Testa anslutning",
+      "testSuccess": "SMTP-anslutning lyckades",
+      "testFail": "SMTP-anslutning misslyckades",
+      "saved": "SMTP-inställningar sparade"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "Du kan inte ta bort ditt eget konto",
     "ALREADY_MEMBER": "Användaren är redan medlem i denna grupp",
     "USER_NOT_IN_GROUP": "Användaren är inte medlem i denna grupp",
-    "IMPORT_EXPIRED": "Importen har upphört, börja om"
+    "IMPORT_EXPIRED": "Importen har upphört, börja om",
+    "INVALID_RESET_TOKEN": "Ogiltig eller utgången återställningslänk",
+    "SMTP_TEST_FAILED": "SMTP-anslutningstestet misslyckades"
   },
   "validation": {
     "required": "Detta fält är obligatoriskt",

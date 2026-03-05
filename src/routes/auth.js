@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/security.js';
 import { validate } from '../middleware/validation.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema } from '../validators/auth.js';
+import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, validateResetTokenSchema } from '../validators/auth.js';
 
 const router = Router();
 
@@ -12,6 +12,9 @@ const router = Router();
 router.get('/setup-status', asyncHandler(authController.getSetupStatus));
 router.post('/register', authRateLimiter, validate({ body: registerSchema }), asyncHandler(authController.register));
 router.post('/login', authRateLimiter, validate({ body: loginSchema }), asyncHandler(authController.login));
+router.post('/forgot-password', authRateLimiter, validate({ body: forgotPasswordSchema }), asyncHandler(authController.forgotPassword));
+router.get('/validate-reset-token', validate({ query: validateResetTokenSchema }), asyncHandler(authController.validateResetToken));
+router.post('/reset-password', authRateLimiter, validate({ body: resetPasswordSchema }), asyncHandler(authController.resetPassword));
 
 // Routes protégées
 router.post('/logout', requireAuth, asyncHandler(authController.logout));

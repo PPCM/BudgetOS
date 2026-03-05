@@ -81,7 +81,34 @@
       "noAccount": "Non ha ancora un account?",
       "createAccount": "Crea un account",
       "csrfError": "Errore di sicurezza, riprovi",
-      "error": "Errore di accesso"
+      "error": "Errore di accesso",
+      "forgotPassword": "Password dimenticata?"
+    },
+    "forgotPassword": {
+      "title": "Password dimenticata",
+      "subtitle": "Inserisci la tua email per ricevere un link di reimpostazione",
+      "submit": "Invia link",
+      "sent": "Se esiste un account con questa email, è stato inviato un link di reimpostazione. Controlla la tua casella di posta.",
+      "backToLogin": "Torna al login"
+    },
+    "resetPassword": {
+      "title": "Reimposta password",
+      "subtitle": "Inserisci la tua nuova password",
+      "newPassword": "Nuova password",
+      "confirmPassword": "Conferma password",
+      "submit": "Reimposta",
+      "success": "La tua password è stata reimpostata con successo. Ora puoi accedere con la tua nuova password.",
+      "passwordMismatch": "Le password non corrispondono",
+      "invalidToken": "Link non valido o scaduto",
+      "invalidTokenDesc": "Questo link di reimpostazione non è valido o è scaduto. Richiedine uno nuovo.",
+      "requestNew": "Richiedi un nuovo link",
+      "strength": {
+        "weak": "Debole",
+        "fair": "Discreto",
+        "good": "Buono",
+        "strong": "Forte",
+        "veryStrong": "Molto forte"
+      }
     },
     "register": {
       "welcomeTitle": "Benvenuto su BudgetOS",
@@ -700,6 +727,23 @@
       "defaultDigitGroupingDesc": "Simbolo di raggruppamento proposto ai nuovi utenti",
       "saving": "Salvataggio...",
       "saved": "Impostazioni aggiornate"
+    },
+    "smtp": {
+      "title": "Configurazione SMTP",
+      "subtitle": "Configura l'invio email per il ripristino password e le notifiche",
+      "host": "Host SMTP",
+      "port": "Porta SMTP",
+      "secure": "SSL/TLS",
+      "secureDesc": "Usa crittografia SSL/TLS (porta 465)",
+      "user": "Nome utente",
+      "password": "Password",
+      "from": "Indirizzo mittente",
+      "appUrl": "URL dell'applicazione",
+      "appUrlDesc": "URL pubblica dell'applicazione (usata nei link delle email)",
+      "testButton": "Testa connessione",
+      "testSuccess": "Connessione SMTP riuscita",
+      "testFail": "Connessione SMTP fallita",
+      "saved": "Impostazioni SMTP salvate"
     }
   },
   "errors": {
@@ -735,7 +779,9 @@
     "CANNOT_DELETE_SELF": "Non è possibile eliminare il proprio account",
     "ALREADY_MEMBER": "L'utente è già membro di questo gruppo",
     "USER_NOT_IN_GROUP": "L'utente non è membro di questo gruppo",
-    "IMPORT_EXPIRED": "L'importazione è scaduta, ricominci"
+    "IMPORT_EXPIRED": "L'importazione è scaduta, ricominci",
+    "INVALID_RESET_TOKEN": "Link di reimpostazione non valido o scaduto",
+    "SMTP_TEST_FAILED": "Test di connessione SMTP fallito"
   },
   "validation": {
     "required": "Questo campo è obbligatorio",

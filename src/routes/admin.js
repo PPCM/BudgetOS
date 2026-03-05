@@ -27,4 +27,9 @@ router.delete('/users/:userId', requireSuperAdmin, asyncHandler(adminController.
 router.get('/settings', requireSuperAdmin, asyncHandler(adminController.getSettings));
 router.put('/settings', requireSuperAdmin, validate({ body: updateSettingsSchema }), asyncHandler(adminController.updateSettings));
 
+// SMTP settings
+router.get('/smtp', requireSuperAdmin, asyncHandler(adminController.getSmtpSettings));
+router.put('/smtp', requireSuperAdmin, asyncHandler(adminController.updateSmtpSettings));
+router.post('/smtp/test', requireSuperAdmin, asyncHandler(adminController.testSmtpConnection));
+
 export default router;

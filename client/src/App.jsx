@@ -17,6 +17,8 @@ import Payees from './pages/Payees'
 import AdminUsers from './pages/AdminUsers'
 import AdminGroups from './pages/AdminGroups'
 import AdminSettings from './pages/AdminSettings'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 function PrivateRoute({ children }) {
   const { user, needsSetup, loading } = useAuth()
@@ -92,6 +94,8 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="accounts" element={<Accounts />} />

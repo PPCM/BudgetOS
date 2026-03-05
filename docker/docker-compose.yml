@@ -15,6 +15,14 @@ services:
       - DB_PATH=./data/budgetos.db
       # Set COOKIE_SECURE=true when behind an HTTPS reverse proxy
       # - COOKIE_SECURE=true
+      # SMTP configuration for password reset emails
+      # - SMTP_HOST=smtp.example.com
+      # - SMTP_PORT=587
+      # - SMTP_SECURE=false
+      # - SMTP_USER=
+      # - SMTP_PASS=
+      # - SMTP_FROM=BudgetOS <noreply@example.com>
+      # - APP_URL=https://budgetos.example.com
     volumes:
       - budgetos_data:/app/data
       - budgetos_uploads:/app/uploads

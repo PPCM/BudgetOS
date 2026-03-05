@@ -48,7 +48,14 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     DB_TYPE=sqlite \
     DB_PATH=./data/budgetos.db \
-    COOKIE_SECURE=false
+    COOKIE_SECURE=false \
+    SMTP_HOST="" \
+    SMTP_PORT=587 \
+    SMTP_SECURE=false \
+    SMTP_USER="" \
+    SMTP_PASS="" \
+    SMTP_FROM="" \
+    APP_URL=""
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1

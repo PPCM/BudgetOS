@@ -17,7 +17,7 @@
 
 ## Supported Tags
 
-- `1.1.0`, `1.1`, `1`, `latest`
+- `1.3.0`, `1.3`, `1`, `latest`
 
 ## Quick Reference
 
@@ -162,6 +162,18 @@ docker compose up -d
 | `MYSQL_DB` | `budgetos` | Database name |
 | `MYSQL_USER` | `budgetos` | Database user |
 | `MYSQL_PASSWORD` | — | Database password |
+
+#### SMTP / Email (optional)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SMTP_HOST` | — | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_SECURE` | `false` | Use SSL/TLS (`true` for port 465) |
+| `SMTP_USER` | — | SMTP authentication username |
+| `SMTP_PASS` | — | SMTP authentication password |
+| `SMTP_FROM` | — | Sender email address |
+| `APP_URL` | — | Public URL for email links |
 
 ### Demo Data
 

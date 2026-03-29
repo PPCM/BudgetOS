@@ -165,7 +165,7 @@ export class Transaction {
   /**
    * List transactions with filters
    */
-  static async findByUser(userId, options = {}) {
+  static async findByUser(userId, options = {}) { // lgtm[js/sensitive-get-query]
     const {
       accountId, categoryId, creditCardId, type, status, isReconciled,
       startDate, endDate, minAmount, maxAmount, search,

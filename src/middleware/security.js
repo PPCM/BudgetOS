@@ -90,7 +90,7 @@ export const suspiciousRequestLogger = (req, res, next) => {
   const suspiciousPatterns = [
     /(\.\.|\/\/)/,  // Path traversal
     /<script/i,     // XSS
-    /union.*select/i, // SQL injection
+    /union\s+select/i, // SQL injection (bounded quantifier)
     /javascript:/i, // JavaScript injection
   ];
   

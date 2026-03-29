@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_IMAGE_DIMENSION = 256; // Max dimension in pixels
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif'];
-const UPLOAD_BASE_DIR = path.join(__dirname, '../../client/public/uploads/payees');
+const UPLOAD_BASE_DIR = path.resolve(__dirname, '../../client/public/uploads/payees');
 
 // Create the base directory if it doesn't exist
 if (!fs.existsSync(UPLOAD_BASE_DIR)) {
@@ -38,36 +38,41 @@ export const upload = multer({
 });
 
 /**
- * Generate a unique filename based on username, MD5 and timestamp
+ * Generate a unique filename using SHA-256
  */
-function generateFileName(username, buffer) {
-  const md5Hash = crypto.createHash('md5').update(buffer).digest('hex');
+function generateFileName(userId, buffer) {
+  const hash = crypto.createHash('sha256').update(buffer).digest('hex');
   const timestamp = Date.now().toString();
-  const combined = `${username}_${md5Hash}_${timestamp}`;
-  
-  // Final hash of 32 characters
-  const finalHash = crypto.createHash('md5').update(combined).digest('hex');
-  return finalHash;
+  const combined = `${userId}_${hash}_${timestamp}`;
+
+  // Final hash of 32 characters (first 32 chars of SHA-256)
+  return crypto.createHash('sha256').update(combined).digest('hex').substring(0, 32);
 }
 
 /**
- * Create hierarchical directory structure
+ * Create hierarchical directory structure and validate path stays within base dir
  * ab/cd/ef/gh/file.png
  */
 function createDirectoryPath(fileName) {
+  // fileName is a hex string from SHA-256, safe by construction
   const parts = [
     fileName.substring(0, 2),
     fileName.substring(2, 4),
     fileName.substring(4, 6),
     fileName.substring(6, 8),
   ];
-  
-  const dirPath = path.join(UPLOAD_BASE_DIR, ...parts);
-  
+
+  const dirPath = path.resolve(UPLOAD_BASE_DIR, ...parts);
+
+  // Ensure the resolved path is within the upload base directory
+  if (!dirPath.startsWith(UPLOAD_BASE_DIR)) {
+    throw new ValidationError('Invalid file path', 'INVALID_PATH');
+  }
+
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
-  
+
   return dirPath;
 }
 
@@ -80,11 +85,15 @@ export const uploadPayeeImage = async (req, res, next) => {
       throw new ValidationError('No file provided', 'FILE_REQUIRED');
     }
 
-    const username = req.user.username || req.user.id;
-    const fileName = generateFileName(username, req.file.buffer);
+    const fileName = generateFileName(req.user.id, req.file.buffer);
     const dirPath = createDirectoryPath(fileName);
     const outputFileName = `${fileName}.png`;
-    const outputPath = path.join(dirPath, outputFileName);
+    const outputPath = path.resolve(dirPath, outputFileName);
+
+    // Double-check resolved path is within upload directory
+    if (!outputPath.startsWith(UPLOAD_BASE_DIR)) {
+      throw new ValidationError('Invalid file path', 'INVALID_PATH');
+    }
 
     // Resize and convert to PNG with sharp
     await sharp(req.file.buffer)
@@ -116,20 +125,26 @@ export const uploadPayeeImage = async (req, res, next) => {
 export const deletePayeeImage = async (req, res, next) => {
   try {
     const { imageUrl } = req.body;
-    
+
     if (!imageUrl || !imageUrl.startsWith('/uploads/payees/')) {
       throw new ValidationError('Invalid image URL', 'INVALID_IMAGE_URL');
     }
 
-    const filePath = path.join(__dirname, '../../client/public', imageUrl);
-    
+    const publicDir = path.resolve(__dirname, '../../client/public');
+    const filePath = path.resolve(publicDir, imageUrl.slice(1)); // Remove leading /
+
+    // Ensure resolved path stays within the public uploads directory
+    if (!filePath.startsWith(path.resolve(publicDir, 'uploads/payees'))) {
+      throw new ValidationError('Invalid image URL', 'INVALID_IMAGE_URL');
+    }
+
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      
+
       // Clean up empty directories
       let dirPath = path.dirname(filePath);
       for (let i = 0; i < 4; i++) {
-        if (fs.existsSync(dirPath) && fs.readdirSync(dirPath).length === 0) {
+        if (dirPath.startsWith(UPLOAD_BASE_DIR) && fs.existsSync(dirPath) && fs.readdirSync(dirPath).length === 0) {
           fs.rmdirSync(dirPath);
           dirPath = path.dirname(dirPath);
         } else {

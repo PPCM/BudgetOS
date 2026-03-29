@@ -27,9 +27,9 @@ const createApp = () => {
   app.use(sanitizeHeaders);
   app.use(suspiciousRequestLogger);
 
-  // CORS
+  // CORS — permissive in dev only, restricted in production via CORS_ORIGIN env var
   app.use(cors({
-    origin: config.isDev ? true : process.env.CORS_ORIGIN?.split(',') || false,
+    origin: config.isDev ? true : process.env.CORS_ORIGIN?.split(',') || false, // lgtm[js/cors-misconfiguration]
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],

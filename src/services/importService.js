@@ -3,6 +3,7 @@ import path from 'path';
 import { parse } from 'csv-parse/sync';
 import ExcelJS from 'exceljs';
 import knex from '../database/connection.js';
+import config from '../config/index.js';
 import { generateId, normalizeDescription, calculateMatchScore, formatDateISO } from '../utils/helpers.js';
 import { BadRequestError } from '../utils/errors.js';
 import Transaction from '../models/Transaction.js';
@@ -79,10 +80,14 @@ export class ImportService {
       match_results: JSON.stringify(matchResults),
     });
 
-    // Delete temporary file
+    // Delete temporary file (validate path before deletion)
     try {
-      if (file.path && fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
+      if (file.path) {
+        const resolvedFilePath = path.resolve(file.path);
+        const uploadsDir = path.resolve(config.paths.uploads);
+        if (resolvedFilePath.startsWith(uploadsDir) && fs.existsSync(resolvedFilePath)) {
+          fs.unlinkSync(resolvedFilePath);
+        }
       }
     } catch (e) {
       // Non-critical: file cleanup failure
@@ -336,12 +341,18 @@ export class ImportService {
 
   // ---- File parsing methods (unchanged) ----
 
-  static async parseFile(filePath, fileType, config = {}) {
-    const content = fs.readFileSync(filePath);
+  static async parseFile(filePath, fileType, parseConfig = {}) {
+    // Validate file path stays within the uploads directory
+    const resolvedPath = path.resolve(filePath);
+    const uploadsDir = path.resolve(config.paths.uploads);
+    if (!resolvedPath.startsWith(uploadsDir)) {
+      throw new BadRequestError('Invalid file path');
+    }
+    const content = fs.readFileSync(resolvedPath);
 
     switch (fileType) {
-      case 'csv': return ImportService.parseCSV(content, config);
-      case 'excel': return ImportService.parseExcel(content, config);
+      case 'csv': return ImportService.parseCSV(content, parseConfig);
+      case 'excel': return ImportService.parseExcel(content, parseConfig);
       case 'qif': return ImportService.parseQIF(content.toString('utf-8'));
       case 'qfx':
       case 'ofx': return ImportService.parseOFX(content.toString('utf-8'));

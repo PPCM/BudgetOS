@@ -15,7 +15,8 @@ export const errorHandler = (err, req, res, next) => {
   };
 
   if (err instanceof AppError && err.isOperational) {
-    logger.warn(err.message, { ...logContext, code: err.code, ...(err.errors && { details: err.errors }) });
+    const level = err.code === 'AUTH_REQUIRED' ? 'debug' : 'warn';
+    logger[level](err.message, { ...logContext, code: err.code, ...(err.errors && { details: err.errors }) });
   } else {
     logger.error(err.message, { ...logContext, stack: err.stack });
   }

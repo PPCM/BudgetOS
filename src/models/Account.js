@@ -151,6 +151,14 @@ export class Account {
   static async delete(id, userId) {
     await Account.findByIdOrFail(id, userId);
 
+    // Deactivate planned transactions linked to this account
+    await knex('planned_transactions')
+      .where('user_id', userId)
+      .where(function () {
+        this.where('account_id', id).orWhere('to_account_id', id);
+      })
+      .update({ is_active: false });
+
     const txCount = await knex('transactions').where('account_id', id).count('* as count').first();
     const count = txCount?.count || 0;
 

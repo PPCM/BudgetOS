@@ -50,8 +50,10 @@ class SchedulerService {
       // Get all active planned transactions due today or earlier
       const duePlanned = await knex('planned_transactions as pt')
         .join('users as u', 'pt.user_id', 'u.id')
+        .join('accounts as a', 'pt.account_id', 'a.id')
         .select('pt.*', 'u.id as user_id')
         .where('pt.is_active', true)
+        .where('a.is_active', true)
         .whereNotNull('pt.next_occurrence')
         .where('pt.next_occurrence', '<=', today)
         .where(function () {

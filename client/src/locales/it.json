@@ -293,6 +293,7 @@
     "ended": "Terminata",
     "next": "Prossima: {{date}}",
     "loadingData": "Caricamento dati...",
+    "backfill": { "title": "Transazioni passate", "message": "La data di inizio è nel passato. {{count}} transazione(i) avrebbero dovuto essere create. Vuoi crearle ora?", "confirm": "Crea {{count}} transazione(i)", "skip": "No grazie" },
     "sourceAccount": "Conto di origine (addebito)",
     "selectSource": "Seleziona il conto di origine",
     "destAccount": "Conto di destinazione (accredito) - facoltativo",

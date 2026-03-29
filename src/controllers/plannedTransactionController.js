@@ -2,7 +2,18 @@ import PlannedTransaction from '../models/PlannedTransaction.js';
 
 export const createPlannedTransaction = async (req, res) => {
   const planned = await PlannedTransaction.create(req.user.id, req.body);
-  res.status(201).json({ success: true, data: { plannedTransaction: planned } });
+
+  // Check if there are past occurrences to backfill
+  const pastOccurrences = PlannedTransaction.getPastOccurrences(req.body);
+
+  res.status(201).json({
+    success: true,
+    data: {
+      plannedTransaction: planned,
+      pastOccurrences: pastOccurrences.length,
+      pastDates: pastOccurrences,
+    },
+  });
 };
 
 export const getPlannedTransactions = async (req, res) => {
@@ -35,4 +46,9 @@ export const createOccurrence = async (req, res) => {
   const { date, amount } = req.body;
   const transaction = await PlannedTransaction.createOccurrence(req.params.id, req.user.id, date, amount);
   res.status(201).json({ success: true, data: { transaction } });
+};
+
+export const backfillOccurrences = async (req, res) => {
+  const result = await PlannedTransaction.backfillPastOccurrences(req.params.id, req.user.id);
+  res.json({ success: true, data: result });
 };

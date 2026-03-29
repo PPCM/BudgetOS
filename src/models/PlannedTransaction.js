@@ -69,6 +69,106 @@ export class PlannedTransaction {
     return formatDateISO(next);
   }
 
+  /**
+   * Calculate past occurrence dates between startDate and today (exclusive)
+   * Used to determine if backfill is needed when creating a planned transaction with a past start date
+   */
+  static getPastOccurrences(data) {
+    const start = new Date(data.startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = data.endDate ? new Date(data.endDate) : null;
+
+    if (start >= today) return [];
+    if (data.frequency === 'once') return [formatDateISO(start)];
+
+    const dates = [];
+    let current = new Date(start);
+    let safety = 0;
+
+    while (current < today && safety < 1000) {
+      if (endDate && current > endDate) break;
+      dates.push(formatDateISO(current));
+
+      switch (data.frequency) {
+        case 'daily': current = addDays(current, 1); break;
+        case 'weekly': current = addWeeks(current, 1); break;
+        case 'biweekly': current = addWeeks(current, 2); break;
+        case 'monthly': current = addMonths(current, 1); break;
+        case 'bimonthly': current = addMonths(current, 2); break;
+        case 'quarterly': current = addMonths(current, 3); break;
+        case 'semiannual': current = addMonths(current, 6); break;
+        case 'annual': current = addYears(current, 1); break;
+        default: current = addMonths(current, 1); break;
+      }
+      safety++;
+    }
+
+    return dates;
+  }
+
+  /**
+   * Backfill past occurrences for a planned transaction
+   * Creates transactions for past dates that don't already exist (prevents duplicates)
+   */
+  static async backfillPastOccurrences(id, userId) {
+    const pt = await PlannedTransaction.findByIdOrFail(id, userId);
+
+    const pastDates = PlannedTransaction.getPastOccurrences({
+      startDate: pt.startDate,
+      endDate: pt.endDate,
+      frequency: pt.frequency,
+    });
+
+    if (pastDates.length === 0) return { created: 0, dates: [] };
+
+    // Find dates that already have a transaction for this recurring ID
+    const existingTxs = await knex('transactions')
+      .where({ user_id: userId, recurring_id: id })
+      .whereIn('date', pastDates)
+      .select('date');
+
+    const existingDates = new Set(existingTxs.map(tx => {
+      // Normalize date format (handle both string and Date objects)
+      const d = new Date(tx.date);
+      return formatDateISO(d);
+    }));
+
+    const datesToCreate = pastDates.filter(d => !existingDates.has(d));
+
+    if (datesToCreate.length === 0) return { created: 0, dates: [] };
+
+    // Create transactions for each missing past date
+    const created = [];
+    for (const date of datesToCreate) {
+      const tx = await Transaction.create(userId, {
+        accountId: pt.accountId,
+        categoryId: pt.categoryId,
+        payeeId: pt.payeeId,
+        creditCardId: pt.creditCardId,
+        amount: pt.amount,
+        description: pt.description,
+        notes: pt.notes,
+        date,
+        type: pt.type,
+        isRecurring: true,
+        recurringId: id,
+        toAccountId: pt.toAccountId,
+      });
+      created.push(tx);
+    }
+
+    // Update occurrences_created counter
+    await knex('planned_transactions')
+      .where('id', id)
+      .update({
+        occurrences_created: knex.raw(`occurrences_created + ${created.length}`),
+      });
+
+    return { created: created.length, dates: datesToCreate };
+  }
+
+
   static async findById(id, userId) {
     const pt = await knex('planned_transactions as pt')
       .leftJoin('categories as c', 'pt.category_id', 'c.id')

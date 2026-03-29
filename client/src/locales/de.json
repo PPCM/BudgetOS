@@ -293,6 +293,7 @@
     "ended": "Beendet",
     "next": "Nächste: {{date}}",
     "loadingData": "Daten werden geladen...",
+    "backfill": { "title": "Vergangene Transaktionen", "message": "Das Startdatum liegt in der Vergangenheit. {{count}} Transaktion(en) hätten erstellt werden sollen. Möchten Sie sie jetzt erstellen?", "confirm": "{{count}} Transaktion(en) erstellen", "skip": "Nein danke" },
     "sourceAccount": "Quellkonto (Belastung)",
     "selectSource": "Quellkonto auswählen",
     "destAccount": "Zielkonto (Gutschrift) - optional",

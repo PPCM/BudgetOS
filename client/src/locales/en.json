@@ -293,6 +293,12 @@
     "ended": "Ended",
     "next": "Next: {{date}}",
     "loadingData": "Loading data...",
+    "backfill": {
+      "title": "Past transactions",
+      "message": "The start date is in the past. {{count}} transaction(s) should have been created. Do you want to create them now?",
+      "confirm": "Create {{count}} transaction(s)",
+      "skip": "No thanks"
+    },
     "sourceAccount": "Source account (debit)",
     "selectSource": "Select source account",
     "destAccount": "Destination account (credit) - optional",

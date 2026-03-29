@@ -293,6 +293,7 @@
     "ended": "Avslutad",
     "next": "Nästa: {{date}}",
     "loadingData": "Laddar data...",
+    "backfill": { "title": "Tidigare transaktioner", "message": "Startdatumet ligger i det förflutna. {{count}} transaktion(er) borde ha skapats. Vill du skapa dem nu?", "confirm": "Skapa {{count}} transaktion(er)", "skip": "Nej tack" },
     "sourceAccount": "Källkonto (debitering)",
     "selectSource": "Välj källkonto",
     "destAccount": "Destinationskonto (kredit) - valfritt",

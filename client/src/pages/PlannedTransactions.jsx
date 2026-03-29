@@ -365,6 +365,7 @@ export default function PlannedTransactions() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPlanned, setEditingPlanned] = useState(null)
   const [accountTab, setAccountTab] = useState('')
+  const [backfillPrompt, setBackfillPrompt] = useState(null) // { id, count, dates }
   const queryClient = useQueryClient()
 
   // Build frequencies lookup for display in the list
@@ -475,13 +476,43 @@ export default function PlannedTransactions() {
         headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
       })
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries(['planned-transactions'])
       queryClient.invalidateQueries(['upcoming-transactions'])
       setModalOpen(false)
+
+      // Check if there are past occurrences to backfill
+      const { pastOccurrences, plannedTransaction } = response.data.data
+      if (pastOccurrences > 0 && plannedTransaction?.id) {
+        setBackfillPrompt({
+          id: plannedTransaction.id,
+          count: pastOccurrences,
+        })
+      }
     },
     onError: (err) => {
       alert(translateError(err))
+    },
+  })
+
+  const backfillMutation = useMutation({
+    mutationFn: async (plannedId) => {
+      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
+      return axios.post(`/api/v1/planned-transactions/${plannedId}/backfill`, {}, {
+        withCredentials: true,
+        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['planned-transactions'])
+      queryClient.invalidateQueries(['upcoming-transactions'])
+      queryClient.invalidateQueries(['transactions'])
+      queryClient.invalidateQueries(['accounts'])
+      setBackfillPrompt(null)
+    },
+    onError: (err) => {
+      alert(translateError(err))
+      setBackfillPrompt(null)
     },
   })
 
@@ -810,6 +841,42 @@ export default function PlannedTransactions() {
             </div>
           </div>
         )
+      )}
+
+      {/* Backfill confirmation modal */}
+      {backfillPrompt && (
+        <Modal onClose={() => setBackfillPrompt(null)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-full bg-amber-100">
+                <Calendar className="w-6 h-6 text-amber-600" />
+              </div>
+              <h2 className="text-lg font-semibold">{t('planned.backfill.title')}</h2>
+            </div>
+            <p className="text-gray-600 mb-6">
+              {t('planned.backfill.message', { count: backfillPrompt.count })}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setBackfillPrompt(null)}
+                className="btn btn-secondary flex-1"
+              >
+                {t('planned.backfill.skip')}
+              </button>
+              <button
+                onClick={() => backfillMutation.mutate(backfillPrompt.id)}
+                disabled={backfillMutation.isPending}
+                className="btn btn-primary flex-1"
+              >
+                {backfillMutation.isPending ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                ) : (
+                  t('planned.backfill.confirm', { count: backfillPrompt.count })
+                )}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   )

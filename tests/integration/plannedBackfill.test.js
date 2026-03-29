@@ -108,4 +108,54 @@ describe('Planned Transactions - Backfill past occurrences', () => {
     await agent.delete(`/api/v1/planned-transactions/${plannedId}`)
       .set('X-CSRF-Token', csrfToken)
   })
+
+  it('should not create duplicates even if user changed a transaction date', async () => {
+    // Create planned with past start date (Jan 10 → should have Jan, Feb, Mar = 3 past)
+    const createRes = await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({
+        accountId,
+        amount: -300,
+        description: 'Date Change Test',
+        type: 'expense',
+        frequency: 'monthly',
+        startDate: '2026-01-10',
+      })
+    const plannedId = createRes.body.data.plannedTransaction.id
+
+    // Backfill creates 3 transactions
+    const backfill1 = await agent.post(`/api/v1/planned-transactions/${plannedId}/backfill`)
+      .set('X-CSRF-Token', csrfToken)
+    expect(backfill1.body.data.created).toBeGreaterThan(0)
+    const count = backfill1.body.data.created
+
+    // User changes the date of one transaction (simulating manual edit)
+    const txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
+    const targetTx = txRes.body.data.find(tx => tx.recurringId === plannedId)
+    expect(targetTx).toBeDefined()
+
+    await agent.put(`/api/v1/transactions/${targetTx.id}`)
+      .set('X-CSRF-Token', csrfToken)
+      .send({
+        accountId: targetTx.accountId,
+        amount: Math.abs(targetTx.amount),
+        description: targetTx.description,
+        type: targetTx.type,
+        date: '2026-01-25', // Move from Jan 10 to Jan 25
+      })
+
+    // Second backfill should still create 0 (count-based, not date-based)
+    const backfill2 = await agent.post(`/api/v1/planned-transactions/${plannedId}/backfill`)
+      .set('X-CSRF-Token', csrfToken)
+    expect(backfill2.body.data.created).toBe(0)
+
+    // Total transactions for this recurring should still be the same
+    const txRes2 = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
+    const recurringTxs = txRes2.body.data.filter(tx => tx.recurringId === plannedId)
+    expect(recurringTxs.length).toBe(count)
+
+    // Cleanup
+    await agent.delete(`/api/v1/planned-transactions/${plannedId}`)
+      .set('X-CSRF-Token', csrfToken)
+  })
 })

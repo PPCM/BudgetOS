@@ -108,8 +108,10 @@ export class PlannedTransaction {
   }
 
   /**
-   * Backfill past occurrences for a planned transaction
-   * Creates transactions for past dates that don't already exist (prevents duplicates)
+   * Backfill past occurrences for a planned transaction.
+   * Duplicate prevention: counts existing transactions for this recurring_id
+   * (regardless of date, since users may have moved them) and only creates
+   * the difference vs. the expected number of past occurrences.
    */
   static async backfillPastOccurrences(id, userId) {
     const pt = await PlannedTransaction.findByIdOrFail(id, userId);
@@ -122,19 +124,16 @@ export class PlannedTransaction {
 
     if (pastDates.length === 0) return { created: 0, dates: [] };
 
-    // Find dates that already have a transaction for this recurring ID
-    const existingTxs = await knex('transactions')
+    // Count ALL existing transactions for this recurring ID (not just date-matched)
+    // This prevents duplicates even if the user changed a transaction's date
+    const existingCount = await knex('transactions')
       .where({ user_id: userId, recurring_id: id })
-      .whereIn('date', pastDates)
-      .select('date');
+      .count('* as count')
+      .first();
+    const alreadyCreated = Number(existingCount?.count || 0);
 
-    const existingDates = new Set(existingTxs.map(tx => {
-      // Normalize date format (handle both string and Date objects)
-      const d = new Date(tx.date);
-      return formatDateISO(d);
-    }));
-
-    const datesToCreate = pastDates.filter(d => !existingDates.has(d));
+    // Only create the difference
+    const datesToCreate = pastDates.slice(alreadyCreated);
 
     if (datesToCreate.length === 0) return { created: 0, dates: [] };
 

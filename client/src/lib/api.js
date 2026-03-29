@@ -200,6 +200,7 @@ export const reportsApi = {
   getMonthlyTrend: (params) => api.get('/reports/trend/monthly', { params }),
   /** @param {Object} params - Forecast params (days: 30/60/90) */
   getForecast: (params) => api.get('/reports/forecast', { params }),
+  getProjections: () => api.get('/reports/projections'),
 }
 
 /**

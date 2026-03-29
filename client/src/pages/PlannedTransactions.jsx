@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, categoriesApi, payeesApi } from '../lib/api'
@@ -21,7 +21,7 @@ const getIconComponent = (iconName) => {
   return LucideIcons[formattedName] || Tag
 }
 
-function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, onCreatePayee, onCreateCategory }) {
+function PlannedModal({ planned, accounts, categories, payees, defaultAccountId, onClose, onSave, onCreatePayee, onCreateCategory }) {
   const { t, i18n } = useTranslation()
 
   const frequencies = [
@@ -41,7 +41,7 @@ function PlannedModal({ planned, accounts, categories, payees, onClose, onSave, 
       return { ...planned, amount: planned.amount != null ? String(Math.abs(planned.amount)) : '' }
     }
     return {
-      accountId: accounts?.[0]?.id || '',
+      accountId: defaultAccountId || accounts?.[0]?.id || '',
       toAccountId: '',
       categoryId: '',
       payeeId: '',
@@ -364,6 +364,7 @@ export default function PlannedTransactions() {
   const { formatCurrency, formatDate } = useFormatters()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPlanned, setEditingPlanned] = useState(null)
+  const [accountTab, setAccountTab] = useState('')
   const queryClient = useQueryClient()
 
   // Build frequencies lookup for display in the list
@@ -414,6 +415,17 @@ export default function PlannedTransactions() {
   const categories = categoriesData
   const payees = payeesData
   const dataReady = !accountsLoading && !categoriesLoading && accounts?.length > 0
+
+  // Filter planned transactions and upcoming by account tab
+  const filteredPlanned = useMemo(() => {
+    if (!data?.data || !accountTab) return data?.data || []
+    return data.data.filter(tx => tx.accountId === accountTab || tx.toAccountId === accountTab)
+  }, [data?.data, accountTab])
+
+  const filteredUpcoming = useMemo(() => {
+    if (!upcoming || !accountTab) return upcoming || []
+    return upcoming.filter(tx => tx.accountId === accountTab || tx.toAccountId === accountTab)
+  }, [upcoming, accountTab])
 
   // Mutations for inline payee and category creation
   const createPayeeMutation = useMutation({
@@ -552,6 +564,39 @@ export default function PlannedTransactions() {
         </button>
       </div>
 
+      {/* Account tabs */}
+      {accounts?.length > 0 && (
+        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto pb-px">
+          <button
+            onClick={() => setAccountTab('')}
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              !accountTab
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {t('transactions.filters.allAccounts')}
+          </button>
+          {accounts.map((account) => (
+            <button
+              key={account.id}
+              onClick={() => setAccountTab(account.id)}
+              className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
+                accountTab === account.id
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: account.color }}
+              />
+              {account.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upcoming */}
         <div className="card">
@@ -559,9 +604,9 @@ export default function PlannedTransactions() {
             <Clock className="w-5 h-5 text-primary-600" />
             {t('planned.upcoming')}
           </h2>
-          {upcoming?.length > 0 ? (
+          {filteredUpcoming?.length > 0 ? (
             <div className="space-y-3">
-              {upcoming.slice(0, 10).map((tx, i) => (
+              {filteredUpcoming.slice(0, 10).map((tx, i) => (
                 <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
                   <div className={`p-2 rounded-full ${
                     tx.type === 'income' ? 'bg-green-100' :
@@ -615,9 +660,9 @@ export default function PlannedTransactions() {
             <Repeat className="w-5 h-5 text-primary-600" />
             {t('planned.listTitle')}
           </h2>
-          {data?.data?.length > 0 ? (
+          {filteredPlanned?.length > 0 ? (
             <div className="space-y-3">
-              {data.data.map((tx) => {
+              {filteredPlanned.map((tx) => {
                 // Consider ended if isActive=false OR if end date is in the past
                 const isEnded = !tx.isActive || (tx.endDate && new Date(tx.endDate) < new Date(new Date().toDateString()))
                 return (
@@ -646,6 +691,12 @@ export default function PlannedTransactions() {
                     </p>
                     <div className={`flex items-center gap-2 text-sm ${isEnded ? 'text-gray-400' : 'text-gray-500'}`}>
                       <span>{frequencyLabels[tx.frequency] || tx.frequency}</span>
+                      {!accountTab && tx.accountName && tx.type !== 'transfer' && (
+                        <>
+                          <span>•</span>
+                          <span>{tx.accountName}</span>
+                        </>
+                      )}
                       {tx.type === 'transfer' && (
                         <>
                           <span>•</span>
@@ -692,7 +743,7 @@ export default function PlannedTransactions() {
                       {tx.nextOccurrence && (
                         <>
                           <span>•</span>
-                          <span>{t('planned.next')} {formatDate(tx.nextOccurrence)}</span>
+                          <span>{t('planned.next', { date: formatDate(tx.nextOccurrence) })}</span>
                         </>
                       )}
                     </div>
@@ -739,6 +790,7 @@ export default function PlannedTransactions() {
             accounts={accounts}
             categories={categories}
             payees={payees}
+            defaultAccountId={accountTab}
             onClose={() => { setModalOpen(false); setEditingPlanned(null); }}
             onSave={handleSave}
             onCreatePayee={handleCreatePayee}

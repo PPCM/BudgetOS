@@ -5,14 +5,17 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { accountsApi } from '../lib/api'
+import { accountsApi, reportsApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import { useFormatters, parseAmount } from '../hooks/useFormatters'
+import { useAuth } from '../contexts/AuthContext'
 import FormattedAmountInput from '../components/FormattedAmountInput'
 import {
   Plus, Wallet, PiggyBank, Landmark,
-  Pencil, Trash2, X, HandCoins
+  Pencil, Trash2, X, HandCoins, ArrowRight,
+  ChevronDown, ChevronRight, TrendingUp, TrendingDown
 } from 'lucide-react'
 import Modal from '../components/Modal'
 
@@ -155,9 +158,11 @@ function AccountModal({ account, onClose, onSave }) {
  */
 export default function Accounts() {
   const { t } = useTranslation()
-  const { formatCurrency } = useFormatters()
+  const { formatCurrency, formatDate } = useFormatters()
+  const { userSettings } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)
+  const [expandedProjections, setExpandedProjections] = useState(new Set())
   const queryClient = useQueryClient()
 
   const accountTypes = {
@@ -171,6 +176,40 @@ export default function Accounts() {
     queryKey: ['accounts'],
     queryFn: () => accountsApi.getAll().then(r => r.data),
   })
+
+  const { data: projections } = useQuery({
+    queryKey: ['projections'],
+    queryFn: () => reportsApi.getProjections().then(r => r.data.data),
+  })
+
+  // Toggle projection expanded for a specific account
+  const toggleProjection = (accountId) => {
+    setExpandedProjections(prev => {
+      const next = new Set(prev)
+      if (next.has(accountId)) next.delete(accountId)
+      else next.add(accountId)
+      return next
+    })
+  }
+
+  const isProjectionExpanded = (accountId) => {
+    if (expandedProjections.has(accountId)) return true
+    return userSettings?.projectionExpanded && !expandedProjections.has(`closed-${accountId}`)
+  }
+
+  const toggleProjectionWithDefault = (accountId) => {
+    if (userSettings?.projectionExpanded) {
+      setExpandedProjections(prev => {
+        const next = new Set(prev)
+        const closedKey = `closed-${accountId}`
+        if (next.has(closedKey)) next.delete(closedKey)
+        else next.add(closedKey)
+        return next
+      })
+    } else {
+      toggleProjection(accountId)
+    }
+  }
 
   const createMutation = useMutation({
     mutationFn: accountsApi.create,
@@ -295,6 +334,85 @@ export default function Accounts() {
                   {formatCurrency(account.currentBalance)}
                 </p>
               </div>
+              <Link
+                to={`/transactions?account=${account.id}`}
+                className="mt-3 flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                {t('accounts.viewTransactions')}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              {/* Projection section */}
+              {(() => {
+                const proj = projections?.accounts?.find(p => p.accountId === account.id)
+                if (!proj) return null
+                const expanded = isProjectionExpanded(account.id)
+                const hasMoves = proj.endOfMonth.delta !== 0 || proj.thirtyDays.delta !== 0
+                return (
+                  <div className="mt-3 pt-3 border-t">
+                    <button
+                      onClick={() => toggleProjectionWithDefault(account.id)}
+                      className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 w-full"
+                    >
+                      {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      <span className="font-medium">{t('accounts.projection.title')}</span>
+                      {!hasMoves && <span className="text-xs text-gray-400 ml-auto">{t('accounts.projection.noMovement')}</span>}
+                    </button>
+                    {expanded && (
+                      <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                        {/* End of month */}
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <p className="font-semibold text-gray-700 mb-2">{t('accounts.projection.endOfMonth')}</p>
+                          <div className="space-y-1">
+                            {proj.endOfMonth.income > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-green-600 flex items-center gap-1"><TrendingUp className="w-3 h-3" />{t('accounts.projection.income')}</span>
+                                <span className="text-green-600 font-medium">+{formatCurrency(proj.endOfMonth.income)}</span>
+                              </div>
+                            )}
+                            {proj.endOfMonth.expenses > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-red-600 flex items-center gap-1"><TrendingDown className="w-3 h-3" />{t('accounts.projection.expenses')}</span>
+                                <span className="text-red-600 font-medium">-{formatCurrency(proj.endOfMonth.expenses)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between pt-1 border-t border-gray-200">
+                              <span className="font-semibold">{t('accounts.projection.estimated')}</span>
+                              <span className={`font-bold ${proj.endOfMonth.estimatedBalance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                                {formatCurrency(proj.endOfMonth.estimatedBalance)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {/* 30 days */}
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <p className="font-semibold text-gray-700 mb-2">{t('accounts.projection.thirtyDays')}</p>
+                          <div className="space-y-1">
+                            {proj.thirtyDays.income > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-green-600 flex items-center gap-1"><TrendingUp className="w-3 h-3" />{t('accounts.projection.income')}</span>
+                                <span className="text-green-600 font-medium">+{formatCurrency(proj.thirtyDays.income)}</span>
+                              </div>
+                            )}
+                            {proj.thirtyDays.expenses > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-red-600 flex items-center gap-1"><TrendingDown className="w-3 h-3" />{t('accounts.projection.expenses')}</span>
+                                <span className="text-red-600 font-medium">-{formatCurrency(proj.thirtyDays.expenses)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between pt-1 border-t border-gray-200">
+                              <span className="font-semibold">{t('accounts.projection.estimated')}</span>
+                              <span className={`font-bold ${proj.thirtyDays.estimatedBalance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                                {formatCurrency(proj.thirtyDays.estimatedBalance)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           )
         })}

@@ -140,6 +140,8 @@
     "monthlyExpenses": "本月支出",
     "netFlow": "净现金流",
     "myAccounts": "我的账户",
+    "viewAll": "查看全部",
+    "projectionEndMonth": "月末预测",
     "expensesByCategory": "按分类支出",
     "recentTransactions": "近期交易",
     "noTransactions": "暂无近期交易",
@@ -156,6 +158,16 @@
     "investments": "投资",
     "institution": "金融机构",
     "initialBalance": "初始余额",
+    "viewTransactions": "查看交易",
+    "projection": {
+      "title": "预测",
+      "endOfMonth": "月末",
+      "thirtyDays": "30天",
+      "income": "收入",
+      "expenses": "支出",
+      "estimated": "预估余额",
+      "noMovement": "无计划变动"
+    },
     "confirmDelete": "删除账户 \"{{name}}\"？\n\n注意：所有关联的交易也将被删除。",
     "types": {
       "checking": "活期账户",
@@ -606,7 +618,12 @@
         "none": "无"
       },
       "preview": "Preview: {{value}}",
-      "sameSeparatorError": "小数点分隔符和数字分组符号不能相同"
+      "sameSeparatorError": "小数点分隔符和数字分组符号不能相同",
+      "interface": "界面",
+      "modalPersistent": "持久弹窗",
+      "modalPersistentDesc": "防止点击外部时关闭弹窗。使用 ✕ 或 Escape 关闭。",
+      "projectionExpanded": "预算预测展开",
+      "projectionExpandedDesc": "默认在账户卡片上展开显示预算预测"
     }
   },
   "admin": {

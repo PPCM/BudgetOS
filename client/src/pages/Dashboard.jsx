@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { reportsApi, accountsApi } from '../lib/api'
 import { useFormatters } from '../hooks/useFormatters'
 import {
   Wallet, TrendingUp, TrendingDown, ArrowUpRight,
-  ArrowDownRight, Clock, PieChart
+  ArrowDownRight, Clock, PieChart, ExternalLink
 } from 'lucide-react'
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
@@ -89,6 +90,11 @@ export default function Dashboard() {
     queryFn: () => reportsApi.getExpensesByCategory({}).then(r => r.data.data.expenses),
   })
 
+  const { data: projections } = useQuery({
+    queryKey: ['projections'],
+    queryFn: () => reportsApi.getProjections().then(r => r.data.data),
+  })
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -111,7 +117,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title={t('dashboard.totalBalance')}
           value={formatCurrency(dashboard?.totalBalance || 0)}
@@ -140,16 +146,35 @@ export default function Dashboard() {
           color={dashboard?.monthlyNetFlow >= 0 ? 'green' : 'red'}
           t={t}
         />
+        {projections?.totals && (
+          <StatCard
+            title={t('dashboard.projectionEndMonth')}
+            value={formatCurrency(projections.totals.endOfMonth.estimatedBalance)}
+            icon={TrendingUp}
+            color={projections.totals.endOfMonth.delta >= 0 ? 'green' : 'red'}
+            t={t}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Accounts */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.myAccounts')}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.myAccounts')}</h2>
+            <Link to="/accounts" className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1">
+              {t('dashboard.viewAll')}
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
           <div className="space-y-3">
             {accounts?.data?.map((account) => (
-              <div key={account.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div 
+              <Link
+                key={account.id}
+                to={`/transactions?account=${account.id}`}
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: account.color + '20', color: account.color }}
                 >
@@ -159,10 +184,21 @@ export default function Dashboard() {
                   <p className="font-medium text-gray-900">{account.name}</p>
                   <p className="text-xs text-gray-500">{account.institution}</p>
                 </div>
-                <p className={`font-semibold ${account.currentBalance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
-                  {formatCurrency(account.currentBalance)}
-                </p>
-              </div>
+                <div className="text-right">
+                  <p className={`font-semibold ${account.currentBalance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                    {formatCurrency(account.currentBalance)}
+                  </p>
+                  {(() => {
+                    const proj = projections?.accounts?.find(p => p.accountId === account.id)
+                    if (!proj || proj.endOfMonth.delta === 0) return null
+                    return (
+                      <p className="text-xs text-gray-400">
+                        {t('accounts.projection.estimated')} {formatCurrency(proj.endOfMonth.estimatedBalance)}
+                      </p>
+                    )
+                  })()}
+                </div>
+              </Link>
             ))}
           </div>
         </div>

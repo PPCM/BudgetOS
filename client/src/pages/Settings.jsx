@@ -216,6 +216,8 @@ function PreferencesSettings({ user, checkAuth }) {
   })
   const [settingsData, setSettingsData] = useState({
     weekStartDay: userSettings?.weekStartDay ?? 1,
+    modalPersistent: userSettings?.modalPersistent ?? false,
+    projectionExpanded: userSettings?.projectionExpanded ?? false,
   })
 
   const profileMutation = useMutation({
@@ -317,6 +319,48 @@ function PreferencesSettings({ user, checkAuth }) {
             {t('settings.preferences.preview', { value: formatNumber(1234567.89, formData.decimalSeparator, formData.digitGrouping) })}
           </p>
         </div>
+
+        {/* Interface section */}
+        <div className="pt-4 border-t">
+          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">{t('settings.preferences.interface')}</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">{t('settings.preferences.modalPersistent')}</p>
+                <p className="text-xs text-gray-500">{t('settings.preferences.modalPersistentDesc')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettingsData({ ...settingsData, modalPersistent: !settingsData.modalPersistent })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  settingsData.modalPersistent ? 'bg-primary-600' : 'bg-gray-200'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  settingsData.modalPersistent ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">{t('settings.preferences.projectionExpanded')}</p>
+                <p className="text-xs text-gray-500">{t('settings.preferences.projectionExpandedDesc')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettingsData({ ...settingsData, projectionExpanded: !settingsData.projectionExpanded })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  settingsData.projectionExpanded ? 'bg-primary-600' : 'bg-gray-200'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  settingsData.projectionExpanded ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+          </div>
+        </div>
+
         <button type="submit" disabled={profileMutation.isPending || settingsMutation.isPending} className="btn btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" />
           {t('common.save')}

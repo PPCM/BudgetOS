@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi, creditCardsApi } from '../lib/api'
 import { getDatePeriod } from '../lib/utils'
@@ -106,14 +107,14 @@ const TransactionTypeIcon = ({ type, amount }) => {
  * @param {Function} props.onCreatePayee - Callback to create a new payee inline
  * @param {Function} props.onCreateCategory - Callback to create a new category inline
  */
-export function TransactionModal({ transaction, accounts, categories, payees, creditCards, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
+export function TransactionModal({ transaction, accounts, categories, payees, creditCards, defaultAccountId, onClose, onSave, onCreatePayee, onCreateCategory, toast }) {
   const { t, i18n } = useTranslation()
   const [formData, setFormData] = useState(() => {
     if (transaction) {
       return { ...transaction, amount: transaction.amount != null ? String(Math.abs(transaction.amount)) : '' }
     }
     return {
-      accountId: accounts?.[0]?.id || '',
+      accountId: defaultAccountId || accounts?.[0]?.id || '',
       toAccountId: '',
       categoryId: '',
       payeeId: '',
@@ -488,6 +489,7 @@ export default function Transactions() {
   const { formatCurrency, formatDate } = useFormatters()
   const { userSettings } = useAuth()
   const toast = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
   /** @type {Set<string>} Set of expanded transaction IDs */
@@ -498,9 +500,11 @@ export default function Transactions() {
   const [searchInput, setSearchInput] = useState('')
   /** @type {string} Deferred search value (debounced) */
   const deferredSearch = useDeferredValue(searchInput)
+  /** @type {string} Currently selected account tab ('' = all accounts) */
+  const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || '')
   /** @type {Object} Filter state for account, category, type, reconciliation status, and date range */
   const [filters, setFilters] = useState({
-    accountId: '',
+    accountId: searchParams.get('account') || '',
     categoryId: '',
     type: '',
     isReconciled: '',
@@ -521,12 +525,25 @@ export default function Transactions() {
       filters.type || filters.isReconciled || filters.startDate || filters.endDate
   }, [searchInput, filters])
 
+  // Handle account tab change
+  const handleAccountTab = useCallback((accountId) => {
+    setAccountTab(accountId)
+    setFilters(prev => ({ ...prev, accountId }))
+    if (accountId) {
+      setSearchParams({ account: accountId }, { replace: true })
+    } else {
+      setSearchParams({}, { replace: true })
+    }
+  }, [setSearchParams])
+
   // Reset all filters and search
   const resetAllFilters = useCallback(() => {
     setSearchInput('')
+    setAccountTab('')
     setFilters({ accountId: '', categoryId: '', type: '', isReconciled: '', startDate: '', endDate: '' })
     setQuickPeriod('')
-  }, [])
+    setSearchParams({}, { replace: true })
+  }, [setSearchParams])
 
   // Combine filters with deferred search for API call
   const queryFilters = useMemo(() => ({
@@ -869,6 +886,39 @@ export default function Transactions() {
         </div>
       </div>
 
+      {/* Account tabs */}
+      {accountsData?.data?.length > 0 && (
+        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto pb-px">
+          <button
+            onClick={() => handleAccountTab('')}
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              !accountTab
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {t('transactions.filters.allAccounts')}
+          </button>
+          {accountsData.data.map((account) => (
+            <button
+              key={account.id}
+              onClick={() => handleAccountTab(account.id)}
+              className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
+                accountTab === account.id
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: account.color }}
+              />
+              {account.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="card">
         <div className="flex flex-wrap gap-4">
@@ -893,18 +943,21 @@ export default function Transactions() {
               )}
             </div>
           </div>
-          <div className="w-48">
-            <select
-              value={filters.accountId}
-              onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}
-              className="input"
-            >
-              <option value="">{t('transactions.filters.allAccounts')}</option>
-              {accountsData?.data?.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </div>
+          {/* Account dropdown only shown when "All accounts" tab is active */}
+          {!accountTab && (
+            <div className="w-48">
+              <select
+                value={filters.accountId}
+                onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}
+                className="input"
+              >
+                <option value="">{t('transactions.filters.allAccounts')}</option>
+                {accountsData?.data?.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="w-48">
             <select
               value={filters.categoryId}
@@ -1059,6 +1112,7 @@ export default function Transactions() {
                         <SortIcon column="category" sort={sort} />
                       </div>
                     </th>
+                    {!accountTab && (
                     <th
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-36 cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort('account')}
@@ -1068,6 +1122,7 @@ export default function Transactions() {
                         <SortIcon column="account" sort={sort} />
                       </div>
                     </th>
+                    )}
                     <th
                       className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28 cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort('amount')}
@@ -1141,9 +1196,11 @@ export default function Transactions() {
                             </div>
                           ) : '-'}
                         </td>
+                        {!accountTab && (
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {tx.accountName}
                         </td>
+                        )}
                         <td className={`px-4 py-3 text-right font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
                         </td>
@@ -1181,7 +1238,7 @@ export default function Transactions() {
                         </td>
                       </tr>
                       {expandable && expandedRows.has(tx.id) && (
-                        <TransactionExpandedRow tx={tx} colSpan={8} />
+                        <TransactionExpandedRow tx={tx} colSpan={accountTab ? 7 : 8} />
                       )}
                     </Fragment>
                   )})}
@@ -1209,6 +1266,7 @@ export default function Transactions() {
           categories={categoriesData}
           payees={payeesData}
           creditCards={creditCardsData?.data?.creditCards || []}
+          defaultAccountId={accountTab}
           onClose={() => { setModalOpen(false); setEditingTx(null); }}
           onSave={handleSave}
           onCreatePayee={handleCreatePayee}

@@ -140,6 +140,8 @@
     "monthlyExpenses": "Despesas Mensais",
     "netFlow": "Fluxo Líquido",
     "myAccounts": "As Minhas Contas",
+    "viewAll": "Ver tudo",
+    "projectionEndMonth": "Projeção fim do mês",
     "expensesByCategory": "Despesas por Categoria",
     "recentTransactions": "Transações Recentes",
     "noTransactions": "Sem transações recentes",
@@ -156,6 +158,16 @@
     "investments": "Investimentos",
     "institution": "Instituição",
     "initialBalance": "Saldo inicial",
+    "viewTransactions": "Ver transações",
+    "projection": {
+      "title": "Projeção",
+      "endOfMonth": "Fim do mês",
+      "thirtyDays": "30 dias",
+      "income": "Receitas",
+      "expenses": "Despesas",
+      "estimated": "Saldo estimado",
+      "noMovement": "nenhum movimento previsto"
+    },
     "confirmDelete": "Eliminar a conta \"{{name}}\"?\n\nAtenção: todas as transações associadas serão igualmente eliminadas.",
     "types": {
       "checking": "Conta Corrente",
@@ -606,7 +618,12 @@
         "none": "Nenhum"
       },
       "preview": "Preview: {{value}}",
-      "sameSeparatorError": "O separador decimal e o símbolo de agrupamento não podem ser iguais"
+      "sameSeparatorError": "O separador decimal e o símbolo de agrupamento não podem ser iguais",
+      "interface": "Interface",
+      "modalPersistent": "Popups persistentes",
+      "modalPersistentDesc": "Impede o fechamento das janelas ao clicar fora. Use ✕ ou Escape para fechar.",
+      "projectionExpanded": "Projeção orçamental expandida",
+      "projectionExpandedDesc": "Mostrar a projeção expandida por padrão nos cartões de conta"
     }
   },
   "admin": {

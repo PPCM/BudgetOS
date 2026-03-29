@@ -340,7 +340,7 @@ export class User {
       'date_format', 'number_format', 'week_start_day', 'dashboard_layout',
       'default_account_id', 'email_notifications', 'notify_low_balance',
       'low_balance_threshold', 'notify_upcoming_bills', 'bills_reminder_days',
-      'default_import_config', 'theme',
+      'default_import_config', 'theme', 'modal_persistent', 'projection_expanded',
     ];
 
     const updates = buildUpdates(data, allowedFields, {
@@ -396,6 +396,8 @@ export class User {
       billsReminderDays: settings.bills_reminder_days,
       defaultImportConfig: settings.default_import_config ? JSON.parse(settings.default_import_config) : null,
       theme: settings.theme,
+      modalPersistent: Boolean(settings.modal_persistent),
+      projectionExpanded: Boolean(settings.projection_expanded),
     };
   }
 }

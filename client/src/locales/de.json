@@ -140,6 +140,8 @@
     "monthlyExpenses": "Monatliche Ausgaben",
     "netFlow": "Netto-Cashflow",
     "myAccounts": "Meine Konten",
+    "viewAll": "Alle anzeigen",
+    "projectionEndMonth": "Prognose Monatsende",
     "expensesByCategory": "Ausgaben nach Kategorie",
     "recentTransactions": "Letzte Buchungen",
     "noTransactions": "Keine aktuellen Buchungen",
@@ -156,6 +158,16 @@
     "investments": "Anlagen",
     "institution": "Kreditinstitut",
     "initialBalance": "Anfangssaldo",
+    "viewTransactions": "Transaktionen anzeigen",
+    "projection": {
+      "title": "Prognose",
+      "endOfMonth": "Monatsende",
+      "thirtyDays": "30 Tage",
+      "income": "Einnahmen",
+      "expenses": "Ausgaben",
+      "estimated": "Geschätzter Saldo",
+      "noMovement": "keine geplante Bewegung"
+    },
     "confirmDelete": "Konto \"{{name}}\" löschen?\n\nAchtung: Alle zugehörigen Buchungen werden ebenfalls gelöscht.",
     "types": {
       "checking": "Girokonto",
@@ -606,7 +618,12 @@
         "none": "Keins"
       },
       "preview": "Preview: {{value}}",
-      "sameSeparatorError": "Dezimaltrennzeichen und Zifferngruppierungssymbol dürfen nicht identisch sein"
+      "sameSeparatorError": "Dezimaltrennzeichen und Zifferngruppierungssymbol dürfen nicht identisch sein",
+      "interface": "Benutzeroberfläche",
+      "modalPersistent": "Persistente Popups",
+      "modalPersistentDesc": "Verhindert das Schließen von Fenstern beim Klicken außerhalb. Verwenden Sie ✕ oder Escape zum Schließen.",
+      "projectionExpanded": "Budgetprognose aufgeklappt",
+      "projectionExpandedDesc": "Budgetprognose standardmäßig aufgeklappt auf Kontokarten anzeigen"
     }
   },
   "admin": {

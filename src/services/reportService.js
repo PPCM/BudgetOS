@@ -1,7 +1,7 @@
 import knex from '../database/connection.js';
 import dateHelpers from '../database/dateHelpers.js';
 import { roundAmount, formatDateISO } from '../utils/helpers.js';
-import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, endOfYear } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, endOfYear, addDays, addWeeks, addMonths, addYears, isBefore, isAfter, isEqual } from 'date-fns';
 
 export class ReportService {
   /**
@@ -220,6 +220,140 @@ export class ReportService {
         categoryName: t.category_name, accountName: t.account_name, type: t.type,
       })),
     };
+  }
+
+  /**
+   * Budget projection per account
+   * Calculates expected income/expenses based on planned transactions
+   * for end of month and +30 days horizons
+   */
+  static async getProjections(userId) {
+    const today = new Date();
+    const monthEndDate = endOfMonth(today);
+    const thirtyDaysDate = addDays(today, 30);
+
+    // Get all active accounts
+    const accounts = await knex('accounts')
+      .where({ user_id: userId, is_active: true })
+      .select('id', 'name', 'current_balance', 'color', 'type');
+
+    // Get all active planned transactions with next_occurrence
+    const planned = await knex('planned_transactions')
+      .where({ user_id: userId, is_active: true })
+      .whereNotNull('next_occurrence')
+      .select('id', 'account_id', 'to_account_id', 'amount', 'type', 'frequency',
+        'next_occurrence', 'end_date', 'description');
+
+    // Helper: generate all occurrences of a planned transaction between start and end dates
+    const getOccurrences = (pt, startDate, endDate) => {
+      const occurrences = [];
+      let current = new Date(pt.next_occurrence);
+      const ptEndDate = pt.end_date ? new Date(pt.end_date) : null;
+      let safety = 0;
+
+      while ((isBefore(current, endDate) || isEqual(current, endDate)) && safety < 100) {
+        if ((isAfter(current, startDate) || isEqual(current, startDate))
+            && (!ptEndDate || isBefore(current, ptEndDate) || isEqual(current, ptEndDate))) {
+          occurrences.push(new Date(current));
+        }
+        // Advance to next occurrence
+        current = ReportService.advanceDate(current, pt.frequency);
+        safety++;
+      }
+      return occurrences;
+    };
+
+    // Build projection per account
+    const projections = accounts.map(account => {
+      const accountId = account.id;
+      let monthEndIncome = 0, monthEndExpenses = 0;
+      let thirtyDayIncome = 0, thirtyDayExpenses = 0;
+
+      for (const pt of planned) {
+        const affectsAccount = pt.account_id === accountId || pt.to_account_id === accountId;
+        if (!affectsAccount) continue;
+
+        const amount = Math.abs(Number(pt.amount));
+
+        // End of month occurrences
+        const monthOccurrences = getOccurrences(pt, today, monthEndDate);
+        for (const _occ of monthOccurrences) {
+          if (pt.type === 'income' && pt.account_id === accountId) monthEndIncome += amount;
+          else if (pt.type === 'expense' && pt.account_id === accountId) monthEndExpenses += amount;
+          else if (pt.type === 'transfer') {
+            if (pt.to_account_id === accountId) monthEndIncome += amount;
+            if (pt.account_id === accountId) monthEndExpenses += amount;
+          }
+        }
+
+        // 30-day occurrences
+        const thirtyDayOccurrences = getOccurrences(pt, today, thirtyDaysDate);
+        for (const _occ of thirtyDayOccurrences) {
+          if (pt.type === 'income' && pt.account_id === accountId) thirtyDayIncome += amount;
+          else if (pt.type === 'expense' && pt.account_id === accountId) thirtyDayExpenses += amount;
+          else if (pt.type === 'transfer') {
+            if (pt.to_account_id === accountId) thirtyDayIncome += amount;
+            if (pt.account_id === accountId) thirtyDayExpenses += amount;
+          }
+        }
+      }
+
+      const currentBalance = Number(account.current_balance);
+
+      return {
+        accountId,
+        accountName: account.name,
+        color: account.color,
+        type: account.type,
+        currentBalance: roundAmount(currentBalance),
+        endOfMonth: {
+          date: formatDateISO(monthEndDate),
+          income: roundAmount(monthEndIncome),
+          expenses: roundAmount(monthEndExpenses),
+          estimatedBalance: roundAmount(currentBalance + monthEndIncome - monthEndExpenses),
+          delta: roundAmount(monthEndIncome - monthEndExpenses),
+        },
+        thirtyDays: {
+          date: formatDateISO(thirtyDaysDate),
+          income: roundAmount(thirtyDayIncome),
+          expenses: roundAmount(thirtyDayExpenses),
+          estimatedBalance: roundAmount(currentBalance + thirtyDayIncome - thirtyDayExpenses),
+          delta: roundAmount(thirtyDayIncome - thirtyDayExpenses),
+        },
+      };
+    });
+
+    // Global totals
+    const totalCurrent = roundAmount(accounts.reduce((sum, a) => sum + Number(a.current_balance), 0));
+    const totalMonthEnd = roundAmount(projections.reduce((sum, p) => sum + p.endOfMonth.estimatedBalance, 0));
+    const totalThirtyDays = roundAmount(projections.reduce((sum, p) => sum + p.thirtyDays.estimatedBalance, 0));
+
+    return {
+      accounts: projections,
+      totals: {
+        currentBalance: totalCurrent,
+        endOfMonth: { estimatedBalance: totalMonthEnd, delta: roundAmount(totalMonthEnd - totalCurrent) },
+        thirtyDays: { estimatedBalance: totalThirtyDays, delta: roundAmount(totalThirtyDays - totalCurrent) },
+      },
+    };
+  }
+
+  /**
+   * Advance a date by one period of the given frequency
+   */
+  static advanceDate(date, frequency) {
+    switch (frequency) {
+      case 'daily': return addDays(date, 1);
+      case 'weekly': return addWeeks(date, 1);
+      case 'biweekly': return addWeeks(date, 2);
+      case 'monthly': return addMonths(date, 1);
+      case 'bimonthly': return addMonths(date, 2);
+      case 'quarterly': return addMonths(date, 3);
+      case 'semiannual': return addMonths(date, 6);
+      case 'annual': return addYears(date, 1);
+      case 'once': return addYears(date, 100); // effectively no repeat
+      default: return addMonths(date, 1);
+    }
   }
 }
 

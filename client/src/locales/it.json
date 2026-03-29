@@ -140,6 +140,8 @@
     "monthlyExpenses": "Spese del mese",
     "netFlow": "Flusso netto",
     "myAccounts": "I miei conti",
+    "viewAll": "Vedi tutto",
+    "projectionEndMonth": "Proiezione fine mese",
     "expensesByCategory": "Spese per categoria",
     "recentTransactions": "Transazioni recenti",
     "noTransactions": "Nessuna transazione recente",
@@ -156,6 +158,16 @@
     "investments": "Investimenti",
     "institution": "Istituto",
     "initialBalance": "Saldo iniziale",
+    "viewTransactions": "Vedi transazioni",
+    "projection": {
+      "title": "Proiezione",
+      "endOfMonth": "Fine mese",
+      "thirtyDays": "30 giorni",
+      "income": "Entrate",
+      "expenses": "Spese",
+      "estimated": "Saldo stimato",
+      "noMovement": "nessun movimento previsto"
+    },
     "confirmDelete": "Eliminare il conto \"{{name}}\"?\n\nAttenzione: tutte le transazioni associate verranno eliminate.",
     "types": {
       "checking": "Conto corrente",
@@ -606,7 +618,12 @@
         "none": "Nessuno"
       },
       "preview": "Preview: {{value}}",
-      "sameSeparatorError": "Il separatore decimale e il simbolo di raggruppamento non possono essere uguali"
+      "sameSeparatorError": "Il separatore decimale e il simbolo di raggruppamento non possono essere uguali",
+      "interface": "Interfaccia",
+      "modalPersistent": "Popup persistenti",
+      "modalPersistentDesc": "Impedisce la chiusura delle finestre cliccando all'esterno. Usare ✕ o Escape per chiudere.",
+      "projectionExpanded": "Proiezione budget espansa",
+      "projectionExpandedDesc": "Mostrare la proiezione espansa per impostazione predefinita sulle schede dei conti"
     }
   },
   "admin": {

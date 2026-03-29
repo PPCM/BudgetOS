@@ -140,6 +140,8 @@
     "monthlyExpenses": "Månadsutgifter",
     "netFlow": "Nettoflöde",
     "myAccounts": "Mina konton",
+    "viewAll": "Visa alla",
+    "projectionEndMonth": "Prognos månadsslut",
     "expensesByCategory": "Utgifter per kategori",
     "recentTransactions": "Senaste transaktioner",
     "noTransactions": "Inga senaste transaktioner",
@@ -156,6 +158,16 @@
     "investments": "Investeringar",
     "institution": "Bank",
     "initialBalance": "Ingående saldo",
+    "viewTransactions": "Visa transaktioner",
+    "projection": {
+      "title": "Prognos",
+      "endOfMonth": "Månadsslut",
+      "thirtyDays": "30 dagar",
+      "income": "Inkomster",
+      "expenses": "Utgifter",
+      "estimated": "Beräknat saldo",
+      "noMovement": "ingen planerad rörelse"
+    },
     "confirmDelete": "Ta bort kontot \"{{name}}\"?\n\nVarning: alla associerade transaktioner kommer också att tas bort.",
     "types": {
       "checking": "Lönekonto",
@@ -606,7 +618,12 @@
         "none": "Ingen"
       },
       "preview": "Preview: {{value}}",
-      "sameSeparatorError": "Decimalavskiljare och siffergrupper kan inte vara samma"
+      "sameSeparatorError": "Decimalavskiljare och siffergrupper kan inte vara samma",
+      "interface": "Gränssnitt",
+      "modalPersistent": "Beständiga popups",
+      "modalPersistentDesc": "Förhindrar att fönster stängs vid klick utanför. Använd ✕ eller Escape för att stänga.",
+      "projectionExpanded": "Budgetprognos utfälld",
+      "projectionExpandedDesc": "Visa budgetprognos utfälld som standard på kontokort"
     }
   },
   "admin": {

@@ -140,6 +140,8 @@
     "monthlyExpenses": "Monthly Expenses",
     "netFlow": "Net Flow",
     "myAccounts": "My Accounts",
+    "viewAll": "View all",
+    "projectionEndMonth": "End of month projection",
     "expensesByCategory": "Expenses by Category",
     "recentTransactions": "Recent Transactions",
     "noTransactions": "No recent transactions",
@@ -156,6 +158,16 @@
     "investments": "Investments",
     "institution": "Institution",
     "initialBalance": "Initial balance",
+    "viewTransactions": "View transactions",
+    "projection": {
+      "title": "Projection",
+      "endOfMonth": "End of month",
+      "thirtyDays": "30 days",
+      "income": "Income",
+      "expenses": "Expenses",
+      "estimated": "Estimated balance",
+      "noMovement": "no planned movement"
+    },
     "confirmDelete": "Delete account \"{{name}}\"?\n\nWarning: all associated transactions will also be deleted.",
     "types": {
       "checking": "Checking",
@@ -606,7 +618,12 @@
         "none": "None"
       },
       "preview": "Preview: {{value}}",
-      "sameSeparatorError": "Decimal separator and digit grouping symbol cannot be the same"
+      "sameSeparatorError": "Decimal separator and digit grouping symbol cannot be the same",
+      "interface": "Interface",
+      "modalPersistent": "Persistent popups",
+      "modalPersistentDesc": "Prevent popups from closing when clicking outside. Use ✕ or Escape to close.",
+      "projectionExpanded": "Budget projection expanded",
+      "projectionExpandedDesc": "Show budget projection expanded by default on account cards"
     }
   },
   "admin": {

@@ -140,6 +140,8 @@
     "monthlyExpenses": "Расходы за месяц",
     "netFlow": "Чистый поток",
     "myAccounts": "Мои счета",
+    "viewAll": "Смотреть все",
+    "projectionEndMonth": "Прогноз на конец месяца",
     "expensesByCategory": "Расходы по категориям",
     "recentTransactions": "Последние транзакции",
     "noTransactions": "Нет последних транзакций",
@@ -156,6 +158,16 @@
     "investments": "Инвестиции",
     "institution": "Учреждение",
     "initialBalance": "Начальный баланс",
+    "viewTransactions": "Смотреть транзакции",
+    "projection": {
+      "title": "Прогноз",
+      "endOfMonth": "Конец месяца",
+      "thirtyDays": "30 дней",
+      "income": "Доходы",
+      "expenses": "Расходы",
+      "estimated": "Ожидаемый баланс",
+      "noMovement": "нет запланированных движений"
+    },
     "confirmDelete": "Удалить счёт \"{{name}}\"?\n\nВнимание: все связанные транзакции также будут удалены.",
     "types": {
       "checking": "Текущий",
@@ -606,7 +618,12 @@
         "none": "Нет"
       },
       "preview": "Preview: {{value}}",
-      "sameSeparatorError": "Десятичный разделитель и символ группировки цифр не могут совпадать"
+      "sameSeparatorError": "Десятичный разделитель и символ группировки цифр не могут совпадать",
+      "interface": "Интерфейс",
+      "modalPersistent": "Постоянные всплывающие окна",
+      "modalPersistentDesc": "Предотвращает закрытие окон при клике за их пределами. Используйте ✕ или Escape для закрытия.",
+      "projectionExpanded": "Бюджетный прогноз развёрнут",
+      "projectionExpandedDesc": "Показывать бюджетный прогноз развёрнутым по умолчанию на карточках счетов"
     }
   },
   "admin": {

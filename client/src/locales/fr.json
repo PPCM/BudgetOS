@@ -140,6 +140,8 @@
     "monthlyExpenses": "Dépenses du mois",
     "netFlow": "Flux net",
     "myAccounts": "Mes comptes",
+    "viewAll": "Voir tout",
+    "projectionEndMonth": "Projection fin de mois",
     "expensesByCategory": "Dépenses par catégorie",
     "recentTransactions": "Transactions récentes",
     "noTransactions": "Aucune transaction récente",
@@ -156,6 +158,16 @@
     "investments": "Investissements",
     "institution": "Établissement",
     "initialBalance": "Solde initial",
+    "viewTransactions": "Voir les transactions",
+    "projection": {
+      "title": "Projection",
+      "endOfMonth": "Fin de mois",
+      "thirtyDays": "30 jours",
+      "income": "Revenus",
+      "expenses": "Dépenses",
+      "estimated": "Solde estimé",
+      "noMovement": "aucun mouvement prévu"
+    },
     "confirmDelete": "Supprimer le compte \"{{name}}\" ?\n\nAttention : toutes les transactions associées seront également supprimées.",
     "types": {
       "checking": "Compte courant",
@@ -606,7 +618,12 @@
         "none": "Aucun"
       },
       "preview": "Aperçu : {{value}}",
-      "sameSeparatorError": "Le séparateur décimal et le symbole de groupement ne peuvent pas être identiques"
+      "sameSeparatorError": "Le séparateur décimal et le symbole de groupement ne peuvent pas être identiques",
+      "interface": "Interface",
+      "modalPersistent": "Popups persistantes",
+      "modalPersistentDesc": "Empêche la fermeture des fenêtres au clic extérieur. Utilisez ✕ ou Échap pour fermer.",
+      "projectionExpanded": "Projection budgétaire dépliée",
+      "projectionExpandedDesc": "Afficher la projection dépliée par défaut sur les cartes de comptes"
     }
   },
   "admin": {

@@ -59,3 +59,8 @@ export const getMonthlyForecast = async (req, res) => {
   const forecast = await ForecastService.getMonthlyForecast(req.user.id, months);
   res.json({ success: true, data: { forecast } });
 };
+
+export const getProjections = async (req, res) => {
+  const projections = await ReportService.getProjections(req.user.id);
+  res.json({ success: true, data: projections });
+};

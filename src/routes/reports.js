@@ -15,5 +15,6 @@ router.get('/trend/monthly', asyncHandler(reportController.getMonthlyTrend));
 router.get('/comparison', asyncHandler(reportController.getMonthComparison));
 router.get('/forecast', asyncHandler(reportController.getForecast));
 router.get('/forecast/monthly', asyncHandler(reportController.getMonthlyForecast));
+router.get('/projections', asyncHandler(reportController.getProjections));
 
 export default router;

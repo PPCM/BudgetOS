@@ -2,7 +2,7 @@ import knex from '../database/connection.js';
 import dateHelpers from '../database/dateHelpers.js';
 import { generateId, formatDateISO } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
-import { addDays, addWeeks, addMonths, addYears, setDate, setDay } from 'date-fns';
+import { advanceByFrequency } from '../utils/dateFrequency.js';
 import Transaction from './Transaction.js';
 import { buildUpdates, paginationMeta } from '../utils/modelHelpers.js';
 
@@ -45,19 +45,9 @@ export class PlannedTransaction {
     let next = start;
 
     if (start <= today) {
-      const freq = data.frequency;
+      if (data.frequency === 'once') return null;
       while (next <= today) {
-        switch (freq) {
-          case 'once': return null;
-          case 'daily': next = addDays(next, 1); break;
-          case 'weekly': next = addWeeks(next, 1); break;
-          case 'biweekly': next = addWeeks(next, 2); break;
-          case 'monthly': next = addMonths(next, 1); break;
-          case 'bimonthly': next = addMonths(next, 2); break;
-          case 'quarterly': next = addMonths(next, 3); break;
-          case 'semiannual': next = addMonths(next, 6); break;
-          case 'annual': next = addYears(next, 1); break;
-        }
+        next = advanceByFrequency(next, data.frequency);
       }
     }
 
@@ -89,18 +79,7 @@ export class PlannedTransaction {
     while (current < today && safety < 1000) {
       if (endDate && current > endDate) break;
       dates.push(formatDateISO(current));
-
-      switch (data.frequency) {
-        case 'daily': current = addDays(current, 1); break;
-        case 'weekly': current = addWeeks(current, 1); break;
-        case 'biweekly': current = addWeeks(current, 2); break;
-        case 'monthly': current = addMonths(current, 1); break;
-        case 'bimonthly': current = addMonths(current, 2); break;
-        case 'quarterly': current = addMonths(current, 3); break;
-        case 'semiannual': current = addMonths(current, 6); break;
-        case 'annual': current = addYears(current, 1); break;
-        default: current = addMonths(current, 1); break;
-      }
+      current = advanceByFrequency(current, data.frequency);
       safety++;
     }
 

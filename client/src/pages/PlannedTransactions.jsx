@@ -365,8 +365,18 @@ export default function PlannedTransactions() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPlanned, setEditingPlanned] = useState(null)
   const [accountTab, setAccountTab] = useState('')
-  const [backfillPrompt, setBackfillPrompt] = useState(null) // { id, count, dates }
+  const [backfillPrompt, setBackfillPrompt] = useState(null) // { id, count, type }
   const queryClient = useQueryClient()
+
+  const invalidatePlannedQueries = () => {
+    queryClient.invalidateQueries(['planned-transactions'])
+    queryClient.invalidateQueries(['upcoming-transactions'])
+  }
+  const invalidateAllQueries = () => {
+    invalidatePlannedQueries()
+    queryClient.invalidateQueries(['transactions'])
+    queryClient.invalidateQueries(['accounts'])
+  }
 
   // Build frequencies lookup for display in the list
   const frequencyLabels = {
@@ -477,8 +487,7 @@ export default function PlannedTransactions() {
       })
     },
     onSuccess: (response) => {
-      queryClient.invalidateQueries(['planned-transactions'])
-      queryClient.invalidateQueries(['upcoming-transactions'])
+      invalidatePlannedQueries()
       setModalOpen(false)
 
       // Check if there are past occurrences to reconcile
@@ -505,10 +514,7 @@ export default function PlannedTransactions() {
       )
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['planned-transactions'])
-      queryClient.invalidateQueries(['upcoming-transactions'])
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['accounts'])
+      invalidateAllQueries()
       setBackfillPrompt(null)
     },
     onError: (err) => {
@@ -526,8 +532,7 @@ export default function PlannedTransactions() {
       })
     },
     onSuccess: (response) => {
-      queryClient.invalidateQueries(['planned-transactions'])
-      queryClient.invalidateQueries(['upcoming-transactions'])
+      invalidatePlannedQueries()
       setModalOpen(false)
       setEditingPlanned(null)
 
@@ -555,10 +560,7 @@ export default function PlannedTransactions() {
         headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
       })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['planned-transactions'])
-      queryClient.invalidateQueries(['upcoming-transactions'])
-    },
+    onSuccess: () => invalidatePlannedQueries(),
   })
 
   const handleEdit = (tx) => {

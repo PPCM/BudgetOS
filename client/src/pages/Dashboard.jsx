@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -103,11 +104,11 @@ export default function Dashboard() {
     )
   }
 
-  const pieData = expenses?.slice(0, 6).map((e, i) => ({
+  const pieData = useMemo(() => expenses?.slice(0, 6).map((e, i) => ({
     name: e.categoryName,
     value: e.total,
     color: e.color || COLORS[i % COLORS.length],
-  })) || []
+  })) || [], [expenses])
 
   return (
     <div className="space-y-6">

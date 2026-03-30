@@ -8,6 +8,7 @@ import { User, Lock, Palette, Save } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import PasswordInput from '../components/PasswordInput'
 import FormLanguageSelect from '../components/FormLanguageSelect'
+import ToggleSwitch from '../components/ToggleSwitch'
 import axios from 'axios'
 
 export default function Settings() {
@@ -329,34 +330,20 @@ function PreferencesSettings({ user, checkAuth }) {
                 <p className="text-sm font-medium text-gray-700">{t('settings.preferences.modalPersistent')}</p>
                 <p className="text-xs text-gray-500">{t('settings.preferences.modalPersistentDesc')}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setSettingsData({ ...settingsData, modalPersistent: !settingsData.modalPersistent })}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settingsData.modalPersistent ? 'bg-primary-600' : 'bg-gray-200'
-                }`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settingsData.modalPersistent ? 'translate-x-6' : 'translate-x-1'
-                }`} />
-              </button>
+              <ToggleSwitch
+                checked={settingsData.modalPersistent}
+                onChange={() => setSettingsData({ ...settingsData, modalPersistent: !settingsData.modalPersistent })}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">{t('settings.preferences.projectionExpanded')}</p>
                 <p className="text-xs text-gray-500">{t('settings.preferences.projectionExpandedDesc')}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setSettingsData({ ...settingsData, projectionExpanded: !settingsData.projectionExpanded })}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settingsData.projectionExpanded ? 'bg-primary-600' : 'bg-gray-200'
-                }`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settingsData.projectionExpanded ? 'translate-x-6' : 'translate-x-1'
-                }`} />
-              </button>
+              <ToggleSwitch
+                checked={settingsData.projectionExpanded}
+                onChange={() => setSettingsData({ ...settingsData, projectionExpanded: !settingsData.projectionExpanded })}
+              />
             </div>
           </div>
         </div>

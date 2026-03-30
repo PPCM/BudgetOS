@@ -1,7 +1,8 @@
 import knex from '../database/connection.js';
 import dateHelpers from '../database/dateHelpers.js';
 import { roundAmount, formatDateISO } from '../utils/helpers.js';
-import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, endOfYear, addDays, addWeeks, addMonths, addYears, isBefore, isAfter, isEqual } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, endOfYear, addDays, isBefore, isAfter, isEqual } from 'date-fns';
+import { advanceByFrequency } from '../utils/dateFrequency.js';
 
 export class ReportService {
   /**
@@ -257,7 +258,7 @@ export class ReportService {
           occurrences.push(new Date(current));
         }
         // Advance to next occurrence
-        current = ReportService.advanceDate(current, pt.frequency);
+        current = advanceByFrequency(current, pt.frequency);
         safety++;
       }
       return occurrences;
@@ -338,23 +339,6 @@ export class ReportService {
     };
   }
 
-  /**
-   * Advance a date by one period of the given frequency
-   */
-  static advanceDate(date, frequency) {
-    switch (frequency) {
-      case 'daily': return addDays(date, 1);
-      case 'weekly': return addWeeks(date, 1);
-      case 'biweekly': return addWeeks(date, 2);
-      case 'monthly': return addMonths(date, 1);
-      case 'bimonthly': return addMonths(date, 2);
-      case 'quarterly': return addMonths(date, 3);
-      case 'semiannual': return addMonths(date, 6);
-      case 'annual': return addYears(date, 1);
-      case 'once': return addYears(date, 100); // effectively no repeat
-      default: return addMonths(date, 1);
-    }
-  }
 }
 
 export default ReportService;

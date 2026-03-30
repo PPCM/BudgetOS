@@ -525,6 +525,11 @@ export default function Transactions() {
       filters.type || filters.isReconciled || filters.startDate || filters.endDate
   }, [searchInput, filters])
 
+  const invalidateTransactionQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    queryClient.invalidateQueries({ queryKey: ['accounts'] })
+  }
+
   // Handle account tab change
   const handleAccountTab = useCallback((accountId) => {
     setAccountTab(accountId)
@@ -699,8 +704,7 @@ export default function Transactions() {
   const createMutation = useMutation({
     mutationFn: transactionsApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      invalidateTransactionQueries()
       setModalOpen(false)
       toast.success(t('transactions.created'))
     },
@@ -712,8 +716,7 @@ export default function Transactions() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => transactionsApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      invalidateTransactionQueries()
       setModalOpen(false)
       setEditingTx(null)
       toast.success(t('transactions.updated'))
@@ -726,8 +729,7 @@ export default function Transactions() {
   const deleteMutation = useMutation({
     mutationFn: transactionsApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      invalidateTransactionQueries()
       toast.success(t('transactions.deleted'))
     },
     onError: (err) => {

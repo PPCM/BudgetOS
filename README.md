@@ -17,7 +17,7 @@
 
 ## Supported Tags
 
-- `1.5.0`, `1.5`, `1`, `latest`
+- `1.5.1`, `1.5`, `1`, `latest`
 
 ## Quick Reference
 

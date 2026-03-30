@@ -71,8 +71,8 @@ export default function Forecast() {
   const deferredSearch = useDeferredValue(searchInput)
   const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || getPersistedAccountTab())
 
-  // Default to current month full
-  const defaultPeriod = 'currentMonthFull'
+  // Default to next month
+  const defaultPeriod = 'nextMonth'
   const defaultDates = getDatePeriod(defaultPeriod, userSettings?.weekStartDay ?? 1)
   const [filters, setFilters] = useState({
     accountId: searchParams.get('account') || getPersistedAccountTab(),

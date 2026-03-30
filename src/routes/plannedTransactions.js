@@ -18,5 +18,6 @@ router.put('/:id', validate({ params: plannedTransactionIdParamSchema, body: upd
 router.delete('/:id', validate({ params: plannedTransactionIdParamSchema }), asyncHandler(plannedController.deletePlannedTransaction));
 router.post('/:id/occurrence', validate({ params: plannedTransactionIdParamSchema, body: createOccurrenceSchema }), asyncHandler(plannedController.createOccurrence));
 router.post('/:id/backfill', validate({ params: plannedTransactionIdParamSchema }), asyncHandler(plannedController.backfillOccurrences));
+router.post('/:id/cleanup', validate({ params: plannedTransactionIdParamSchema }), asyncHandler(plannedController.cleanupOccurrences));
 
 export default router;

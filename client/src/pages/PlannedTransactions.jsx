@@ -524,14 +524,45 @@ export default function PlannedTransactions() {
         headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
       })
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries(['planned-transactions'])
       queryClient.invalidateQueries(['upcoming-transactions'])
       setModalOpen(false)
       setEditingPlanned(null)
+
+      const { missingOccurrences, excessOccurrences, plannedTransaction } = response.data.data
+      const id = plannedTransaction?.id
+      if (!id) return
+
+      if (missingOccurrences > 0) {
+        setBackfillPrompt({ id, count: missingOccurrences, type: 'backfill' })
+      } else if (excessOccurrences > 0) {
+        setBackfillPrompt({ id, count: excessOccurrences, type: 'cleanup' })
+      }
     },
     onError: (err) => {
       alert(translateError(err))
+    },
+  })
+
+  const cleanupMutation = useMutation({
+    mutationFn: async (plannedId) => {
+      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
+      return axios.post(`/api/v1/planned-transactions/${plannedId}/cleanup`, {}, {
+        withCredentials: true,
+        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['planned-transactions'])
+      queryClient.invalidateQueries(['upcoming-transactions'])
+      queryClient.invalidateQueries(['transactions'])
+      queryClient.invalidateQueries(['accounts'])
+      setBackfillPrompt(null)
+    },
+    onError: (err) => {
+      alert(translateError(err))
+      setBackfillPrompt(null)
     },
   })
 
@@ -843,33 +874,49 @@ export default function PlannedTransactions() {
         )
       )}
 
-      {/* Backfill confirmation modal */}
+      {/* Backfill / Cleanup confirmation modal */}
       {backfillPrompt && (
         <Modal onClose={() => setBackfillPrompt(null)}>
           <div className="bg-white rounded-xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-full bg-amber-100">
-                <Calendar className="w-6 h-6 text-amber-600" />
+              <div className={`p-3 rounded-full ${backfillPrompt.type === 'cleanup' ? 'bg-red-100' : 'bg-amber-100'}`}>
+                {backfillPrompt.type === 'cleanup'
+                  ? <Trash2 className="w-6 h-6 text-red-600" />
+                  : <Calendar className="w-6 h-6 text-amber-600" />
+                }
               </div>
-              <h2 className="text-lg font-semibold">{t('planned.backfill.title')}</h2>
+              <h2 className="text-lg font-semibold">
+                {backfillPrompt.type === 'cleanup' ? t('planned.cleanup.title') : t('planned.backfill.title')}
+              </h2>
             </div>
             <p className="text-gray-600 mb-6">
-              {t('planned.backfill.message', { count: backfillPrompt.count })}
+              {backfillPrompt.type === 'cleanup'
+                ? t('planned.cleanup.message', { count: backfillPrompt.count })
+                : t('planned.backfill.message', { count: backfillPrompt.count })
+              }
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setBackfillPrompt(null)}
                 className="btn btn-secondary flex-1"
               >
-                {t('planned.backfill.skip')}
+                {backfillPrompt.type === 'cleanup' ? t('planned.cleanup.skip') : t('planned.backfill.skip')}
               </button>
               <button
-                onClick={() => backfillMutation.mutate(backfillPrompt.id)}
-                disabled={backfillMutation.isPending}
-                className="btn btn-primary flex-1"
+                onClick={() => {
+                  if (backfillPrompt.type === 'cleanup') {
+                    cleanupMutation.mutate(backfillPrompt.id)
+                  } else {
+                    backfillMutation.mutate(backfillPrompt.id)
+                  }
+                }}
+                disabled={backfillMutation.isPending || cleanupMutation.isPending}
+                className={`btn flex-1 ${backfillPrompt.type === 'cleanup' ? 'bg-red-600 hover:bg-red-700 text-white' : 'btn-primary'}`}
               >
-                {backfillMutation.isPending ? (
+                {(backfillMutation.isPending || cleanupMutation.isPending) ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                ) : backfillPrompt.type === 'cleanup' ? (
+                  t('planned.cleanup.confirm', { count: backfillPrompt.count })
                 ) : (
                   t('planned.backfill.confirm', { count: backfillPrompt.count })
                 )}

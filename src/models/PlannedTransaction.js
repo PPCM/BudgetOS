@@ -167,6 +167,73 @@ export class PlannedTransaction {
     return { created: created.length, dates: datesToCreate };
   }
 
+  /**
+   * Analyze the difference between existing recurring transactions and expected past occurrences.
+   * Returns missing count (need backfill) and excess transactions (need cleanup).
+   */
+  static async analyzePastOccurrences(id, userId) {
+    const pt = await PlannedTransaction.findByIdOrFail(id, userId);
+
+    const pastDates = PlannedTransaction.getPastOccurrences({
+      startDate: pt.startDate,
+      endDate: pt.endDate,
+      frequency: pt.frequency,
+    });
+
+    // Get all existing transactions for this recurring
+    const existingTxs = await knex('transactions')
+      .where({ user_id: userId, recurring_id: id })
+      .select('id', 'date', 'description', 'amount');
+
+    const expectedCount = pastDates.length;
+    const existingCount = existingTxs.length;
+
+    // Transactions before the current startDate are excess (startDate moved forward)
+    const startDate = new Date(pt.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    const excessTransactions = existingTxs.filter(tx => {
+      const txDate = new Date(tx.date);
+      txDate.setHours(0, 0, 0, 0);
+      return txDate < startDate;
+    });
+
+    // Missing = expected past dates minus existing count (count-based to handle date edits)
+    const missingCount = Math.max(0, expectedCount - existingCount);
+
+    return {
+      missingOccurrences: missingCount,
+      excessOccurrences: excessTransactions.length,
+      excessTransactionIds: excessTransactions.map(tx => tx.id),
+    };
+  }
+
+  /**
+   * Remove excess recurring transactions (those before the current startDate).
+   * Used when user moves startDate forward.
+   */
+  static async cleanupExcessOccurrences(id, userId) {
+    const pt = await PlannedTransaction.findByIdOrFail(id, userId);
+
+    const startDate = new Date(pt.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    const startDateISO = formatDateISO(startDate);
+
+    // Delete transactions for this recurring that are before the new startDate
+    const deleted = await knex('transactions')
+      .where({ user_id: userId, recurring_id: id })
+      .where('date', '<', startDateISO)
+      .del();
+
+    if (deleted > 0) {
+      await knex('planned_transactions')
+        .where('id', id)
+        .update({
+          occurrences_created: knex.raw(`MAX(0, occurrences_created - ${deleted})`),
+        });
+    }
+
+    return { deleted };
+  }
 
   static async findById(id, userId) {
     const pt = await knex('planned_transactions as pt')

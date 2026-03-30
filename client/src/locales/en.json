@@ -294,10 +294,16 @@
     "next": "Next: {{date}}",
     "loadingData": "Loading data...",
     "backfill": {
-      "title": "Past transactions",
-      "message": "The start date is in the past. {{count}} transaction(s) should have been created. Do you want to create them now?",
+      "title": "Missing transactions",
+      "message": "{{count}} past transaction(s) have not been created. Do you want to create them now?",
       "confirm": "Create {{count}} transaction(s)",
       "skip": "No thanks"
+    },
+    "cleanup": {
+      "title": "Excess transactions",
+      "message": "{{count}} transaction(s) are before the new start date. Do you want to delete them?",
+      "confirm": "Delete {{count}} transaction(s)",
+      "skip": "Keep them"
     },
     "sourceAccount": "Source account (debit)",
     "selectSource": "Select source account",

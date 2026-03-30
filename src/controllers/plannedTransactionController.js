@@ -28,7 +28,18 @@ export const getPlannedTransaction = async (req, res) => {
 
 export const updatePlannedTransaction = async (req, res) => {
   const planned = await PlannedTransaction.update(req.params.id, req.user.id, req.body);
-  res.json({ success: true, data: { plannedTransaction: planned } });
+
+  // Analyze if startDate/frequency change created a mismatch
+  const analysis = await PlannedTransaction.analyzePastOccurrences(req.params.id, req.user.id);
+
+  res.json({
+    success: true,
+    data: {
+      plannedTransaction: planned,
+      missingOccurrences: analysis.missingOccurrences,
+      excessOccurrences: analysis.excessOccurrences,
+    },
+  });
 };
 
 export const deletePlannedTransaction = async (req, res) => {
@@ -50,5 +61,10 @@ export const createOccurrence = async (req, res) => {
 
 export const backfillOccurrences = async (req, res) => {
   const result = await PlannedTransaction.backfillPastOccurrences(req.params.id, req.user.id);
+  res.json({ success: true, data: result });
+};
+
+export const cleanupOccurrences = async (req, res) => {
+  const result = await PlannedTransaction.cleanupExcessOccurrences(req.params.id, req.user.id);
   res.json({ success: true, data: result });
 };

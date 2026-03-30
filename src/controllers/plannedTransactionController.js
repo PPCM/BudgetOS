@@ -59,12 +59,8 @@ export const createOccurrence = async (req, res) => {
   res.status(201).json({ success: true, data: { transaction } });
 };
 
-export const backfillOccurrences = async (req, res) => {
-  const result = await PlannedTransaction.backfillPastOccurrences(req.params.id, req.user.id);
-  res.json({ success: true, data: result });
-};
-
-export const cleanupOccurrences = async (req, res) => {
-  const result = await PlannedTransaction.cleanupExcessOccurrences(req.params.id, req.user.id);
+export const reconcileOccurrences = async (req, res) => {
+  const deleteExcess = req.body?.deleteExcess === true;
+  const result = await PlannedTransaction.reconcilePastOccurrences(req.params.id, req.user.id, { deleteExcess });
   res.json({ success: true, data: result });
 };

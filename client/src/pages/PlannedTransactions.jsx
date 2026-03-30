@@ -481,12 +481,13 @@ export default function PlannedTransactions() {
       queryClient.invalidateQueries(['upcoming-transactions'])
       setModalOpen(false)
 
-      // Check if there are past occurrences to backfill
+      // Check if there are past occurrences to reconcile
       const { pastOccurrences, plannedTransaction } = response.data.data
       if (pastOccurrences > 0 && plannedTransaction?.id) {
         setBackfillPrompt({
           id: plannedTransaction.id,
           count: pastOccurrences,
+          type: 'backfill',
         })
       }
     },
@@ -495,13 +496,13 @@ export default function PlannedTransactions() {
     },
   })
 
-  const backfillMutation = useMutation({
-    mutationFn: async (plannedId) => {
+  const reconcileMutation = useMutation({
+    mutationFn: async ({ plannedId, deleteExcess }) => {
       const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.post(`/api/v1/planned-transactions/${plannedId}/backfill`, {}, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
+      return axios.post(`/api/v1/planned-transactions/${plannedId}/reconcile`,
+        { deleteExcess: !!deleteExcess },
+        { withCredentials: true, headers: { 'X-CSRF-Token': csrfRes.data.csrfToken } },
+      )
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['planned-transactions'])
@@ -545,26 +546,6 @@ export default function PlannedTransactions() {
     },
   })
 
-  const cleanupMutation = useMutation({
-    mutationFn: async (plannedId) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.post(`/api/v1/planned-transactions/${plannedId}/cleanup`, {}, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['planned-transactions'])
-      queryClient.invalidateQueries(['upcoming-transactions'])
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['accounts'])
-      setBackfillPrompt(null)
-    },
-    onError: (err) => {
-      alert(translateError(err))
-      setBackfillPrompt(null)
-    },
-  })
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
@@ -904,16 +885,15 @@ export default function PlannedTransactions() {
               </button>
               <button
                 onClick={() => {
-                  if (backfillPrompt.type === 'cleanup') {
-                    cleanupMutation.mutate(backfillPrompt.id)
-                  } else {
-                    backfillMutation.mutate(backfillPrompt.id)
-                  }
+                  reconcileMutation.mutate({
+                    plannedId: backfillPrompt.id,
+                    deleteExcess: backfillPrompt.type === 'cleanup',
+                  })
                 }}
-                disabled={backfillMutation.isPending || cleanupMutation.isPending}
+                disabled={reconcileMutation.isPending}
                 className={`btn flex-1 ${backfillPrompt.type === 'cleanup' ? 'bg-red-600 hover:bg-red-700 text-white' : 'btn-primary'}`}
               >
-                {(backfillMutation.isPending || cleanupMutation.isPending) ? (
+                {reconcileMutation.isPending ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
                 ) : backfillPrompt.type === 'cleanup' ? (
                   t('planned.cleanup.confirm', { count: backfillPrompt.count })

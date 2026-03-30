@@ -108,38 +108,47 @@ export class PlannedTransaction {
   }
 
   /**
-   * Backfill past occurrences for a planned transaction.
-   * Duplicate prevention: counts existing transactions for this recurring_id
-   * (regardless of date, since users may have moved them) and only creates
-   * the difference vs. the expected number of past occurrences.
+   * Reconcile past occurrences for a planned transaction.
+   * Pairs existing transactions (by recurring_id) with expected past dates positionally:
+   * - Matched pairs: update the transaction's date to match the expected date
+   * - Extra expected dates (no match): create new transactions
+   * - Extra existing transactions (no match): return as excess for deletion
+   * This handles all cases: schedule changes, date edits, startDate moves.
    */
-  static async backfillPastOccurrences(id, userId) {
+  static async reconcilePastOccurrences(id, userId, { deleteExcess = false } = {}) {
     const pt = await PlannedTransaction.findByIdOrFail(id, userId);
 
-    const pastDates = PlannedTransaction.getPastOccurrences({
+    const expectedDates = PlannedTransaction.getPastOccurrences({
       startDate: pt.startDate,
       endDate: pt.endDate,
       frequency: pt.frequency,
     });
 
-    if (pastDates.length === 0) return { created: 0, dates: [] };
-
-    // Count ALL existing transactions for this recurring ID (not just date-matched)
-    // This prevents duplicates even if the user changed a transaction's date
-    const existingCount = await knex('transactions')
+    // Get existing transactions for this recurring, sorted by date ASC
+    const existingTxs = await knex('transactions')
       .where({ user_id: userId, recurring_id: id })
-      .count('* as count')
-      .first();
-    const alreadyCreated = Number(existingCount?.count || 0);
+      .orderBy('date', 'asc')
+      .select('id', 'date');
 
-    // Only create the difference
-    const datesToCreate = pastDates.slice(alreadyCreated);
-
-    if (datesToCreate.length === 0) return { created: 0, dates: [] };
-
-    // Create transactions for each missing past date
+    const updated = [];
     const created = [];
-    for (const date of datesToCreate) {
+    const excess = [];
+    const pairCount = Math.min(existingTxs.length, expectedDates.length);
+
+    // Pair existing transactions with expected dates by position
+    for (let i = 0; i < pairCount; i++) {
+      const existingDate = formatDateISO(new Date(existingTxs[i].date));
+      if (existingDate !== expectedDates[i]) {
+        // Update the transaction date to match the expected date
+        await knex('transactions')
+          .where('id', existingTxs[i].id)
+          .update({ date: expectedDates[i] });
+        updated.push({ id: existingTxs[i].id, from: existingDate, to: expectedDates[i] });
+      }
+    }
+
+    // Create missing transactions (expected dates beyond existing count)
+    for (let i = pairCount; i < expectedDates.length; i++) {
       const tx = await Transaction.create(userId, {
         accountId: pt.accountId,
         categoryId: pt.categoryId,
@@ -148,7 +157,7 @@ export class PlannedTransaction {
         amount: pt.amount,
         description: pt.description,
         notes: pt.notes,
-        date,
+        date: expectedDates[i],
         type: pt.type,
         isRecurring: true,
         recurringId: id,
@@ -157,82 +166,54 @@ export class PlannedTransaction {
       created.push(tx);
     }
 
-    // Update occurrences_created counter
-    await knex('planned_transactions')
-      .where('id', id)
-      .update({
-        occurrences_created: knex.raw(`occurrences_created + ${created.length}`),
-      });
+    // Handle excess transactions (existing beyond expected count)
+    for (let i = pairCount; i < existingTxs.length; i++) {
+      if (deleteExcess) {
+        await knex('transactions').where('id', existingTxs[i].id).del();
+      }
+      excess.push(existingTxs[i].id);
+    }
 
-    return { created: created.length, dates: datesToCreate };
+    // Update occurrences_created counter
+    const delta = created.length - (deleteExcess ? excess.length : 0);
+    if (delta !== 0) {
+      await knex('planned_transactions')
+        .where('id', id)
+        .update({
+          occurrences_created: knex.raw(`MAX(0, occurrences_created + ${delta})`),
+        });
+    }
+
+    return {
+      updated: updated.length,
+      created: created.length,
+      excess: excess.length,
+      excessDeleted: deleteExcess ? excess.length : 0,
+    };
   }
 
   /**
    * Analyze the difference between existing recurring transactions and expected past occurrences.
-   * Returns missing count (need backfill) and excess transactions (need cleanup).
    */
   static async analyzePastOccurrences(id, userId) {
     const pt = await PlannedTransaction.findByIdOrFail(id, userId);
 
-    const pastDates = PlannedTransaction.getPastOccurrences({
+    const expectedDates = PlannedTransaction.getPastOccurrences({
       startDate: pt.startDate,
       endDate: pt.endDate,
       frequency: pt.frequency,
     });
 
-    // Get all existing transactions for this recurring
-    const existingTxs = await knex('transactions')
+    const existingCount = await knex('transactions')
       .where({ user_id: userId, recurring_id: id })
-      .select('id', 'date', 'description', 'amount');
-
-    const expectedCount = pastDates.length;
-    const existingCount = existingTxs.length;
-
-    // Transactions before the current startDate are excess (startDate moved forward)
-    const startDate = new Date(pt.startDate);
-    startDate.setHours(0, 0, 0, 0);
-    const excessTransactions = existingTxs.filter(tx => {
-      const txDate = new Date(tx.date);
-      txDate.setHours(0, 0, 0, 0);
-      return txDate < startDate;
-    });
-
-    // Missing = expected past dates minus existing count (count-based to handle date edits)
-    const missingCount = Math.max(0, expectedCount - existingCount);
+      .count('* as count')
+      .first();
+    const count = Number(existingCount?.count || 0);
 
     return {
-      missingOccurrences: missingCount,
-      excessOccurrences: excessTransactions.length,
-      excessTransactionIds: excessTransactions.map(tx => tx.id),
+      missingOccurrences: Math.max(0, expectedDates.length - count),
+      excessOccurrences: Math.max(0, count - expectedDates.length),
     };
-  }
-
-  /**
-   * Remove excess recurring transactions (those before the current startDate).
-   * Used when user moves startDate forward.
-   */
-  static async cleanupExcessOccurrences(id, userId) {
-    const pt = await PlannedTransaction.findByIdOrFail(id, userId);
-
-    const startDate = new Date(pt.startDate);
-    startDate.setHours(0, 0, 0, 0);
-    const startDateISO = formatDateISO(startDate);
-
-    // Delete transactions for this recurring that are before the new startDate
-    const deleted = await knex('transactions')
-      .where({ user_id: userId, recurring_id: id })
-      .where('date', '<', startDateISO)
-      .del();
-
-    if (deleted > 0) {
-      await knex('planned_transactions')
-        .where('id', id)
-        .update({
-          occurrences_created: knex.raw(`MAX(0, occurrences_created - ${deleted})`),
-        });
-    }
-
-    return { deleted };
   }
 
   static async findById(id, userId) {

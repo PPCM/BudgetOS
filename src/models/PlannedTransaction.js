@@ -115,7 +115,7 @@ export class PlannedTransaction {
    * - Extra existing transactions (no match): return as excess for deletion
    * This handles all cases: schedule changes, date edits, startDate moves.
    */
-  static async reconcilePastOccurrences(id, userId, { deleteExcess = false } = {}) {
+  static async reconcilePastOccurrences(id, userId, { deleteExcess = false, createMissing = true } = {}) {
     const pt = await PlannedTransaction.findByIdOrFail(id, userId);
 
     const expectedDates = PlannedTransaction.getPastOccurrences({
@@ -149,6 +149,7 @@ export class PlannedTransaction {
 
     // Create missing transactions (expected dates beyond existing count)
     for (let i = pairCount; i < expectedDates.length; i++) {
+      if (!createMissing) break;
       const tx = await Transaction.create(userId, {
         accountId: pt.accountId,
         categoryId: pt.categoryId,
@@ -184,9 +185,12 @@ export class PlannedTransaction {
         });
     }
 
+    const missingCount = Math.max(0, expectedDates.length - pairCount);
+
     return {
       updated: updated.length,
       created: created.length,
+      missing: createMissing ? 0 : missingCount,
       excess: excess.length,
       excessDeleted: deleteExcess ? excess.length : 0,
     };
@@ -334,8 +338,10 @@ export class PlannedTransaction {
     ];
     const updates = buildUpdates(data, fields, { jsonFields: ['tags'] });
 
+    const scheduleChanged = data.startDate || data.endDate !== undefined || data.frequency;
+
     // Recalculate next_occurrence if startDate, endDate or frequency changed
-    if (data.startDate || data.endDate !== undefined || data.frequency) {
+    if (scheduleChanged) {
       const updatedData = {
         startDate: data.startDate || existing.startDate,
         endDate: data.endDate !== undefined ? data.endDate : existing.endDate,
@@ -348,6 +354,12 @@ export class PlannedTransaction {
       await knex('planned_transactions')
         .where({ id, user_id: userId })
         .update(updates);
+    }
+
+    // Auto-reconcile dates of existing transactions when schedule changes
+    // This silently updates dates to match the new schedule without user interaction
+    if (scheduleChanged) {
+      await PlannedTransaction.reconcilePastOccurrences(id, userId, { createMissing: false, deleteExcess: false });
     }
 
     return PlannedTransaction.findById(id, userId);

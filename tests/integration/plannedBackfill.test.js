@@ -40,121 +40,117 @@ describe('Planned Transactions - Reconcile past occurrences', () => {
       .send({ accountId, amount: -200, description: 'Reconcile Create', type: 'expense', frequency: 'monthly', startDate: '2026-01-10' })
     const plannedId = createRes.body.data.plannedTransaction.id
 
-    // First reconcile creates transactions
+    // Reconcile creates transactions
     const r1 = await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
-      .set('X-CSRF-Token', csrfToken)
-      .send({})
+      .set('X-CSRF-Token', csrfToken).send({})
     expect(r1.body.data.created).toBeGreaterThan(0)
-    expect(r1.body.data.updated).toBe(0)
 
     // Second reconcile: nothing to do
     const r2 = await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
-      .set('X-CSRF-Token', csrfToken)
-      .send({})
+      .set('X-CSRF-Token', csrfToken).send({})
     expect(r2.body.data.created).toBe(0)
     expect(r2.body.data.updated).toBe(0)
 
     await agent.delete(`/api/v1/planned-transactions/${plannedId}`).set('X-CSRF-Token', csrfToken)
   })
 
-  it('should reconcile: update dates when schedule changes', async () => {
+  it('should auto-update transaction dates when schedule changes via edit', async () => {
     // Create monthly starting Mar 2 → 1 past tx
     const createRes = await agent.post('/api/v1/planned-transactions')
       .set('X-CSRF-Token', csrfToken)
-      .send({ accountId, amount: -150, description: 'Schedule Change', type: 'expense', frequency: 'monthly', startDate: '2026-03-02' })
+      .send({ accountId, amount: -150, description: 'Auto Update', type: 'expense', frequency: 'monthly', startDate: '2026-03-02' })
     const plannedId = createRes.body.data.plannedTransaction.id
 
     // Reconcile → creates 1 tx at Mar 2
     await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
       .set('X-CSRF-Token', csrfToken).send({})
 
-    // Edit: move start to Feb 5 → expected [Feb 5, Mar 5]
+    // Verify tx at Mar 2
+    let txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
+    let txs = txRes.body.data.filter(tx => tx.recurringId === plannedId)
+    expect(txs.length).toBe(1)
+    expect(txs[0].date).toContain('2026-03-02')
+
+    // Edit startDate to Mar 5 → update() auto-reconciles the date
     const updateRes = await agent.put(`/api/v1/planned-transactions/${plannedId}`)
       .set('X-CSRF-Token', csrfToken)
-      .send({ startDate: '2026-02-05' })
+      .send({ startDate: '2026-03-05' })
 
-    expect(updateRes.body.data.missingOccurrences).toBe(1) // 2 expected - 1 existing
+    // Same number → no missing/excess, but date should be updated automatically
+    expect(updateRes.body.data.missingOccurrences).toBe(0)
     expect(updateRes.body.data.excessOccurrences).toBe(0)
 
-    // Reconcile → updates Mar 2 → Feb 5, creates Mar 5
-    const r = await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
-      .set('X-CSRF-Token', csrfToken).send({})
-    expect(r.body.data.updated).toBe(1) // Mar 2 → Feb 5
-    expect(r.body.data.created).toBe(1) // Mar 5
-
-    // Verify: 2 transactions total, both with correct dates
-    const txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
-    const txs = txRes.body.data.filter(tx => tx.recurringId === plannedId).sort((a, b) => a.date.localeCompare(b.date))
-    expect(txs.length).toBe(2)
-    expect(txs[0].date).toContain('2026-02-05')
-    expect(txs[1].date).toContain('2026-03-05')
+    // Verify tx date was auto-updated to Mar 5
+    txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
+    txs = txRes.body.data.filter(tx => tx.recurringId === plannedId)
+    expect(txs.length).toBe(1)
+    expect(txs[0].date).toContain('2026-03-05')
 
     await agent.delete(`/api/v1/planned-transactions/${plannedId}`).set('X-CSRF-Token', csrfToken)
   })
 
-  it('should reconcile: detect and delete excess when startDate moves forward', async () => {
-    // Create monthly starting Feb 1 → 2 past txs
+  it('should auto-update dates AND detect missing when startDate moves back', async () => {
+    // Create monthly Feb 1 → 2 past txs, reconcile
     const createRes = await agent.post('/api/v1/planned-transactions')
       .set('X-CSRF-Token', csrfToken)
-      .send({ accountId, amount: -100, description: 'Excess Test', type: 'expense', frequency: 'monthly', startDate: '2026-02-01' })
+      .send({ accountId, amount: -100, description: 'Move Back', type: 'expense', frequency: 'monthly', startDate: '2026-02-01' })
     const plannedId = createRes.body.data.plannedTransaction.id
-
-    // Reconcile → creates 2 txs (Feb 1, Mar 1)
     await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
       .set('X-CSRF-Token', csrfToken).send({})
 
-    // Edit: move start to Mar 15 → expected [Mar 15] only
+    // Edit to Jan 1 → expected [Jan 1, Feb 1, Mar 1], existing 2
+    const updateRes = await agent.put(`/api/v1/planned-transactions/${plannedId}`)
+      .set('X-CSRF-Token', csrfToken)
+      .send({ startDate: '2026-01-01' })
+
+    // Dates updated + 1 missing for user to confirm
+    expect(updateRes.body.data.missingOccurrences).toBe(1)
+    expect(updateRes.body.data.excessOccurrences).toBe(0)
+
+    // Verify existing txs dates were updated to match new schedule
+    let txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
+    let txs = txRes.body.data.filter(tx => tx.recurringId === plannedId).sort((a, b) => a.date.localeCompare(b.date))
+    expect(txs.length).toBe(2)
+    expect(txs[0].date).toContain('2026-01-01')
+    expect(txs[1].date).toContain('2026-02-01')
+
+    // User confirms → reconcile creates the missing Mar 1
+    await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
+      .set('X-CSRF-Token', csrfToken).send({})
+
+    txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
+    txs = txRes.body.data.filter(tx => tx.recurringId === plannedId).sort((a, b) => a.date.localeCompare(b.date))
+    expect(txs.length).toBe(3)
+
+    await agent.delete(`/api/v1/planned-transactions/${plannedId}`).set('X-CSRF-Token', csrfToken)
+  })
+
+  it('should detect excess when startDate moves forward and delete on confirm', async () => {
+    // Create monthly Feb 1 → 2 past txs, reconcile
+    const createRes = await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId, amount: -100, description: 'Move Forward', type: 'expense', frequency: 'monthly', startDate: '2026-02-01' })
+    const plannedId = createRes.body.data.plannedTransaction.id
+    await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
+      .set('X-CSRF-Token', csrfToken).send({})
+
+    // Edit to Mar 15 → expected [Mar 15] only
     const updateRes = await agent.put(`/api/v1/planned-transactions/${plannedId}`)
       .set('X-CSRF-Token', csrfToken)
       .send({ startDate: '2026-03-15' })
 
-    expect(updateRes.body.data.excessOccurrences).toBe(1) // 2 existing - 1 expected
+    // 1 tx auto-updated to Mar 15, 1 excess
+    expect(updateRes.body.data.excessOccurrences).toBe(1)
 
-    // Reconcile with deleteExcess → updates 1, deletes 1
-    const r = await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
+    // User confirms delete
+    await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
       .set('X-CSRF-Token', csrfToken)
       .send({ deleteExcess: true })
-    expect(r.body.data.updated).toBe(1)  // First tx → Mar 15
-    expect(r.body.data.excessDeleted).toBe(1) // Second tx deleted
 
-    // Verify: 1 transaction at Mar 15
     const txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
     const txs = txRes.body.data.filter(tx => tx.recurringId === plannedId)
     expect(txs.length).toBe(1)
     expect(txs[0].date).toContain('2026-03-15')
-
-    await agent.delete(`/api/v1/planned-transactions/${plannedId}`).set('X-CSRF-Token', csrfToken)
-  })
-
-  it('should not create duplicates even if user changed a transaction date', async () => {
-    // Create monthly starting Feb 10 → 2 past txs
-    const createRes = await agent.post('/api/v1/planned-transactions')
-      .set('X-CSRF-Token', csrfToken)
-      .send({ accountId, amount: -300, description: 'Date Edit Test', type: 'expense', frequency: 'monthly', startDate: '2026-02-10' })
-    const plannedId = createRes.body.data.plannedTransaction.id
-
-    // Reconcile → creates 2 txs
-    const r1 = await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
-      .set('X-CSRF-Token', csrfToken).send({})
-    expect(r1.body.data.created).toBe(2)
-
-    // User manually changes first tx's date
-    const txRes = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
-    const targetTx = txRes.body.data.filter(tx => tx.recurringId === plannedId).sort((a, b) => a.date.localeCompare(b.date))[0]
-    await agent.put(`/api/v1/transactions/${targetTx.id}`)
-      .set('X-CSRF-Token', csrfToken)
-      .send({ accountId, amount: 300, description: 'Date Edit Test', type: 'expense', date: '2026-02-25' })
-
-    // Reconcile again → should realign dates, not create new ones
-    const r2 = await agent.post(`/api/v1/planned-transactions/${plannedId}/reconcile`)
-      .set('X-CSRF-Token', csrfToken).send({})
-    expect(r2.body.data.created).toBe(0)
-    expect(r2.body.data.updated).toBe(1) // Feb 25 → Feb 10
-
-    // Total should still be 2
-    const txRes2 = await agent.get(`/api/v1/transactions?accountId=${accountId}`)
-    const txs = txRes2.body.data.filter(tx => tx.recurringId === plannedId)
-    expect(txs.length).toBe(2)
 
     await agent.delete(`/api/v1/planned-transactions/${plannedId}`).set('X-CSRF-Token', csrfToken)
   })

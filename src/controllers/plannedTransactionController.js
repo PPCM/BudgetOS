@@ -27,9 +27,10 @@ export const getPlannedTransaction = async (req, res) => {
 };
 
 export const updatePlannedTransaction = async (req, res) => {
+  // update() auto-reconciles dates when schedule changes (without creating/deleting)
   const planned = await PlannedTransaction.update(req.params.id, req.user.id, req.body);
 
-  // Analyze if startDate/frequency change created a mismatch
+  // Check remaining mismatches that need user confirmation (create/delete)
   const analysis = await PlannedTransaction.analyzePastOccurrences(req.params.id, req.user.id);
 
   res.json({

@@ -55,6 +55,7 @@
     "dashboard": "Übersicht",
     "accounts": "Konten",
     "transactions": "Buchungen",
+    "forecast": "Vorschau",
     "recurring": "Wiederkehrend",
     "creditCards": "Kreditkarten",
     "categories": "Kategorien",
@@ -554,6 +555,15 @@
       "in90days": "In 90 Tagen",
       "title": "Liquiditätsprognose"
     }
+  },
+  "forecast": {
+    "title": "Vorschau",
+    "subtitle": "Tatsächliche und prognostizierte Transaktionen",
+    "projected": "Prognostiziert",
+    "noTransactions": "Keine Transaktionen für diesen Zeitraum",
+    "operationCount": "{{count}} Vorgang/Vorgänge",
+    "currentMonth": "Aktueller Monat",
+    "nextMonth": "Nächster Monat"
   },
   "settings": {
     "title": "Einstellungen",

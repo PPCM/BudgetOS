@@ -55,6 +55,7 @@
     "dashboard": "Cruscotto",
     "accounts": "Conti",
     "transactions": "Transazioni",
+    "forecast": "Previsione",
     "recurring": "Ricorrenti",
     "creditCards": "Carte di credito",
     "categories": "Categorie",
@@ -554,6 +555,15 @@
       "in90days": "Tra 90 giorni",
       "title": "Previsione di tesoreria"
     }
+  },
+  "forecast": {
+    "title": "Previsione",
+    "subtitle": "Transazioni reali e previste",
+    "projected": "Previsto",
+    "noTransactions": "Nessuna transazione per questo periodo",
+    "operationCount": "{{count}} operazione(i)",
+    "currentMonth": "Mese corrente",
+    "nextMonth": "Mese prossimo"
   },
   "settings": {
     "title": "Impostazioni",

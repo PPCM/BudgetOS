@@ -55,6 +55,7 @@
     "dashboard": "Panel",
     "accounts": "Cuentas",
     "transactions": "Transacciones",
+    "forecast": "Previsión",
     "recurring": "Recurrentes",
     "creditCards": "Tarjetas de crédito",
     "categories": "Categorías",
@@ -554,6 +555,15 @@
       "in90days": "En 90 días",
       "title": "Previsión de flujo de caja"
     }
+  },
+  "forecast": {
+    "title": "Previsión",
+    "subtitle": "Transacciones reales y proyectadas",
+    "projected": "Proyectado",
+    "noTransactions": "Sin transacciones para este período",
+    "operationCount": "{{count}} operación(es)",
+    "currentMonth": "Mes actual",
+    "nextMonth": "Mes próximo"
   },
   "settings": {
     "title": "Configuración",

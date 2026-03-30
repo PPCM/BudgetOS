@@ -55,6 +55,7 @@
     "dashboard": "Översikt",
     "accounts": "Konton",
     "transactions": "Transaktioner",
+    "forecast": "Prognos",
     "recurring": "Återkommande",
     "creditCards": "Kreditkort",
     "categories": "Kategorier",
@@ -554,6 +555,15 @@
       "in90days": "Om 90 dagar",
       "title": "Kassaflödesprognos"
     }
+  },
+  "forecast": {
+    "title": "Prognos",
+    "subtitle": "Faktiska och prognostiserade transaktioner",
+    "projected": "Prognostiserad",
+    "noTransactions": "Inga transaktioner för denna period",
+    "operationCount": "{{count}} transaktion(er)",
+    "currentMonth": "Aktuell månad",
+    "nextMonth": "Nästa månad"
   },
   "settings": {
     "title": "Inställningar",

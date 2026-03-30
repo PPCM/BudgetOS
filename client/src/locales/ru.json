@@ -55,6 +55,7 @@
     "dashboard": "Панель управления",
     "accounts": "Счета",
     "transactions": "Транзакции",
+    "forecast": "Прогноз",
     "recurring": "Регулярные",
     "creditCards": "Кредитные карты",
     "categories": "Категории",
@@ -554,6 +555,15 @@
       "in90days": "Через 90 дней",
       "title": "Прогноз денежных потоков"
     }
+  },
+  "forecast": {
+    "title": "Прогноз",
+    "subtitle": "Фактические и прогнозируемые транзакции",
+    "projected": "Прогноз",
+    "noTransactions": "Нет транзакций за этот период",
+    "operationCount": "{{count}} операций",
+    "currentMonth": "Текущий месяц",
+    "nextMonth": "Следующий месяц"
   },
   "settings": {
     "title": "Настройки",

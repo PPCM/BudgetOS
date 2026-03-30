@@ -55,6 +55,7 @@
     "dashboard": "仪表盘",
     "accounts": "账户",
     "transactions": "交易",
+    "forecast": "预测",
     "recurring": "定期交易",
     "creditCards": "信用卡",
     "categories": "分类",
@@ -554,6 +555,15 @@
       "in90days": "90天后",
       "title": "现金流预测"
     }
+  },
+  "forecast": {
+    "title": "预测",
+    "subtitle": "实际和预计交易",
+    "projected": "预计",
+    "noTransactions": "该时期没有交易",
+    "operationCount": "{{count}} 笔操作",
+    "currentMonth": "本月",
+    "nextMonth": "下月"
   },
   "settings": {
     "title": "设置",

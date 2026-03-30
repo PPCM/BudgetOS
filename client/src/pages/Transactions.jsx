@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
+import { getPersistedAccountTab, setPersistedAccountTab } from '../lib/accountTabPersistence'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi, creditCardsApi } from '../lib/api'
 import { getDatePeriod } from '../lib/utils'
@@ -501,7 +502,7 @@ export default function Transactions() {
   /** @type {string} Deferred search value (debounced) */
   const deferredSearch = useDeferredValue(searchInput)
   /** @type {string} Currently selected account tab ('' = all accounts) */
-  const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || '')
+  const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || getPersistedAccountTab())
   /** @type {Object} Filter state for account, category, type, reconciliation status, and date range */
   const [filters, setFilters] = useState({
     accountId: searchParams.get('account') || '',
@@ -534,6 +535,7 @@ export default function Transactions() {
   const handleAccountTab = useCallback((accountId) => {
     setAccountTab(accountId)
     setFilters(prev => ({ ...prev, accountId }))
+    setPersistedAccountTab(accountId)
     if (accountId) {
       setSearchParams({ account: accountId }, { replace: true })
     } else {
@@ -545,6 +547,7 @@ export default function Transactions() {
   const resetAllFilters = useCallback(() => {
     setSearchInput('')
     setAccountTab('')
+    setPersistedAccountTab('')
     setFilters({ accountId: '', categoryId: '', type: '', isReconciled: '', startDate: '', endDate: '' })
     setQuickPeriod('')
     setSearchParams({}, { replace: true })

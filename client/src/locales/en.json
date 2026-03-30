@@ -55,6 +55,7 @@
     "dashboard": "Dashboard",
     "accounts": "Accounts",
     "transactions": "Transactions",
+    "forecast": "Forecast",
     "recurring": "Recurring",
     "creditCards": "Credit Cards",
     "categories": "Categories",
@@ -564,6 +565,15 @@
       "in90days": "In 90 days",
       "title": "Cash Flow Forecast"
     }
+  },
+  "forecast": {
+    "title": "Forecast",
+    "subtitle": "Actual and projected transactions",
+    "projected": "Projected",
+    "noTransactions": "No transactions for this period",
+    "operationCount": "{{count}} operation(s)",
+    "currentMonth": "Current month",
+    "nextMonth": "Next month"
   },
   "settings": {
     "title": "Settings",

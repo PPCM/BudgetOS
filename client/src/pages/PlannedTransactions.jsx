@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
+import { getPersistedAccountTab, setPersistedAccountTab } from '../lib/accountTabPersistence'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
@@ -364,9 +366,20 @@ export default function PlannedTransactions() {
   const { formatCurrency, formatDate } = useFormatters()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPlanned, setEditingPlanned] = useState(null)
-  const [accountTab, setAccountTab] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || getPersistedAccountTab())
   const [backfillPrompt, setBackfillPrompt] = useState(null) // { id, count, type }
   const queryClient = useQueryClient()
+
+  const handleAccountTab = useCallback((accountId) => {
+    setAccountTab(accountId)
+    setPersistedAccountTab(accountId)
+    if (accountId) {
+      setSearchParams({ account: accountId }, { replace: true })
+    } else {
+      setSearchParams({}, { replace: true })
+    }
+  }, [setSearchParams])
 
   const invalidatePlannedQueries = () => {
     queryClient.invalidateQueries(['planned-transactions'])
@@ -613,7 +626,7 @@ export default function PlannedTransactions() {
       {accounts?.length > 0 && (
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto pb-px">
           <button
-            onClick={() => setAccountTab('')}
+            onClick={() => handleAccountTab('')}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               !accountTab
                 ? 'border-primary-600 text-primary-600'
@@ -625,7 +638,7 @@ export default function PlannedTransactions() {
           {accounts.map((account) => (
             <button
               key={account.id}
-              onClick={() => setAccountTab(account.id)}
+              onClick={() => handleAccountTab(account.id)}
               className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
                 accountTab === account.id
                   ? 'border-primary-600 text-primary-600'

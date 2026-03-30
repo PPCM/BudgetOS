@@ -55,6 +55,7 @@
     "dashboard": "Tableau de bord",
     "accounts": "Comptes",
     "transactions": "Transactions",
+    "forecast": "Prévision",
     "recurring": "Récurrentes",
     "creditCards": "Cartes de crédit",
     "categories": "Catégories",
@@ -564,6 +565,15 @@
       "in90days": "Dans 90 jours",
       "title": "Prévision de trésorerie"
     }
+  },
+  "forecast": {
+    "title": "Prévision",
+    "subtitle": "Transactions réelles et projetées",
+    "projected": "Projeté",
+    "noTransactions": "Aucune transaction pour cette période",
+    "operationCount": "{{count}} opération(s)",
+    "currentMonth": "Mois en cours",
+    "nextMonth": "Mois prochain"
   },
   "settings": {
     "title": "Paramètres",

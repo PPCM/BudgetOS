@@ -13,6 +13,7 @@ router.get('/income/category', asyncHandler(reportController.getIncomeByCategory
 router.get('/expenses/credit-card', asyncHandler(reportController.getExpensesByCreditCard));
 router.get('/trend/monthly', asyncHandler(reportController.getMonthlyTrend));
 router.get('/comparison', asyncHandler(reportController.getMonthComparison));
+router.get('/forecast/transactions', asyncHandler(reportController.getForecastTransactions));
 router.get('/forecast', asyncHandler(reportController.getForecast));
 router.get('/forecast/monthly', asyncHandler(reportController.getMonthlyForecast));
 router.get('/projections', asyncHandler(reportController.getProjections));

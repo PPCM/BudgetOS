@@ -60,6 +60,17 @@ export const getMonthlyForecast = async (req, res) => {
   res.json({ success: true, data: { forecast } });
 };
 
+export const getForecastTransactions = async (req, res) => {
+  const { startDate, endDate, accountId, categoryId, type, search, isReconciled } = req.query;
+  const start = startDate || format(startOfMonth(new Date()), 'yyyy-MM-dd');
+  const end = endDate || format(endOfMonth(new Date()), 'yyyy-MM-dd');
+
+  const result = await ForecastService.getForecastTransactions(req.user.id, {
+    startDate: start, endDate: end, accountId, categoryId, type, search, isReconciled,
+  });
+  res.json({ success: true, data: result });
+};
+
 export const getProjections = async (req, res) => {
   const projections = await ReportService.getProjections(req.user.id);
   res.json({ success: true, data: projections });

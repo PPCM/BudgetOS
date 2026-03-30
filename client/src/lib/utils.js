@@ -140,6 +140,16 @@ export function getDatePeriod(period, weekStartDay = 1) {
       startDate = formatLocalDate(past)
       break
     }
+    case 'currentMonthFull': {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      return { startDate: formatLocalDate(firstDay), endDate: formatLocalDate(lastDay) }
+    }
+    case 'nextMonth': {
+      const firstDay = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+      return { startDate: formatLocalDate(firstDay), endDate: formatLocalDate(lastDay) }
+    }
     default:
       startDate = ''
   }

@@ -17,6 +17,7 @@ import Payees from './pages/Payees'
 import AdminUsers from './pages/AdminUsers'
 import AdminGroups from './pages/AdminGroups'
 import AdminSettings from './pages/AdminSettings'
+import Forecast from './pages/Forecast'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
@@ -100,6 +101,7 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="accounts" element={<Accounts />} />
         <Route path="transactions" element={<Transactions />} />
+        <Route path="forecast" element={<Forecast />} />
         <Route path="credit-cards" element={<CreditCards />} />
         <Route path="categories" element={<Categories />} />
         <Route path="reports" element={<Reports />} />

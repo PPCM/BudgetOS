@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   LayoutDashboard, Wallet, ArrowLeftRight, CreditCard,
   Tags, BarChart3, LogOut, Menu, X, Upload, Repeat,
-  Wand2, Settings, Users, Shield, FolderTree, Cog
+  Wand2, Settings, Users, Shield, FolderTree, Cog, CalendarRange
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../lib/utils'
@@ -13,6 +13,7 @@ const navigation = [
   { name: 'nav.dashboard', href: '/', icon: LayoutDashboard },
   { name: 'nav.accounts', href: '/accounts', icon: Wallet },
   { name: 'nav.transactions', href: '/transactions', icon: ArrowLeftRight },
+  { name: 'nav.forecast', href: '/forecast', icon: CalendarRange },
   { name: 'nav.recurring', href: '/planned', icon: Repeat },
   { name: 'nav.creditCards', href: '/credit-cards', icon: CreditCard },
   { name: 'nav.categories', href: '/categories', icon: Tags },

@@ -3,6 +3,7 @@ import { roundAmount, formatDateISO } from '../utils/helpers.js';
 import { addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import dateHelpers from '../database/dateHelpers.js';
 import Account from '../models/Account.js';
+import { advanceByFrequency } from '../utils/dateFrequency.js';
 
 export class ForecastService {
   /**
@@ -243,6 +244,152 @@ export class ForecastService {
     }
 
     return result;
+  }
+  /**
+   * Get merged list of actual + projected transactions for a date range.
+   * Projected entries are generated from planned_transactions.
+   * Deduplicates: if an actual tx exists with same recurring_id + date, skip projected.
+   */
+  static async getForecastTransactions(userId, options = {}) {
+    const { startDate, endDate, accountId, categoryId, type, search, isReconciled } = options;
+
+    // 1. Fetch actual transactions in the period
+    let txQuery = knex('transactions as t')
+      .leftJoin('categories as c', 't.category_id', 'c.id')
+      .leftJoin('accounts as a', 't.account_id', 'a.id')
+      .leftJoin('payees as p', 't.payee_id', 'p.id')
+      .select(
+        't.id', 't.date', 't.amount', 't.description', 't.type', 't.status',
+        't.is_reconciled', 't.recurring_id', 't.account_id',
+        'c.id as category_id', 'c.name as category_name', 'c.icon as category_icon', 'c.color as category_color',
+        'a.name as account_name', 'a.color as account_color',
+        'p.id as payee_id', 'p.name as payee_name', 'p.image_url as payee_image_url',
+      )
+      .where('t.user_id', userId)
+      .whereNot('t.status', 'void')
+      .whereBetween('t.date', [startDate, endDate])
+      .orderBy('t.date', 'asc');
+
+    if (accountId) txQuery = txQuery.where('t.account_id', accountId);
+    if (categoryId) txQuery = txQuery.where('t.category_id', categoryId);
+    if (type) txQuery = txQuery.where('t.type', type);
+    if (isReconciled !== undefined && isReconciled !== '') {
+      txQuery = txQuery.where('t.is_reconciled', isReconciled === 'true' || isReconciled === true);
+    }
+    if (search) {
+      txQuery = txQuery.where(function () {
+        this.where('t.description', 'like', `%${search}%`)
+          .orWhere('p.name', 'like', `%${search}%`);
+      });
+    }
+
+    const actualTxs = await txQuery;
+
+    // Build set of existing recurring dates for deduplication
+    const existingRecurringDates = new Set();
+    for (const tx of actualTxs) {
+      if (tx.recurring_id) {
+        existingRecurringDates.add(`${tx.recurring_id}_${tx.date}`);
+      }
+    }
+
+    // Format actual transactions
+    const formattedActual = actualTxs.map(tx => ({
+      id: tx.id,
+      date: tx.date,
+      amount: Number(tx.amount),
+      description: tx.description,
+      type: tx.type,
+      status: tx.status,
+      isReconciled: Boolean(tx.is_reconciled),
+      accountId: tx.account_id,
+      accountName: tx.account_name,
+      accountColor: tx.account_color,
+      categoryId: tx.category_id,
+      categoryName: tx.category_name,
+      categoryIcon: tx.category_icon,
+      categoryColor: tx.category_color,
+      payeeId: tx.payee_id,
+      payeeName: tx.payee_name,
+      payeeImageUrl: tx.payee_image_url,
+      recurringId: tx.recurring_id,
+      source: 'actual',
+    }));
+
+    // 2. Fetch planned transactions and generate projected occurrences
+    let ptQuery = knex('planned_transactions as pt')
+      .leftJoin('categories as c', 'pt.category_id', 'c.id')
+      .leftJoin('accounts as a', 'pt.account_id', 'a.id')
+      .leftJoin('payees as p', 'pt.payee_id', 'p.id')
+      .select(
+        'pt.id', 'pt.amount', 'pt.description', 'pt.type', 'pt.frequency',
+        'pt.start_date', 'pt.end_date', 'pt.next_occurrence', 'pt.account_id',
+        'c.id as category_id', 'c.name as category_name', 'c.icon as category_icon', 'c.color as category_color',
+        'a.name as account_name', 'a.color as account_color',
+        'p.id as payee_id', 'p.name as payee_name', 'p.image_url as payee_image_url',
+      )
+      .where('pt.user_id', userId)
+      .where('pt.is_active', true);
+
+    if (accountId) ptQuery = ptQuery.where('pt.account_id', accountId);
+    if (categoryId) ptQuery = ptQuery.where('pt.category_id', categoryId);
+    if (type) ptQuery = ptQuery.where('pt.type', type);
+
+    const plannedTxs = await ptQuery;
+
+    const startD = new Date(startDate);
+    const endD = new Date(endDate);
+    const projectedTxs = [];
+
+    for (const pt of plannedTxs) {
+      const occurrences = ForecastService.generateOccurrences(pt, startD, endD);
+      for (const date of occurrences) {
+        const dateStr = formatDateISO(date);
+
+        // Skip if an actual transaction already covers this occurrence
+        if (existingRecurringDates.has(`${pt.id}_${dateStr}`)) continue;
+
+        // Apply search filter on projected too
+        if (search && !pt.description.toLowerCase().includes(search.toLowerCase())
+            && (!pt.payee_name || !pt.payee_name.toLowerCase().includes(search.toLowerCase()))) continue;
+
+        projectedTxs.push({
+          id: `projected-${pt.id}-${dateStr}`,
+          date: dateStr,
+          amount: Number(pt.amount),
+          description: pt.description,
+          type: pt.type,
+          status: 'projected',
+          isReconciled: false,
+          accountId: pt.account_id,
+          accountName: pt.account_name,
+          accountColor: pt.account_color,
+          categoryId: pt.category_id,
+          categoryName: pt.category_name,
+          categoryIcon: pt.category_icon,
+          categoryColor: pt.category_color,
+          payeeId: pt.payee_id,
+          payeeName: pt.payee_name,
+          payeeImageUrl: pt.payee_image_url,
+          recurringId: pt.id,
+          source: 'projected',
+        });
+      }
+    }
+
+    // 3. Merge and sort by date ASC
+    const merged = [...formattedActual, ...projectedTxs]
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      data: merged,
+      period: { startDate, endDate },
+      counts: {
+        total: merged.length,
+        actual: formattedActual.length,
+        projected: projectedTxs.length,
+      },
+    };
   }
 }
 

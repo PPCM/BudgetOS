@@ -96,6 +96,12 @@ export default function Dashboard() {
     queryFn: () => reportsApi.getProjections().then(r => r.data.data),
   })
 
+  const pieData = useMemo(() => expenses?.slice(0, 6).map((e, i) => ({
+    name: e.categoryName,
+    value: e.total,
+    color: e.color || COLORS[i % COLORS.length],
+  })) || [], [expenses])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -103,12 +109,6 @@ export default function Dashboard() {
       </div>
     )
   }
-
-  const pieData = useMemo(() => expenses?.slice(0, 6).map((e, i) => ({
-    name: e.categoryName,
-    value: e.total,
-    color: e.color || COLORS[i % COLORS.length],
-  })) || [], [expenses])
 
   return (
     <div className="space-y-6">

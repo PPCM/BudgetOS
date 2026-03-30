@@ -1,0 +1,137 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { createTestApp, createAuthenticatedAgent, seedSystemSettings } from './helpers.js'
+
+describe('Forecast Transactions API', () => {
+  let app, agent, csrfToken, accountId, account2Id
+
+  beforeAll(async () => {
+    app = await createTestApp()
+    await seedSystemSettings()
+    const auth = await createAuthenticatedAgent(app)
+    agent = auth.agent
+    csrfToken = auth.csrfToken
+
+    // Create two accounts
+    const res1 = await agent.post('/api/v1/accounts')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ name: 'Forecast Account', type: 'checking', initialBalance: 5000 })
+    accountId = res1.body.data.account.id
+
+    const res2 = await agent.post('/api/v1/accounts')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ name: 'Savings', type: 'savings', initialBalance: 10000 })
+    account2Id = res2.body.data.account.id
+
+    // Create an actual transaction in the period
+    await agent.post('/api/v1/transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId, amount: 85, description: 'Groceries', type: 'expense', date: '2026-04-10' })
+
+    // Create a planned transaction that will generate a projected occurrence in April
+    await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId, amount: -200, description: 'Rent', type: 'expense', frequency: 'monthly', startDate: '2026-04-01' })
+
+    // Create a planned transaction on second account
+    await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId: account2Id, amount: 500, description: 'Interest', type: 'income', frequency: 'monthly', startDate: '2026-04-15' })
+  })
+
+  afterAll(async () => {
+    await app?.close?.()
+  })
+
+  it('should return both actual and projected transactions for a period', async () => {
+    const res = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: '2026-04-01', endDate: '2026-04-30' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.data.length).toBeGreaterThan(0)
+    expect(res.body.data.counts.actual).toBeGreaterThanOrEqual(1)
+    expect(res.body.data.counts.projected).toBeGreaterThanOrEqual(1)
+
+    // Verify source field
+    const sources = new Set(res.body.data.data.map(tx => tx.source))
+    expect(sources.has('actual')).toBe(true)
+    expect(sources.has('projected')).toBe(true)
+  })
+
+  it('should filter by accountId', async () => {
+    const res = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: '2026-04-01', endDate: '2026-04-30', accountId })
+
+    expect(res.status).toBe(200)
+    // All results should be for the specified account
+    for (const tx of res.body.data.data) {
+      expect(tx.accountId).toBe(accountId)
+    }
+
+    // Should not include Interest (account2)
+    const descriptions = res.body.data.data.map(tx => tx.description)
+    expect(descriptions).not.toContain('Interest')
+  })
+
+  it('should filter by type', async () => {
+    const res = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: '2026-04-01', endDate: '2026-04-30', type: 'income' })
+
+    expect(res.status).toBe(200)
+    for (const tx of res.body.data.data) {
+      expect(tx.type).toBe('income')
+    }
+  })
+
+  it('should filter by search', async () => {
+    const res = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: '2026-04-01', endDate: '2026-04-30', search: 'Rent' })
+
+    expect(res.status).toBe(200)
+    for (const tx of res.body.data.data) {
+      expect(tx.description.toLowerCase()).toContain('rent')
+    }
+  })
+
+  it('should deduplicate projected when actual recurring exists', async () => {
+    // Create a planned tx starting March 15 (monthly)
+    const ptRes = await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId, amount: -100, description: 'Dedup Test', type: 'expense', frequency: 'monthly', startDate: '2026-03-15' })
+    const ptId = ptRes.body.data.plannedTransaction.id
+
+    // Reconcile to create a transaction on March 15
+    await agent.post(`/api/v1/planned-transactions/${ptId}/reconcile`)
+      .set('X-CSRF-Token', csrfToken).send({})
+
+    // Forecast for March: should NOT have both actual + projected for Dedup Test
+    const res = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: '2026-03-01', endDate: '2026-03-31', search: 'Dedup' })
+
+    const dedupTxs = res.body.data.data.filter(tx => tx.description === 'Dedup Test')
+    // Should have exactly 1 (actual), not 2 (actual + projected)
+    expect(dedupTxs.length).toBe(1)
+    expect(dedupTxs[0].source).toBe('actual')
+
+    // Cleanup
+    await agent.delete(`/api/v1/planned-transactions/${ptId}`)
+      .set('X-CSRF-Token', csrfToken)
+  })
+
+  it('should default to current month when no dates provided', async () => {
+    const res = await agent.get('/api/v1/reports/forecast/transactions')
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.period.startDate).toBeTruthy()
+    expect(res.body.data.period.endDate).toBeTruthy()
+  })
+
+  it('should return sorted by date ascending', async () => {
+    const res = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: '2026-04-01', endDate: '2026-04-30' })
+
+    const dates = res.body.data.data.map(tx => tx.date)
+    for (let i = 1; i < dates.length; i++) {
+      expect(dates[i] >= dates[i - 1]).toBe(true)
+    }
+  })
+})

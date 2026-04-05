@@ -1,7 +1,11 @@
 import fs from 'fs';
+import { createRequire } from 'module';
 
 import config from './config/index.js';
 import logger from './utils/logger.js';
+
+const require = createRequire(import.meta.url);
+const { name: appName, version: appVersion } = require('../package.json');
 import { initDatabase, closeDatabase } from './database/connection.js';
 import createApp from './app.js';
 import schedulerService from './services/schedulerService.js';
@@ -35,6 +39,7 @@ const startServer = async () => {
 
     // Démarrer le serveur HTTP
     const server = app.listen(config.server.port, config.server.host, () => {
+      logger.info(`${appName} v${appVersion} started`);
       logger.info(`Server running at http://${config.server.host}:${config.server.port}`);
       logger.info(`Environment: ${config.env}`);
     });

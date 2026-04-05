@@ -39,7 +39,14 @@ const startServer = async () => {
 
     // Démarrer le serveur HTTP
     const server = app.listen(config.server.port, config.server.host, () => {
-      logger.info(`${appName} v${appVersion} started`);
+      const banner = `
+  ____            _            _    ___  ____
+ | __ ) _   _  __| | __ _  ___| |_ / _ \\/ ___|
+ |  _ \\| | | |/ _\` |/ _\` |/ _ \\ __| | | \\___ \\
+ | |_) | |_| | (_| | (_| |  __/ |_| |_| |___) |
+ |____/ \\__,_|\\__,_|\\__, |\\___\\____|\\___/|____/
+                     |___/            v${appVersion}`;
+      logger.info(banner);
       logger.info(`Server running at http://${config.server.host}:${config.server.port}`);
       logger.info(`Environment: ${config.env}`);
     });

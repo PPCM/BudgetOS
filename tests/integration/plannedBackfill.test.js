@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createTestApp, createAuthenticatedAgent, seedSystemSettings } from './helpers.js'
 
-// Helper: format date as YYYY-MM-DD
-const fmt = (d) => d.toISOString().split('T')[0]
+// Helper: format date as YYYY-MM-DD (local timezone, not UTC)
+const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 // Helper: get a date N months ago on a given day
 const monthsAgo = (n, day = 1) => {
   const d = new Date()

@@ -39,10 +39,10 @@ export class PlannedTransaction {
   }
 
   static calculateNextOccurrence(data) {
-    const start = new Date(data.startDate);
+    const start = new Date(data.startDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const endDate = data.endDate ? new Date(data.endDate) : null;
+    const endDate = data.endDate ? new Date(data.endDate + 'T00:00:00') : null;
     let next = start;
 
     if (start < today) {
@@ -65,10 +65,10 @@ export class PlannedTransaction {
    * Used to determine if backfill is needed when creating a planned transaction with a past start date
    */
   static getPastOccurrences(data) {
-    const start = new Date(data.startDate);
+    const start = new Date(data.startDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const endDate = data.endDate ? new Date(data.endDate) : null;
+    const endDate = data.endDate ? new Date(data.endDate + 'T00:00:00') : null;
 
     if (start >= today) return [];
     if (data.frequency === 'once') return [formatDateISO(start)];

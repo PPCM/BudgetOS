@@ -128,4 +128,77 @@ describe('Planned Transactions - Reconcile past occurrences', () => {
 
     await agent.delete(`/api/v1/planned-transactions/${plannedId}`).set('X-CSRF-Token', csrfToken)
   })
+
+  it('should handle startDate = today with no past occurrences', async () => {
+    const today = fmt(new Date())
+    const createRes = await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId, amount: -75, description: 'Starts Today', type: 'expense', frequency: 'monthly', startDate: today })
+
+    expect(createRes.status).toBe(201)
+    expect(createRes.body.data.pastOccurrences).toBe(0)
+    expect(createRes.body.data.pastDates).toEqual([])
+
+    // Next occurrence should be in the future (next month)
+    const pt = createRes.body.data.plannedTransaction
+    expect(pt.nextOccurrence).toBeTruthy()
+    expect(new Date(pt.nextOccurrence) > new Date(today)).toBe(true)
+
+    // Reconcile should create nothing
+    const r = await agent.post(`/api/v1/planned-transactions/${pt.id}/reconcile`)
+      .set('X-CSRF-Token', csrfToken).send({})
+    expect(r.body.data.created).toBe(0)
+
+    await agent.delete(`/api/v1/planned-transactions/${pt.id}`).set('X-CSRF-Token', csrfToken)
+  })
+
+  it('should handle startDate in the future with no past occurrences', async () => {
+    const future = new Date()
+    future.setMonth(future.getMonth() + 2)
+    const futureDate = fmt(future)
+
+    const createRes = await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId, amount: -120, description: 'Starts Future', type: 'expense', frequency: 'monthly', startDate: futureDate })
+
+    expect(createRes.status).toBe(201)
+    expect(createRes.body.data.pastOccurrences).toBe(0)
+    expect(createRes.body.data.pastDates).toEqual([])
+
+    // Next occurrence should be the startDate itself
+    const pt = createRes.body.data.plannedTransaction
+    expect(pt.nextOccurrence).toBe(futureDate)
+
+    // Reconcile should create nothing
+    const r = await agent.post(`/api/v1/planned-transactions/${pt.id}/reconcile`)
+      .set('X-CSRF-Token', csrfToken).send({})
+    expect(r.body.data.created).toBe(0)
+
+    await agent.delete(`/api/v1/planned-transactions/${pt.id}`).set('X-CSRF-Token', csrfToken)
+  })
+
+  it('should appear in forecast when startDate is in forecast period', async () => {
+    // Create recurring starting next month
+    const nextMonth = new Date()
+    nextMonth.setMonth(nextMonth.getMonth() + 1)
+    nextMonth.setDate(15)
+    const startDate = fmt(nextMonth)
+    const firstOfNextMonth = fmt(new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1))
+    const lastOfNextMonth = fmt(new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0))
+
+    const createRes = await agent.post('/api/v1/planned-transactions')
+      .set('X-CSRF-Token', csrfToken)
+      .send({ accountId, amount: -300, description: 'Forecast Visible', type: 'expense', frequency: 'monthly', startDate })
+    const ptId = createRes.body.data.plannedTransaction.id
+
+    // Check forecast for next month
+    const forecastRes = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: firstOfNextMonth, endDate: lastOfNextMonth, accountId })
+
+    const projected = forecastRes.body.data.data.filter(tx => tx.source === 'projected' && tx.description === 'Forecast Visible')
+    expect(projected.length).toBe(1)
+    expect(projected[0].date).toBe(startDate)
+
+    await agent.delete(`/api/v1/planned-transactions/${ptId}`).set('X-CSRF-Token', csrfToken)
+  })
 })

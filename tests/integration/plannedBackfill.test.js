@@ -129,7 +129,7 @@ describe('Planned Transactions - Reconcile past occurrences', () => {
     await agent.delete(`/api/v1/planned-transactions/${plannedId}`).set('X-CSRF-Token', csrfToken)
   })
 
-  it('should handle startDate = today with no past occurrences', async () => {
+  it('should handle startDate = today: nextOccurrence is today, appears in forecast', async () => {
     const today = fmt(new Date())
     const createRes = await agent.post('/api/v1/planned-transactions')
       .set('X-CSRF-Token', csrfToken)
@@ -139,12 +139,20 @@ describe('Planned Transactions - Reconcile past occurrences', () => {
     expect(createRes.body.data.pastOccurrences).toBe(0)
     expect(createRes.body.data.pastDates).toEqual([])
 
-    // Next occurrence should be in the future (next month)
+    // Next occurrence should be TODAY (not next month)
     const pt = createRes.body.data.plannedTransaction
-    expect(pt.nextOccurrence).toBeTruthy()
-    expect(new Date(pt.nextOccurrence) > new Date(today)).toBe(true)
+    expect(pt.nextOccurrence).toBe(today)
 
-    // Reconcile should create nothing
+    // Should appear in forecast for today's period
+    const endOfMonth = new Date()
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0) // last day of current month
+    const forecastRes = await agent.get('/api/v1/reports/forecast/transactions')
+      .query({ startDate: today, endDate: fmt(endOfMonth), accountId })
+    const projected = forecastRes.body.data.data.filter(tx => tx.source === 'projected' && tx.description === 'Starts Today')
+    expect(projected.length).toBe(1)
+    expect(projected[0].date).toBe(today)
+
+    // Reconcile should create nothing (no past occurrences)
     const r = await agent.post(`/api/v1/planned-transactions/${pt.id}/reconcile`)
       .set('X-CSRF-Token', csrfToken).send({})
     expect(r.body.data.created).toBe(0)

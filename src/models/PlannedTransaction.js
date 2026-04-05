@@ -41,12 +41,13 @@ export class PlannedTransaction {
   static calculateNextOccurrence(data) {
     const start = new Date(data.startDate);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const endDate = data.endDate ? new Date(data.endDate) : null;
     let next = start;
 
-    if (start <= today) {
+    if (start < today) {
       if (data.frequency === 'once') return null;
-      while (next <= today) {
+      while (next < today) {
         next = advanceByFrequency(next, data.frequency);
       }
     }

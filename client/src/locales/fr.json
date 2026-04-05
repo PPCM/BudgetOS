@@ -316,7 +316,7 @@
     "executeBeforeHoliday": "Exécution le dernier jour ouvré avant échéance",
     "deleteOnEnd": "Supprimer automatiquement cette récurrence à la date de fin",
     "descriptionPlaceholder": "Ex: Loyer, Salaire...",
-    "confirmDelete": "Supprimer \"{{name}}\" ?",
+    "confirmDelete": "Supprimer la récurrence \"{{description}}\" ?",
     "frequencies": {
       "once": "Une fois",
       "daily": "Quotidien",
@@ -368,7 +368,7 @@
     "created": "Transaction créée avec succès",
     "updated": "Transaction modifiée avec succès",
     "deleted": "Transaction supprimée",
-    "confirmDelete": "Supprimer la transaction \"{{name}}\" ?",
+    "confirmDelete": "Supprimer la transaction \"{{description}}\" ?",
     "types": {
       "expense": "Dépense",
       "income": "Revenu",

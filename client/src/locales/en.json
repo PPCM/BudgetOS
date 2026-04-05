@@ -316,7 +316,7 @@
     "executeBeforeHoliday": "Execute on last business day before due date",
     "deleteOnEnd": "Automatically delete this recurrence at end date",
     "descriptionPlaceholder": "E.g.: Rent, Salary...",
-    "confirmDelete": "Delete \"{{name}}\"?",
+    "confirmDelete": "Delete recurring \"{{description}}\"?",
     "frequencies": {
       "once": "Once",
       "daily": "Daily",
@@ -368,7 +368,7 @@
     "created": "Transaction created successfully",
     "updated": "Transaction updated successfully",
     "deleted": "Transaction deleted",
-    "confirmDelete": "Delete transaction \"{{name}}\"?",
+    "confirmDelete": "Delete transaction \"{{description}}\"?",
     "types": {
       "expense": "Expense",
       "income": "Income",

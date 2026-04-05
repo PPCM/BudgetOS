@@ -82,7 +82,8 @@ describe('PlannedTransaction.calculateNextOccurrence', () => {
 
     expect(result).not.toBeNull()
     const nextDate = new Date(result)
-    expect(nextDate > new Date()).toBe(true)
+    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0)
+    expect(nextDate >= todayMidnight).toBe(true)
   })
 
   it('returns null when next occurrence exceeds end date', () => {
@@ -103,22 +104,25 @@ describe('PlannedTransaction.calculateNextOccurrence', () => {
 
     expect(result).not.toBeNull()
     const nextDate = new Date(result)
-    expect(nextDate > new Date()).toBe(true)
+    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0)
+    expect(nextDate >= todayMidnight).toBe(true)
     // Should be a Wednesday (2020-01-01 was Wednesday)
     expect(nextDate.getDay()).toBe(3)
   })
 
   it('advances daily past today', () => {
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 3)
+    const threeDaysAgo = new Date()
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
     const result = PlannedTransaction.calculateNextOccurrence({
-      startDate: yesterday.toISOString().split('T')[0],
+      startDate: threeDaysAgo.toISOString().split('T')[0],
       frequency: 'daily',
     })
 
     expect(result).not.toBeNull()
     const nextDate = new Date(result)
-    expect(nextDate > new Date()).toBe(true)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    expect(nextDate >= today).toBe(true)
   })
 })
 

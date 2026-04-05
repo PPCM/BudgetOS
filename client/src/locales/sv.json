@@ -306,7 +306,7 @@
     "executeBeforeHoliday": "Utför sista arbetsdagen före förfallodatum",
     "deleteOnEnd": "Ta bort denna upprepning automatiskt vid slutdatum",
     "descriptionPlaceholder": "T.ex.: Hyra, Lön...",
-    "confirmDelete": "Ta bort \"{{name}}\"?",
+    "confirmDelete": "Radera återkommande \"{{description}}\"?",
     "frequencies": {
       "once": "En gång",
       "daily": "Dagligen",
@@ -358,7 +358,7 @@
     "created": "Transaktion skapad",
     "updated": "Transaktion uppdaterad",
     "deleted": "Transaktion borttagen",
-    "confirmDelete": "Ta bort transaktionen \"{{name}}\"?",
+    "confirmDelete": "Radera transaktion \"{{description}}\"?",
     "types": {
       "expense": "Utgift",
       "income": "Inkomst",

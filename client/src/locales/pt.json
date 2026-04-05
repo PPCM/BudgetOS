@@ -306,7 +306,7 @@
     "executeBeforeHoliday": "Executar no último dia útil antes da data prevista",
     "deleteOnEnd": "Eliminar automaticamente esta recorrência na data de fim",
     "descriptionPlaceholder": "Ex.: Renda, Salário...",
-    "confirmDelete": "Eliminar \"{{name}}\"?",
+    "confirmDelete": "Eliminar a recorrência \"{{description}}\"?",
     "frequencies": {
       "once": "Uma vez",
       "daily": "Diário",
@@ -358,7 +358,7 @@
     "created": "Transação criada com sucesso",
     "updated": "Transação atualizada com sucesso",
     "deleted": "Transação eliminada",
-    "confirmDelete": "Eliminar a transação \"{{name}}\"?",
+    "confirmDelete": "Eliminar a transação \"{{description}}\"?",
     "types": {
       "expense": "Despesa",
       "income": "Receita",

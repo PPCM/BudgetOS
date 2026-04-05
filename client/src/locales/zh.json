@@ -306,7 +306,7 @@
     "executeBeforeHoliday": "在到期日前最后一个工作日执行",
     "deleteOnEnd": "到期后自动删除此定期交易",
     "descriptionPlaceholder": "例如：房租、工资...",
-    "confirmDelete": "删除 \"{{name}}\"？",
+    "confirmDelete": "删除循环交易 \"{{description}}\"？",
     "frequencies": {
       "once": "一次性",
       "daily": "每日",
@@ -358,7 +358,7 @@
     "created": "交易创建成功",
     "updated": "交易更新成功",
     "deleted": "交易已删除",
-    "confirmDelete": "删除交易 \"{{name}}\"？",
+    "confirmDelete": "删除交易 \"{{description}}\"？",
     "types": {
       "expense": "支出",
       "income": "收入",

@@ -306,7 +306,7 @@
     "executeBeforeHoliday": "Ejecutar el último día hábil antes del vencimiento",
     "deleteOnEnd": "Eliminar automáticamente esta recurrencia en la fecha de fin",
     "descriptionPlaceholder": "Ej.: Alquiler, Salario...",
-    "confirmDelete": "¿Eliminar \"{{name}}\"?",
+    "confirmDelete": "¿Eliminar la recurrencia \"{{description}}\"?",
     "frequencies": {
       "once": "Una vez",
       "daily": "Diaria",
@@ -358,7 +358,7 @@
     "created": "Transacción creada correctamente",
     "updated": "Transacción actualizada correctamente",
     "deleted": "Transacción eliminada",
-    "confirmDelete": "¿Eliminar la transacción \"{{name}}\"?",
+    "confirmDelete": "¿Eliminar la transacción \"{{description}}\"?",
     "types": {
       "expense": "Gasto",
       "income": "Ingreso",

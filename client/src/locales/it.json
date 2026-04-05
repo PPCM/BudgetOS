@@ -306,7 +306,7 @@
     "executeBeforeHoliday": "Esegui l'ultimo giorno lavorativo prima della scadenza",
     "deleteOnEnd": "Elimina automaticamente questa ricorrenza alla data di fine",
     "descriptionPlaceholder": "Es.: Affitto, Stipendio...",
-    "confirmDelete": "Eliminare \"{{name}}\"?",
+    "confirmDelete": "Eliminare la ricorrenza \"{{description}}\"?",
     "frequencies": {
       "once": "Una volta",
       "daily": "Giornaliero",
@@ -358,7 +358,7 @@
     "created": "Transazione creata con successo",
     "updated": "Transazione aggiornata con successo",
     "deleted": "Transazione eliminata",
-    "confirmDelete": "Eliminare la transazione \"{{name}}\"?",
+    "confirmDelete": "Eliminare la transazione \"{{description}}\"?",
     "types": {
       "expense": "Spesa",
       "income": "Entrata",

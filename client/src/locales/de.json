@@ -306,7 +306,7 @@
     "executeBeforeHoliday": "Am letzten Geschäftstag vor Fälligkeit ausführen",
     "deleteOnEnd": "Diese Wiederholung am Enddatum automatisch löschen",
     "descriptionPlaceholder": "Z.B.: Miete, Gehalt...",
-    "confirmDelete": "\"{{name}}\" löschen?",
+    "confirmDelete": "Wiederkehrende Buchung \"{{description}}\" löschen?",
     "frequencies": {
       "once": "Einmalig",
       "daily": "Täglich",
@@ -358,7 +358,7 @@
     "created": "Buchung erfolgreich erstellt",
     "updated": "Buchung erfolgreich aktualisiert",
     "deleted": "Buchung gelöscht",
-    "confirmDelete": "Buchung \"{{name}}\" löschen?",
+    "confirmDelete": "Transaktion \"{{description}}\" löschen?",
     "types": {
       "expense": "Ausgabe",
       "income": "Einnahme",

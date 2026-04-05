@@ -3,7 +3,7 @@
  * Displays merged actual + projected transactions for a given period
  */
 
-import { useState, useCallback, useMemo, useDeferredValue } from 'react'
+import { useState, useCallback, useMemo, useDeferredValue, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -69,13 +69,14 @@ export default function Forecast() {
 
   const [searchInput, setSearchInput] = useState('')
   const deferredSearch = useDeferredValue(searchInput)
-  const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || getPersistedAccountTab())
+  const initialAccount = searchParams.get('account') || getPersistedAccountTab()
+  const [accountTab, setAccountTab] = useState(initialAccount)
 
   // Default to next month
   const defaultPeriod = 'nextMonth'
   const defaultDates = getDatePeriod(defaultPeriod, userSettings?.weekStartDay ?? 1)
   const [filters, setFilters] = useState({
-    accountId: searchParams.get('account') || getPersistedAccountTab(),
+    accountId: initialAccount,
     categoryId: '',
     type: '',
     isReconciled: '',
@@ -138,6 +139,16 @@ export default function Forecast() {
     queryKey: ['accounts'],
     queryFn: () => accountsApi.getAll().then(r => r.data),
   })
+
+  // Validate persisted account tab exists in loaded accounts
+  useEffect(() => {
+    if (accountsData?.data && accountTab) {
+      const exists = accountsData.data.some(a => a.id === accountTab)
+      if (!exists) {
+        handleAccountTab('')
+      }
+    }
+  }, [accountsData?.data])
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories', { flat: true }],
@@ -369,7 +380,7 @@ export default function Forecast() {
                     </th>
                   )}
                   <th
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28 cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-36 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('amount')}
                   >
                     <div className="flex items-center justify-end gap-1">

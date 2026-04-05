@@ -502,10 +502,11 @@ export default function Transactions() {
   /** @type {string} Deferred search value (debounced) */
   const deferredSearch = useDeferredValue(searchInput)
   /** @type {string} Currently selected account tab ('' = all accounts) */
-  const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || getPersistedAccountTab())
+  const initialAccount = searchParams.get('account') || getPersistedAccountTab()
+  const [accountTab, setAccountTab] = useState(initialAccount)
   /** @type {Object} Filter state for account, category, type, reconciliation status, and date range */
   const [filters, setFilters] = useState({
-    accountId: searchParams.get('account') || '',
+    accountId: initialAccount,
     categoryId: '',
     type: '',
     isReconciled: '',
@@ -647,6 +648,16 @@ export default function Transactions() {
     queryKey: ['accounts'],
     queryFn: () => accountsApi.getAll().then(r => r.data),
   })
+
+  // Validate persisted account tab exists in loaded accounts
+  useEffect(() => {
+    if (accountsData?.data && accountTab) {
+      const exists = accountsData.data.some(a => a.id === accountTab)
+      if (!exists) {
+        handleAccountTab('')
+      }
+    }
+  }, [accountsData?.data])
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories', { flat: true }],
@@ -1129,7 +1140,7 @@ export default function Transactions() {
                     </th>
                     )}
                     <th
-                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28 cursor-pointer hover:bg-gray-100 select-none"
+                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-36 cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort('amount')}
                     >
                       <div className="flex items-center justify-end gap-1">

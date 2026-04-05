@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { getPersistedAccountTab, setPersistedAccountTab } from '../lib/accountTabPersistence'
@@ -439,6 +439,16 @@ export default function PlannedTransactions() {
   const categories = categoriesData
   const payees = payeesData
   const dataReady = !accountsLoading && !categoriesLoading && accounts?.length > 0
+
+  // Validate persisted account tab exists in loaded accounts
+  useEffect(() => {
+    if (accounts && accountTab) {
+      const exists = accounts.some(a => a.id === accountTab)
+      if (!exists) {
+        handleAccountTab('')
+      }
+    }
+  }, [accounts])
 
   // Filter planned transactions and upcoming by account tab
   const filteredPlanned = useMemo(() => {

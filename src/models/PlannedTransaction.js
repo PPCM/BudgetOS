@@ -160,7 +160,7 @@ export class PlannedTransaction {
       await knex('planned_transactions')
         .where('id', id)
         .update({
-          occurrences_created: knex.raw(`MAX(0, occurrences_created + ${delta})`),
+          occurrences_created: knex.raw(`CASE WHEN occurrences_created + ${delta} > 0 THEN occurrences_created + ${delta} ELSE 0 END`),
         });
     }
 

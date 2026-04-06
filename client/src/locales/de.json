@@ -160,13 +160,14 @@
     "institution": "Kreditinstitut",
     "initialBalance": "Anfangssaldo",
     "viewTransactions": "Transaktionen anzeigen",
+    "viewForecast": "Vorschau anzeigen",
     "projection": {
       "title": "Prognose",
       "endOfMonth": "Monatsende",
       "thirtyDays": "30 Tage",
       "income": "Einnahmen",
       "expenses": "Ausgaben",
-      "estimated": "Geschätzter Saldo",
+      "estimated": "Prognostizierter Saldo",
       "noMovement": "keine geplante Bewegung"
     },
     "confirmDelete": "Konto \"{{name}}\" löschen?\n\nAchtung: Alle zugehörigen Buchungen werden ebenfalls gelöscht.",

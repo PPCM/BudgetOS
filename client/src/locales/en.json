@@ -160,6 +160,7 @@
     "institution": "Institution",
     "initialBalance": "Initial balance",
     "viewTransactions": "View transactions",
+    "viewForecast": "View forecast",
     "projection": {
       "title": "Projection",
       "endOfMonth": "End of month",

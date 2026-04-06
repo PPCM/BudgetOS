@@ -14,7 +14,7 @@ import { useAuth } from '../contexts/AuthContext'
 import FormattedAmountInput from '../components/FormattedAmountInput'
 import {
   Plus, Wallet, PiggyBank, Landmark,
-  Pencil, Trash2, X, HandCoins, ArrowRight,
+  Pencil, Trash2, X, HandCoins, ArrowRightLeft, CalendarRange,
   ChevronDown, ChevronRight, TrendingUp, TrendingDown
 } from 'lucide-react'
 import Modal from '../components/Modal'
@@ -334,13 +334,22 @@ export default function Accounts() {
                   {formatCurrency(account.currentBalance)}
                 </p>
               </div>
-              <Link
-                to={`/transactions?account=${account.id}`}
-                className="mt-3 flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
-              >
-                {t('accounts.viewTransactions')}
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              <div className="mt-3 flex gap-2">
+                <Link
+                  to={`/transactions?account=${account.id}`}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  {t('accounts.viewTransactions')}
+                </Link>
+                <Link
+                  to={`/forecast?account=${account.id}`}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                >
+                  <CalendarRange className="w-3.5 h-3.5" />
+                  {t('accounts.viewForecast')}
+                </Link>
+              </div>
 
               {/* Projection section */}
               {(() => {

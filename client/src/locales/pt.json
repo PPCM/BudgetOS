@@ -160,13 +160,14 @@
     "institution": "Instituição",
     "initialBalance": "Saldo inicial",
     "viewTransactions": "Ver transações",
+    "viewForecast": "Ver previsões",
     "projection": {
       "title": "Projeção",
       "endOfMonth": "Fim do mês",
       "thirtyDays": "30 dias",
       "income": "Receitas",
       "expenses": "Despesas",
-      "estimated": "Saldo estimado",
+      "estimated": "Saldo previsto",
       "noMovement": "nenhum movimento previsto"
     },
     "confirmDelete": "Eliminar a conta \"{{name}}\"?\n\nAtenção: todas as transações associadas serão igualmente eliminadas.",

@@ -160,13 +160,14 @@
     "institution": "Établissement",
     "initialBalance": "Solde initial",
     "viewTransactions": "Voir les transactions",
+    "viewForecast": "Voir les prévisions",
     "projection": {
       "title": "Projection",
       "endOfMonth": "Fin de mois",
       "thirtyDays": "30 jours",
       "income": "Revenus",
       "expenses": "Dépenses",
-      "estimated": "Solde estimé",
+      "estimated": "Solde prévisionnel",
       "noMovement": "aucun mouvement prévu"
     },
     "confirmDelete": "Supprimer le compte \"{{name}}\" ?\n\nAttention : toutes les transactions associées seront également supprimées.",

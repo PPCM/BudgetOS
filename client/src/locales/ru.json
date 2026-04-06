@@ -160,13 +160,14 @@
     "institution": "Учреждение",
     "initialBalance": "Начальный баланс",
     "viewTransactions": "Смотреть транзакции",
+    "viewForecast": "Смотреть прогноз",
     "projection": {
       "title": "Прогноз",
       "endOfMonth": "Конец месяца",
       "thirtyDays": "30 дней",
       "income": "Доходы",
       "expenses": "Расходы",
-      "estimated": "Ожидаемый баланс",
+      "estimated": "Прогнозируемый баланс",
       "noMovement": "нет запланированных движений"
     },
     "confirmDelete": "Удалить счёт \"{{name}}\"?\n\nВнимание: все связанные транзакции также будут удалены.",

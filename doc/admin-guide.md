@@ -319,8 +319,8 @@ All configuration is managed through the `.env` file at the project root.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BCRYPT_ROUNDS` | `12` | Password hashing cost factor |
-| `RATE_LIMIT_WINDOW_MS` | `900000` | Rate limit window (15 min) |
-| `RATE_LIMIT_MAX_REQUESTS` | `100` | Max requests per window |
+| `RATE_LIMIT_WINDOW_MS` | `60000` | Rate limit window (1 min) |
+| `RATE_LIMIT_MAX_REQUESTS` | `200` | Max requests per window |
 
 ### Application
 

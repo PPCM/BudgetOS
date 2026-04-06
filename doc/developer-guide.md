@@ -239,6 +239,14 @@ Base URL: `/api/v1`
 | POST | `/auth/login` | User login |
 | POST | `/auth/logout` | User logout |
 | GET | `/auth/me` | Get current user |
+| GET | `/auth/setup-status` | Check if setup is needed |
+| PUT | `/auth/profile` | Update user profile |
+| PUT | `/auth/password` | Change password |
+| GET | `/auth/settings` | Get user settings |
+| PUT | `/auth/settings` | Update user settings |
+| POST | `/auth/forgot-password` | Request password reset email |
+| GET | `/auth/validate-reset-token` | Validate reset token |
+| POST | `/auth/reset-password` | Reset password with token |
 
 ### Accounts
 
@@ -249,6 +257,21 @@ Base URL: `/api/v1`
 | GET | `/accounts/:id` | Get account details |
 | PUT | `/accounts/:id` | Update account |
 | DELETE | `/accounts/:id` | Delete account |
+| GET | `/accounts/:id/stats` | Get account statistics |
+| POST | `/accounts/recalculate` | Recalculate all balances |
+
+### Transactions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/transactions` | List transactions (with filters, pagination) |
+| POST | `/transactions` | Create transaction |
+| GET | `/transactions/:id` | Get transaction details |
+| PUT | `/transactions/:id` | Update transaction |
+| DELETE | `/transactions/:id` | Delete transaction |
+| POST | `/transactions/split` | Create split transaction |
+| PATCH | `/transactions/:id/reconcile` | Toggle reconciliation status |
+| GET | `/transactions/match` | Find matching transactions for import |
 
 ### Credit Cards
 
@@ -261,15 +284,8 @@ Base URL: `/api/v1`
 | DELETE | `/credit-cards/:id` | Delete credit card |
 | GET | `/credit-cards/:id/cycles` | Get billing cycles |
 | GET | `/credit-cards/:id/cycles/current` | Get current cycle |
-
-### Transactions
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/transactions` | List transactions (with filters) |
-| POST | `/transactions` | Create transaction |
-| PUT | `/transactions/:id` | Update transaction |
-| DELETE | `/transactions/:id` | Delete transaction |
+| GET | `/credit-cards/:id/cycles/:cycleId/transactions` | Get cycle transactions |
+| POST | `/credit-cards/:id/cycles/:cycleId/debit` | Process cycle debit |
 
 ### Categories
 
@@ -279,6 +295,8 @@ Base URL: `/api/v1`
 | POST | `/categories` | Create category |
 | PUT | `/categories/:id` | Update category |
 | DELETE | `/categories/:id` | Delete category |
+| POST | `/categories/import` | Import categories from JSON |
+| GET | `/categories/export` | Export categories as JSON |
 
 ### Payees
 
@@ -289,22 +307,50 @@ Base URL: `/api/v1`
 | PUT | `/payees/:id` | Update payee |
 | DELETE | `/payees/:id` | Delete payee |
 
-### Planned Transactions
+### Planned Transactions (Recurring)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/planned-transactions` | List recurring transactions |
-| POST | `/planned-transactions` | Create recurring transaction |
-| PUT | `/planned-transactions/:id` | Update recurring transaction |
-| DELETE | `/planned-transactions/:id` | Delete recurring transaction |
+| POST | `/planned-transactions` | Create recurring (returns pastOccurrences count) |
+| GET | `/planned-transactions/:id` | Get recurring details |
+| PUT | `/planned-transactions/:id` | Update recurring (auto-reconciles dates) |
+| DELETE | `/planned-transactions/:id` | Delete recurring |
+| GET | `/planned-transactions/upcoming` | Get upcoming occurrences (30 days) |
+| POST | `/planned-transactions/:id/occurrence` | Create manual occurrence |
+| POST | `/planned-transactions/:id/reconcile` | Reconcile past occurrences (backfill/cleanup) |
 
-### Reports
+### Reports & Forecast
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/reports/trend` | Income vs expenses (12 months) |
-| GET | `/reports/categories` | Expense breakdown by category |
-| GET | `/reports/forecast` | Cash flow forecast |
+| GET | `/reports/dashboard` | Dashboard summary |
+| GET | `/reports/expenses/category` | Expenses by category |
+| GET | `/reports/income/category` | Income by category |
+| GET | `/reports/expenses/credit-card` | Expenses by credit card |
+| GET | `/reports/trend/monthly` | Monthly income/expense trend |
+| GET | `/reports/comparison` | Month-to-month comparison |
+| GET | `/reports/forecast` | Cash flow forecast (30/60/90 days) |
+| GET | `/reports/forecast/transactions` | Merged actual + projected transactions |
+| GET | `/reports/forecast/monthly` | Monthly forecast summary |
+| GET | `/reports/projections` | Budget projection per account |
+
+### Rules
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/rules` | List categorization rules |
+| POST | `/rules` | Create rule |
+| PUT | `/rules/:id` | Update rule |
+| DELETE | `/rules/:id` | Delete rule |
+
+### Import
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/import/analyze` | Upload and analyze file |
+| POST | `/import/confirm` | Confirm and import transactions |
+| GET | `/import/history` | Get import history |
 
 ### Administration
 
@@ -314,12 +360,27 @@ Base URL: `/api/v1`
 | POST | `/admin/users` | Create user |
 | PUT | `/admin/users/:id` | Update user |
 | DELETE | `/admin/users/:id` | Delete user |
+| PUT | `/admin/users/:id/role` | Change user role |
+| PUT | `/admin/users/:id/suspend` | Suspend user |
+| PUT | `/admin/users/:id/reactivate` | Reactivate user |
 | GET | `/admin/groups` | List groups |
 | POST | `/admin/groups` | Create group |
 | PUT | `/admin/groups/:id` | Update group |
 | DELETE | `/admin/groups/:id` | Delete group |
+| POST | `/admin/groups/:id/members` | Add member to group |
+| DELETE | `/admin/groups/:id/members/:userId` | Remove member |
 | GET | `/admin/settings` | Get system settings |
 | PUT | `/admin/settings` | Update system settings |
+| GET | `/admin/smtp` | Get SMTP settings |
+| PUT | `/admin/smtp` | Update SMTP settings |
+| POST | `/admin/smtp/test` | Test SMTP connection |
+
+### Other
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/csrf-token` | Get CSRF token |
+| GET | `/health` | Health check |
 
 ---
 

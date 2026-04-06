@@ -12,12 +12,13 @@ A complete guide to managing your personal finances with BudgetOS.
 4. [Transactions](#4-transactions)
 5. [Credit Cards](#5-credit-cards)
 6. [Bank Import](#6-bank-import)
-7. [Recurring Transactions](#7-recurring-transactions)
-8. [Categorization Rules](#8-categorization-rules)
-9. [Categories](#9-categories)
-10. [Payees](#10-payees)
-11. [Reports](#11-reports)
-12. [Settings](#12-settings)
+7. [Forecast](#7-forecast)
+8. [Recurring Transactions](#8-recurring-transactions)
+9. [Categorization Rules](#9-categorization-rules)
+10. [Categories](#10-categories)
+11. [Payees](#11-payees)
+12. [Reports](#12-reports)
+13. [Settings](#13-settings)
 
 ---
 

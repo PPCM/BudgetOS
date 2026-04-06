@@ -7,21 +7,15 @@ import { accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import { useFormatters, parseAmount } from '../hooks/useFormatters'
 import FormattedAmountInput from '../components/FormattedAmountInput'
-import * as LucideIcons from 'lucide-react'
 import {
   Plus, Calendar, Clock, Repeat, Trash2, X, Pencil, Tag,
   TrendingUp, TrendingDown, ArrowLeftRight, Play, Users
 } from 'lucide-react'
+import { getIconComponent } from '../lib/iconMap'
 import axios from 'axios'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
-
-// Get icon component by name
-const getIconComponent = (iconName) => {
-  if (!iconName) return Tag
-  const formattedName = iconName.charAt(0).toUpperCase() + iconName.slice(1)
-  return LucideIcons[formattedName] || Tag
-}
+import AccountTabs from '../components/AccountTabs'
 
 function PlannedModal({ planned, accounts, categories, payees, defaultAccountId, onClose, onSave, onCreatePayee, onCreateCategory }) {
   const { t, i18n } = useTranslation()
@@ -632,38 +626,7 @@ export default function PlannedTransactions() {
         </button>
       </div>
 
-      {/* Account tabs */}
-      {accounts?.length > 0 && (
-        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto pb-px">
-          <button
-            onClick={() => handleAccountTab('')}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              !accountTab
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            {t('transactions.filters.allAccounts')}
-          </button>
-          {accounts.map((account) => (
-            <button
-              key={account.id}
-              onClick={() => handleAccountTab(account.id)}
-              className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
-                accountTab === account.id
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: account.color }}
-              />
-              {account.name}
-            </button>
-          ))}
-        </div>
-      )}
+      <AccountTabs accounts={accounts} selected={accountTab} onSelect={handleAccountTab} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upcoming */}

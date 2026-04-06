@@ -440,4 +440,20 @@ export function getIconComponent(iconName) {
   return iconMap[normalizedName] || Tag
 }
 
+/**
+ * Available icon names for the category icon picker
+ */
+export const availableIconNames = [
+  'Tag', 'Briefcase', 'Gift', 'ArrowLeft', 'PlusCircle', 'Home', 'Zap', 'Droplet',
+  'Wifi', 'Phone', 'Fuel', 'Train', 'Car', 'Bus', 'Plane', 'Ship',
+  'ShoppingCart', 'ShoppingBag', 'Utensils', 'Coffee', 'Pizza', 'Apple',
+  'Heart', 'Activity', 'Pill', 'Stethoscope', 'Music', 'Tv', 'Gamepad2',
+  'Shirt', 'Scissors', 'Book', 'GraduationCap', 'FileText', 'Landmark', 'Building2',
+  'Wallet', 'CreditCard', 'Banknote', 'PiggyBank', 'TrendingUp', 'TrendingDown',
+  'ArrowRightLeft', 'MoreHorizontal', 'Star', 'Award', 'Target', 'Flag',
+  'Calendar', 'Clock', 'Bell', 'Mail', 'MessageSquare', 'Users', 'User',
+  'Settings', 'Tool', 'Wrench', 'Hammer', 'Paintbrush', 'Camera', 'Image',
+  'Sun', 'Moon', 'Cloud', 'Umbrella', 'Snowflake', 'Flame', 'Leaf',
+]
+
 export default iconMap

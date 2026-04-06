@@ -3,32 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { categoriesApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
-import * as LucideIcons from 'lucide-react'
 import {
   Tag, TrendingUp, TrendingDown, ArrowLeftRight, Plus,
   Pencil, Trash2, X, Download, Upload, Check
 } from 'lucide-react'
+import { getIconComponent, availableIconNames } from '../lib/iconMap'
 import Modal from '../components/Modal'
-
-// Available icons for categories
-const availableIcons = [
-  'Tag', 'Briefcase', 'Gift', 'ArrowLeft', 'PlusCircle', 'Home', 'Zap', 'Droplet',
-  'Wifi', 'Phone', 'Fuel', 'Train', 'Car', 'Bus', 'Plane', 'Ship',
-  'ShoppingCart', 'ShoppingBag', 'Utensils', 'Coffee', 'Pizza', 'Apple',
-  'Heart', 'Activity', 'Pill', 'Stethoscope', 'Music', 'Tv', 'Gamepad2',
-  'Shirt', 'Scissors', 'Book', 'GraduationCap', 'FileText', 'Landmark', 'Building2',
-  'Wallet', 'CreditCard', 'Banknote', 'PiggyBank', 'TrendingUp', 'TrendingDown',
-  'ArrowRightLeft', 'MoreHorizontal', 'Star', 'Award', 'Target', 'Flag',
-  'Calendar', 'Clock', 'Bell', 'Mail', 'MessageSquare', 'Users', 'User',
-  'Settings', 'Tool', 'Wrench', 'Hammer', 'Paintbrush', 'Camera', 'Image',
-  'Sun', 'Moon', 'Cloud', 'Umbrella', 'Snowflake', 'Flame', 'Leaf',
-]
-
-// Get icon component by name
-const getIconComponent = (iconName) => {
-  const IconComponent = LucideIcons[iconName]
-  return IconComponent || Tag
-}
 
 const defaultColors = [
   '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
@@ -133,7 +113,7 @@ function CategoryModal({ category, onClose, onSave }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t('common.icon')}</label>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg">
-              {availableIcons.map((iconName) => {
+              {availableIconNames.map((iconName) => {
                 const IconComp = getIconComponent(iconName)
                 return (
                   <button

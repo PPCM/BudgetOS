@@ -119,19 +119,8 @@ export class ForecastService {
 
     while (current <= maxDate) {
       if (current >= start) occurrences.push(new Date(current));
-
-      switch (planned.frequency) {
-        case 'once': return occurrences;
-        case 'daily': current = addDays(current, 1); break;
-        case 'weekly': current = addDays(current, 7); break;
-        case 'biweekly': current = addDays(current, 14); break;
-        case 'monthly': current = addMonths(current, 1); break;
-        case 'bimonthly': current = addMonths(current, 2); break;
-        case 'quarterly': current = addMonths(current, 3); break;
-        case 'semiannual': current = addMonths(current, 6); break;
-        case 'annual': current = addMonths(current, 12); break;
-        default: return occurrences;
-      }
+      if (planned.frequency === 'once') return occurrences;
+      current = advanceByFrequency(current, planned.frequency);
     }
     return occurrences;
   }

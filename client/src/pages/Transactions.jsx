@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
+import AccountTabs from '../components/AccountTabs'
 import { useToast } from '../components/Toast'
 import { findKnownLogo } from '../lib/knownLogos'
 import { useAuth } from '../contexts/AuthContext'
@@ -902,38 +903,7 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Account tabs */}
-      {accountsData?.data?.length > 0 && (
-        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto pb-px">
-          <button
-            onClick={() => handleAccountTab('')}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              !accountTab
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            {t('transactions.filters.allAccounts')}
-          </button>
-          {accountsData.data.map((account) => (
-            <button
-              key={account.id}
-              onClick={() => handleAccountTab(account.id)}
-              className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
-                accountTab === account.id
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: account.color }}
-              />
-              {account.name}
-            </button>
-          ))}
-        </div>
-      )}
+      <AccountTabs accounts={accountsData?.data} selected={accountTab} onSelect={handleAccountTab} />
 
       {/* Filters */}
       <div className="card">

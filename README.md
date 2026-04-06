@@ -17,7 +17,7 @@
 
 ## Supported Tags
 
-- `1.5.4`, `1.5`, `1`, `latest`
+- `1.5.5`, `1.5`, `1`, `latest`
 
 ## Quick Reference
 
@@ -194,6 +194,10 @@ This creates:
 | Transactions | Reports |
 |:-:|:-:|
 | ![Transactions](doc/images/transactions.png) | ![Reports](doc/images/reports-trend.png) |
+
+| Forecast | Recurring |
+|:-:|:-:|
+| ![Forecast](doc/images/forecast.png) | ![Recurring](doc/images/planned.png) |
 
 | Bank Import | Categories |
 |:-:|:-:|

@@ -261,7 +261,28 @@ A summary showing:
 
 ---
 
-## 7. Recurring Transactions
+## 7. Forecast
+
+View a merged timeline of actual and projected transactions for any period.
+
+![Forecast](images/forecast.png)
+
+### Features
+
+- **Projected transactions** from recurring entries are shown with a "Projected" badge
+- Default period is **next month** — use the period selector to change
+- Quick filters: "Current month", "Next month", plus all standard period options
+- All standard filters available: account tabs, search, category, type, status
+- Actual transactions already recorded appear alongside projections
+- Deduplication: if an actual transaction matches a recurring occurrence, it's not duplicated
+
+### Account Tabs
+
+Use the account tabs at the top to filter by account. The selected tab persists when navigating between Transactions, Forecast, and Recurring pages.
+
+---
+
+## 8. Recurring Transactions
 
 Set up automatic recurring transactions for regular bills and income.
 
@@ -299,7 +320,7 @@ Each entry shows the frequency, associated category, next occurrence date, and a
 
 ---
 
-## 8. Categorization Rules
+## 9. Categorization Rules
 
 Automate transaction categorization during import.
 
@@ -327,7 +348,7 @@ Rules are evaluated in order. The first matching rule is applied. You can reorde
 
 ---
 
-## 9. Categories
+## 10. Categories
 
 Organize your transactions with customizable categories.
 
@@ -360,7 +381,7 @@ Categories are organized into three columns:
 
 ---
 
-## 10. Payees
+## 11. Payees
 
 Manage your merchants, suppliers, and beneficiaries.
 
@@ -389,7 +410,7 @@ When deleting a payee, you can reassign all their transactions to a different pa
 
 ---
 
-## 11. Reports
+## 12. Reports
 
 Analyze your finances with interactive charts and reports.
 
@@ -420,7 +441,7 @@ Projections are shown at **30, 60, and 90 days**.
 
 ---
 
-## 12. Settings
+## 13. Settings
 
 Manage your profile, security, and preferences.
 

@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, groupsApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
-import { Cog, Save, Mail, Send, CheckCircle, XCircle } from 'lucide-react'
+import { Cog, Save, Mail, Send, CheckCircle, XCircle, Wrench, Trash2, Search, AlertTriangle } from 'lucide-react'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
 
@@ -37,6 +37,7 @@ export default function AdminSettings() {
   const [dirty, setDirty] = useState(false)
   const [smtpDirty, setSmtpDirty] = useState(false)
   const [smtpTestResult, setSmtpTestResult] = useState(null)
+  const [duplicatesPreview, setDuplicatesPreview] = useState(null)
   const queryClient = useQueryClient()
   const toast = useToast()
 
@@ -120,6 +121,41 @@ export default function AdminSettings() {
       toast.error(translateError(err) || t('admin.smtp.testFail'))
     },
   })
+
+  const duplicatesPreviewMutation = useMutation({
+    mutationFn: adminApi.previewRecurringDuplicates,
+    onSuccess: (res) => {
+      setDuplicatesPreview(res.data?.data || null)
+    },
+    onError: (err) => {
+      toast.error(translateError(err))
+    },
+  })
+
+  const duplicatesCleanupMutation = useMutation({
+    mutationFn: adminApi.cleanupRecurringDuplicates,
+    onSuccess: (res) => {
+      const result = res.data?.data
+      toast.success(t('admin.duplicates.cleanupSuccess', { count: result?.deleted ?? 0 }))
+      // Refresh preview so the user sees the updated state
+      duplicatesPreviewMutation.mutate()
+      // Invalidate transaction-related queries so other pages reflect the deletions
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (err) => {
+      toast.error(translateError(err))
+    },
+  })
+
+  const handleCleanupDuplicates = () => {
+    const total = duplicatesPreview?.totalDuplicates ?? 0
+    if (!total) return
+    if (window.confirm(t('admin.duplicates.confirmCleanup', { count: total }))) {
+      duplicatesCleanupMutation.mutate()
+    }
+  }
 
   const handleSmtpChange = (key, value) => {
     setSmtpData((prev) => ({ ...prev, [key]: value }))
@@ -431,6 +467,97 @@ export default function AdminSettings() {
           </button>
         </div>
       </form>
+
+      {/* Maintenance: recurring duplicates */}
+      <div className="card max-w-2xl space-y-4">
+        <div className="flex items-center gap-3 pb-4 border-b">
+          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+            <Wrench className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900">{t('admin.duplicates.title')}</h2>
+            <p className="text-sm text-gray-500">{t('admin.duplicates.subtitle')}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => duplicatesPreviewMutation.mutate()}
+            disabled={duplicatesPreviewMutation.isPending}
+            className="btn flex items-center gap-2 disabled:opacity-50"
+          >
+            {duplicatesPreviewMutation.isPending ? (
+              <div className="w-4 h-4 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+            {t('admin.duplicates.analyze')}
+          </button>
+          {duplicatesPreview && duplicatesPreview.totalDuplicates > 0 && (
+            <button
+              type="button"
+              onClick={handleCleanupDuplicates}
+              disabled={duplicatesCleanupMutation.isPending}
+              className="btn bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 disabled:opacity-50"
+            >
+              {duplicatesCleanupMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              {t('admin.duplicates.cleanup', { count: duplicatesPreview.totalDuplicates })}
+            </button>
+          )}
+        </div>
+
+        {duplicatesPreview && (
+          <div className="space-y-3">
+            {duplicatesPreview.totalDuplicates === 0 ? (
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+                <CheckCircle className="w-4 h-4" />
+                <span>{t('admin.duplicates.noDuplicates')}</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    {t('admin.duplicates.found', {
+                      groups: duplicatesPreview.groupsFound,
+                      total: duplicatesPreview.totalDuplicates,
+                    })}
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-gray-500 text-left">
+                        <th className="py-2 px-2 font-medium">{t('admin.duplicates.col.date')}</th>
+                        <th className="py-2 px-2 font-medium">{t('admin.duplicates.col.description')}</th>
+                        <th className="py-2 px-2 font-medium">{t('admin.duplicates.col.account')}</th>
+                        <th className="py-2 px-2 font-medium text-right">{t('admin.duplicates.col.amount')}</th>
+                        <th className="py-2 px-2 font-medium text-right">{t('admin.duplicates.col.count')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {duplicatesPreview.groups.map((g) => (
+                        <tr key={`${g.recurringId}-${g.date}`} className="border-b last:border-b-0">
+                          <td className="py-2 px-2 text-gray-700">{g.date}</td>
+                          <td className="py-2 px-2 text-gray-900">{g.description || g.plannedDescription || '—'}</td>
+                          <td className="py-2 px-2 text-gray-700">{g.accountName || '—'}</td>
+                          <td className="py-2 px-2 text-right text-gray-700">{Number(g.amount).toFixed(2)}</td>
+                          <td className="py-2 px-2 text-right text-gray-900 font-medium">{g.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

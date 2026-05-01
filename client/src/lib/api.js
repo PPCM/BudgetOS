@@ -281,6 +281,10 @@ export const adminApi = {
   /** @param {Object} data - SMTP settings (smtpHost, smtpPort, etc.) */
   updateSmtpSettings: (data) => api.put('/admin/smtp', data),
   testSmtpConnection: () => api.post('/admin/smtp/test'),
+  /** Preview duplicate recurring transactions caused by past scheduler bug */
+  previewRecurringDuplicates: () => api.get('/admin/duplicates/recurring'),
+  /** Cleanup duplicate recurring transactions */
+  cleanupRecurringDuplicates: () => api.post('/admin/duplicates/recurring/cleanup'),
 }
 
 /**

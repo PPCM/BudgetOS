@@ -784,6 +784,23 @@
       "testSuccess": "Connexion SMTP réussie",
       "testFail": "Échec de la connexion SMTP",
       "saved": "Paramètres SMTP enregistrés"
+    },
+    "duplicates": {
+      "title": "Doublons d'opérations récurrentes",
+      "subtitle": "Détecter et nettoyer les transactions dupliquées créées par un bug du planificateur",
+      "analyze": "Analyser",
+      "cleanup": "Supprimer {{count}} doublon(s)",
+      "confirmCleanup": "Voulez-vous vraiment supprimer {{count}} transaction(s) dupliquée(s) ? Cette action est irréversible.",
+      "cleanupSuccess": "{{count}} doublon(s) supprimé(s) avec succès",
+      "noDuplicates": "Aucun doublon détecté",
+      "found": "{{groups}} groupe(s) de doublons trouvé(s) — {{total}} transaction(s) à supprimer",
+      "col": {
+        "date": "Date",
+        "description": "Description",
+        "account": "Compte",
+        "amount": "Montant",
+        "count": "Nombre"
+      }
     }
   },
   "errors": {
@@ -829,7 +846,6 @@
     "minLength": "Minimum {{min}} caractères",
     "maxLength": "Maximum {{max}} caractères",
     "passwordRules": "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre",
-
     "Invalid email": "Adresse email invalide",
     "Email too long": "Adresse email trop longue",
     "Password must be at least 8 characters": "Le mot de passe doit contenir au moins 8 caractères",
@@ -842,7 +858,6 @@
     "First name too long": "Prénom trop long",
     "Last name required": "Nom requis",
     "Last name too long": "Nom trop long",
-
     "Name required": "Nom requis",
     "Name too long": "Nom trop long",
     "Name is required": "Le nom est requis",
@@ -852,12 +867,10 @@
     "Invalid amount": "Montant invalide",
     "Invalid color format": "Format de couleur invalide",
     "Invalid account ID": "Identifiant de compte invalide",
-
     "Invalid parent category ID": "Identifiant de catégorie parent invalide",
     "Invalid category type": "Type de catégorie invalide",
     "Invalid budget": "Budget invalide",
     "Invalid category ID": "Identifiant de catégorie invalide",
-
     "Invalid payee ID": "Identifiant de tiers invalide",
     "Invalid card ID": "Identifiant de carte invalide",
     "Amount cannot be zero": "Le montant ne peut pas être zéro",
@@ -872,28 +885,21 @@
     "Invalid destination account ID": "Identifiant du compte de destination invalide",
     "At least one transaction required": "Au moins une transaction requise",
     "Invalid transaction ID": "Identifiant de transaction invalide",
-
     "Invalid linked account ID": "Identifiant du compte associé invalide",
     "Invalid format": "Format invalide",
     "Invalid format (MM/YY)": "Format invalide (MM/AA)",
     "Expiration date required": "Date d'expiration requise",
     "Invalid debit type": "Type de débit invalide",
     "For deferred debit, specify the debit day or D-X": "Pour un débit différé, spécifiez le jour de prélèvement ou J-X",
-
-    "Description too long": "Description trop longue",
     "User ID required": "Identifiant utilisateur requis",
     "Password must contain one lowercase, one uppercase, and one digit": "Le mot de passe doit contenir une minuscule, une majuscule et un chiffre",
     "Role required": "Rôle requis",
     "Invalid role": "Rôle invalide",
-
     "At least one condition required": "Au moins une condition requise",
     "Invalid rule ID": "Identifiant de règle invalide",
-
     "Invalid frequency": "Fréquence invalide",
     "Invalid planned transaction ID": "Identifiant de transaction récurrente invalide",
-
     "Invalid import ID": "Identifiant d'import invalide",
-
     "Group ID required": "Identifiant de groupe requis",
     "Invalid role (user or admin)": "Rôle invalide (utilisateur ou administrateur)"
   },

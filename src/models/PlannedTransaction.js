@@ -303,10 +303,25 @@ export class PlannedTransaction {
       .update({
         last_created_at: date,
         occurrences_created: knex.raw('occurrences_created + 1'),
-        next_occurrence: PlannedTransaction.calculateNextOccurrence(pt),
+        next_occurrence: PlannedTransaction.advanceNextOccurrence(pt),
       });
 
     return tx;
+  }
+
+  // Advance next_occurrence by one frequency period from the current next_occurrence.
+  // Returning the same value (e.g. via calculateNextOccurrence) would cause the hourly
+  // scheduler to re-create the same occurrence on every run.
+  static advanceNextOccurrence(pt) {
+    if (pt.frequency === 'once') return null;
+    const baseDateStr = pt.nextOccurrence || pt.startDate;
+    if (!baseDateStr) return null;
+    const next = advanceByFrequency(new Date(baseDateStr + 'T00:00:00'), pt.frequency);
+    if (pt.endDate) {
+      const end = new Date(pt.endDate + 'T00:00:00');
+      if (next > end) return null;
+    }
+    return formatDateISO(next);
   }
 
   static async update(id, userId, data) {

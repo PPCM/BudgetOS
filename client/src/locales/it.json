@@ -295,8 +295,18 @@
     "ended": "Terminata",
     "next": "Prossima: {{date}}",
     "loadingData": "Caricamento dati...",
-    "backfill": { "title": "Transazioni mancanti", "message": "{{count}} transazione(i) passata(e) non sono state create. Vuoi crearle ora?", "confirm": "Crea {{count}} transazione(i)", "skip": "No grazie" },
-    "cleanup": { "title": "Transazioni in eccesso", "message": "{{count}} transazione(i) si trovano prima della nuova data di inizio. Vuoi eliminarle?", "confirm": "Elimina {{count}} transazione(i)", "skip": "Mantieni" },
+    "backfill": {
+      "title": "Transazioni mancanti",
+      "message": "{{count}} transazione(i) passata(e) non sono state create. Vuoi crearle ora?",
+      "confirm": "Crea {{count}} transazione(i)",
+      "skip": "No grazie"
+    },
+    "cleanup": {
+      "title": "Transazioni in eccesso",
+      "message": "{{count}} transazione(i) si trovano prima della nuova data di inizio. Vuoi eliminarle?",
+      "confirm": "Elimina {{count}} transazione(i)",
+      "skip": "Mantieni"
+    },
     "sourceAccount": "Conto di origine (addebito)",
     "selectSource": "Seleziona il conto di origine",
     "destAccount": "Conto di destinazione (accredito) - facoltativo",
@@ -774,6 +784,23 @@
       "testSuccess": "Connessione SMTP riuscita",
       "testFail": "Connessione SMTP fallita",
       "saved": "Impostazioni SMTP salvate"
+    },
+    "duplicates": {
+      "title": "Duplicati di transazioni ricorrenti",
+      "subtitle": "Rilevare e ripulire le transazioni duplicate create da un bug dello scheduler",
+      "analyze": "Analizza",
+      "cleanup": "Elimina {{count}} duplicato/i",
+      "confirmCleanup": "Sei sicuro di voler eliminare {{count}} transazione/i duplicata/e? Questa azione è irreversibile.",
+      "cleanupSuccess": "{{count}} duplicato/i eliminato/i con successo",
+      "noDuplicates": "Nessun duplicato trovato",
+      "found": "{{groups}} gruppo/i di duplicati trovato/i — {{total}} transazione/i da eliminare",
+      "col": {
+        "date": "Data",
+        "description": "Descrizione",
+        "account": "Conto",
+        "amount": "Importo",
+        "count": "Numero"
+      }
     }
   },
   "errors": {
@@ -819,7 +846,6 @@
     "minLength": "Minimo {{min}} caratteri",
     "maxLength": "Massimo {{max}} caratteri",
     "passwordRules": "La password deve contenere almeno 8 caratteri, una maiuscola, una minuscola e una cifra",
-
     "Invalid email": "Email non valida",
     "Email too long": "Email troppo lunga",
     "Password must be at least 8 characters": "La password deve contenere almeno 8 caratteri",
@@ -832,7 +858,6 @@
     "First name too long": "Nome troppo lungo",
     "Last name required": "Cognome obbligatorio",
     "Last name too long": "Cognome troppo lungo",
-
     "Name required": "Nome obbligatorio",
     "Name too long": "Nome troppo lungo",
     "Name is required": "Il nome è obbligatorio",
@@ -842,12 +867,10 @@
     "Invalid amount": "Importo non valido",
     "Invalid color format": "Formato colore non valido",
     "Invalid account ID": "Identificativo del conto non valido",
-
     "Invalid parent category ID": "Identificativo della categoria padre non valido",
     "Invalid category type": "Tipo di categoria non valido",
     "Invalid budget": "Budget non valido",
     "Invalid category ID": "Identificativo della categoria non valido",
-
     "Invalid payee ID": "Identificativo del beneficiario non valido",
     "Invalid card ID": "Identificativo della carta non valido",
     "Amount cannot be zero": "L'importo non può essere zero",
@@ -862,28 +885,21 @@
     "Invalid destination account ID": "Identificativo del conto di destinazione non valido",
     "At least one transaction required": "È necessaria almeno una transazione",
     "Invalid transaction ID": "Identificativo della transazione non valido",
-
     "Invalid linked account ID": "Identificativo del conto associato non valido",
     "Invalid format": "Formato non valido",
     "Invalid format (MM/YY)": "Formato non valido (MM/YY)",
     "Expiration date required": "Data di scadenza obbligatoria",
     "Invalid debit type": "Tipo di addebito non valido",
     "For deferred debit, specify the debit day or D-X": "Per l'addebito differito, specificare il giorno di addebito o G-X",
-
-    "Description too long": "Descrizione troppo lunga",
     "User ID required": "Identificativo utente obbligatorio",
     "Password must contain one lowercase, one uppercase, and one digit": "La password deve contenere una minuscola, una maiuscola e una cifra",
     "Role required": "Ruolo obbligatorio",
     "Invalid role": "Ruolo non valido",
-
     "At least one condition required": "È necessaria almeno una condizione",
     "Invalid rule ID": "Identificativo della regola non valido",
-
     "Invalid frequency": "Frequenza non valida",
     "Invalid planned transaction ID": "Identificativo della transazione ricorrente non valido",
-
     "Invalid import ID": "Identificativo dell'importazione non valido",
-
     "Group ID required": "Identificativo del gruppo obbligatorio",
     "Invalid role (user or admin)": "Ruolo non valido (utente o amministratore)"
   },

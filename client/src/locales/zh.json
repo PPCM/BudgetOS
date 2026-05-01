@@ -295,8 +295,18 @@
     "ended": "已结束",
     "next": "下次：{{date}}",
     "loadingData": "正在加载数据...",
-    "backfill": { "title": "缺失的交易", "message": "{{count}} 笔过去的交易未被创建。是否现在创建？", "confirm": "创建 {{count}} 笔交易", "skip": "不用了" },
-    "cleanup": { "title": "多余的交易", "message": "{{count}} 笔交易在新的开始日期之前。是否删除？", "confirm": "删除 {{count}} 笔交易", "skip": "保留" },
+    "backfill": {
+      "title": "缺失的交易",
+      "message": "{{count}} 笔过去的交易未被创建。是否现在创建？",
+      "confirm": "创建 {{count}} 笔交易",
+      "skip": "不用了"
+    },
+    "cleanup": {
+      "title": "多余的交易",
+      "message": "{{count}} 笔交易在新的开始日期之前。是否删除？",
+      "confirm": "删除 {{count}} 笔交易",
+      "skip": "保留"
+    },
     "sourceAccount": "来源账户（借方）",
     "selectSource": "选择来源账户",
     "destAccount": "目标账户（贷方）- 可选",
@@ -774,6 +784,23 @@
       "testSuccess": "SMTP 连接成功",
       "testFail": "SMTP 连接失败",
       "saved": "SMTP 设置已保存"
+    },
+    "duplicates": {
+      "title": "重复的定期交易",
+      "subtitle": "检测并清理由调度程序错误创建的重复交易",
+      "analyze": "分析",
+      "cleanup": "删除 {{count}} 个重复项",
+      "confirmCleanup": "确定要删除 {{count}} 个重复交易吗？此操作无法撤消。",
+      "cleanupSuccess": "已成功删除 {{count}} 个重复项",
+      "noDuplicates": "未发现重复项",
+      "found": "找到 {{groups}} 个重复组 — 共 {{total}} 个待删除交易",
+      "col": {
+        "date": "日期",
+        "description": "描述",
+        "account": "账户",
+        "amount": "金额",
+        "count": "数量"
+      }
     }
   },
   "errors": {
@@ -819,7 +846,6 @@
     "minLength": "至少 {{min}} 个字符",
     "maxLength": "最多 {{max}} 个字符",
     "passwordRules": "密码必须包含至少8个字符，包括大写字母、小写字母和数字",
-
     "Invalid email": "电子邮箱无效",
     "Email too long": "电子邮箱过长",
     "Password must be at least 8 characters": "密码至少需要8个字符",
@@ -832,7 +858,6 @@
     "First name too long": "名字过长",
     "Last name required": "请输入姓氏",
     "Last name too long": "姓氏过长",
-
     "Name required": "请输入名称",
     "Name too long": "名称过长",
     "Name is required": "名称为必填项",
@@ -842,12 +867,10 @@
     "Invalid amount": "金额无效",
     "Invalid color format": "颜色格式无效",
     "Invalid account ID": "账户ID无效",
-
     "Invalid parent category ID": "父分类ID无效",
     "Invalid category type": "分类类型无效",
     "Invalid budget": "预算无效",
     "Invalid category ID": "分类ID无效",
-
     "Invalid payee ID": "收款方ID无效",
     "Invalid card ID": "卡片ID无效",
     "Amount cannot be zero": "金额不能为零",
@@ -862,28 +885,21 @@
     "Invalid destination account ID": "目标账户ID无效",
     "At least one transaction required": "至少需要一笔交易",
     "Invalid transaction ID": "交易ID无效",
-
     "Invalid linked account ID": "关联账户ID无效",
     "Invalid format": "格式无效",
     "Invalid format (MM/YY)": "格式无效 (MM/YY)",
     "Expiration date required": "请输入有效期",
     "Invalid debit type": "扣款方式无效",
     "For deferred debit, specify the debit day or D-X": "延期扣款需指定扣款日或D-X",
-
-    "Description too long": "描述过长",
     "User ID required": "用户ID为必填项",
     "Password must contain one lowercase, one uppercase, and one digit": "密码必须包含一个小写字母、一个大写字母和一个数字",
     "Role required": "请选择角色",
     "Invalid role": "角色无效",
-
     "At least one condition required": "至少需要一个条件",
     "Invalid rule ID": "规则ID无效",
-
     "Invalid frequency": "频率无效",
     "Invalid planned transaction ID": "定期交易ID无效",
-
     "Invalid import ID": "导入ID无效",
-
     "Group ID required": "群组ID为必填项",
     "Invalid role (user or admin)": "角色无效（用户或管理员）"
   },

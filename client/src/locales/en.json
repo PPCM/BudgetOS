@@ -784,6 +784,23 @@
       "testSuccess": "SMTP connection successful",
       "testFail": "SMTP connection failed",
       "saved": "SMTP settings saved"
+    },
+    "duplicates": {
+      "title": "Recurring transaction duplicates",
+      "subtitle": "Detect and clean up duplicate transactions created by a scheduler bug",
+      "analyze": "Analyze",
+      "cleanup": "Delete {{count}} duplicate(s)",
+      "confirmCleanup": "Are you sure you want to delete {{count}} duplicate transaction(s)? This action cannot be undone.",
+      "cleanupSuccess": "{{count}} duplicate(s) successfully deleted",
+      "noDuplicates": "No duplicates found",
+      "found": "{{groups}} duplicate group(s) found — {{total}} transaction(s) to delete",
+      "col": {
+        "date": "Date",
+        "description": "Description",
+        "account": "Account",
+        "amount": "Amount",
+        "count": "Count"
+      }
     }
   },
   "errors": {
@@ -829,7 +846,6 @@
     "minLength": "Minimum {{min}} characters",
     "maxLength": "Maximum {{max}} characters",
     "passwordRules": "Password must contain at least 8 characters, one uppercase, one lowercase and one digit",
-
     "Invalid email": "Invalid email",
     "Email too long": "Email too long",
     "Password must be at least 8 characters": "Password must be at least 8 characters",
@@ -842,7 +858,6 @@
     "First name too long": "First name too long",
     "Last name required": "Last name required",
     "Last name too long": "Last name too long",
-
     "Name required": "Name required",
     "Name too long": "Name too long",
     "Name is required": "Name is required",
@@ -852,12 +867,10 @@
     "Invalid amount": "Invalid amount",
     "Invalid color format": "Invalid color format",
     "Invalid account ID": "Invalid account ID",
-
     "Invalid parent category ID": "Invalid parent category ID",
     "Invalid category type": "Invalid category type",
     "Invalid budget": "Invalid budget",
     "Invalid category ID": "Invalid category ID",
-
     "Invalid payee ID": "Invalid payee ID",
     "Invalid card ID": "Invalid card ID",
     "Amount cannot be zero": "Amount cannot be zero",
@@ -872,28 +885,21 @@
     "Invalid destination account ID": "Invalid destination account ID",
     "At least one transaction required": "At least one transaction required",
     "Invalid transaction ID": "Invalid transaction ID",
-
     "Invalid linked account ID": "Invalid linked account ID",
     "Invalid format": "Invalid format",
     "Invalid format (MM/YY)": "Invalid format (MM/YY)",
     "Expiration date required": "Expiration date required",
     "Invalid debit type": "Invalid debit type",
     "For deferred debit, specify the debit day or D-X": "For deferred debit, specify the debit day or D-X",
-
-    "Description too long": "Description too long",
     "User ID required": "User ID required",
     "Password must contain one lowercase, one uppercase, and one digit": "Password must contain one lowercase, one uppercase, and one digit",
     "Role required": "Role required",
     "Invalid role": "Invalid role",
-
     "At least one condition required": "At least one condition required",
     "Invalid rule ID": "Invalid rule ID",
-
     "Invalid frequency": "Invalid frequency",
     "Invalid planned transaction ID": "Invalid planned transaction ID",
-
     "Invalid import ID": "Invalid import ID",
-
     "Group ID required": "Group ID required",
     "Invalid role (user or admin)": "Invalid role (user or admin)"
   },

@@ -295,8 +295,18 @@
     "ended": "Beendet",
     "next": "Nächste: {{date}}",
     "loadingData": "Daten werden geladen...",
-    "backfill": { "title": "Fehlende Transaktionen", "message": "{{count}} vergangene Transaktion(en) wurden nicht erstellt. Möchten Sie sie jetzt erstellen?", "confirm": "{{count}} Transaktion(en) erstellen", "skip": "Nein danke" },
-    "cleanup": { "title": "Überschüssige Transaktionen", "message": "{{count}} Transaktion(en) liegen vor dem neuen Startdatum. Möchten Sie sie löschen?", "confirm": "{{count}} Transaktion(en) löschen", "skip": "Behalten" },
+    "backfill": {
+      "title": "Fehlende Transaktionen",
+      "message": "{{count}} vergangene Transaktion(en) wurden nicht erstellt. Möchten Sie sie jetzt erstellen?",
+      "confirm": "{{count}} Transaktion(en) erstellen",
+      "skip": "Nein danke"
+    },
+    "cleanup": {
+      "title": "Überschüssige Transaktionen",
+      "message": "{{count}} Transaktion(en) liegen vor dem neuen Startdatum. Möchten Sie sie löschen?",
+      "confirm": "{{count}} Transaktion(en) löschen",
+      "skip": "Behalten"
+    },
     "sourceAccount": "Quellkonto (Belastung)",
     "selectSource": "Quellkonto auswählen",
     "destAccount": "Zielkonto (Gutschrift) - optional",
@@ -774,6 +784,23 @@
       "testSuccess": "SMTP-Verbindung erfolgreich",
       "testFail": "SMTP-Verbindung fehlgeschlagen",
       "saved": "SMTP-Einstellungen gespeichert"
+    },
+    "duplicates": {
+      "title": "Doppelte wiederkehrende Transaktionen",
+      "subtitle": "Doppelte Transaktionen erkennen und bereinigen, die durch einen Planer-Fehler erstellt wurden",
+      "analyze": "Analysieren",
+      "cleanup": "{{count}} Duplikat(e) löschen",
+      "confirmCleanup": "Möchten Sie {{count}} doppelte Transaktion(en) wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "cleanupSuccess": "{{count}} Duplikat(e) erfolgreich gelöscht",
+      "noDuplicates": "Keine Duplikate gefunden",
+      "found": "{{groups}} Duplikat-Gruppe(n) gefunden — {{total}} zu löschende Transaktion(en)",
+      "col": {
+        "date": "Datum",
+        "description": "Beschreibung",
+        "account": "Konto",
+        "amount": "Betrag",
+        "count": "Anzahl"
+      }
     }
   },
   "errors": {
@@ -819,7 +846,6 @@
     "minLength": "Mindestens {{min}} Zeichen",
     "maxLength": "Maximal {{max}} Zeichen",
     "passwordRules": "Das Passwort muss mindestens 8 Zeichen, einen Großbuchstaben, einen Kleinbuchstaben und eine Ziffer enthalten",
-
     "Invalid email": "Ungültige E-Mail-Adresse",
     "Email too long": "E-Mail-Adresse zu lang",
     "Password must be at least 8 characters": "Das Passwort muss mindestens 8 Zeichen lang sein",
@@ -832,7 +858,6 @@
     "First name too long": "Vorname zu lang",
     "Last name required": "Nachname erforderlich",
     "Last name too long": "Nachname zu lang",
-
     "Name required": "Name erforderlich",
     "Name too long": "Name zu lang",
     "Name is required": "Name ist erforderlich",
@@ -842,12 +867,10 @@
     "Invalid amount": "Ungültiger Betrag",
     "Invalid color format": "Ungültiges Farbformat",
     "Invalid account ID": "Ungültige Konto-ID",
-
     "Invalid parent category ID": "Ungültige übergeordnete Kategorie-ID",
     "Invalid category type": "Ungültiger Kategorietyp",
     "Invalid budget": "Ungültiges Budget",
     "Invalid category ID": "Ungültige Kategorie-ID",
-
     "Invalid payee ID": "Ungültige Zahlungsempfänger-ID",
     "Invalid card ID": "Ungültige Karten-ID",
     "Amount cannot be zero": "Der Betrag darf nicht null sein",
@@ -862,28 +885,21 @@
     "Invalid destination account ID": "Ungültige Zielkonto-ID",
     "At least one transaction required": "Mindestens eine Buchung erforderlich",
     "Invalid transaction ID": "Ungültige Buchungs-ID",
-
     "Invalid linked account ID": "Ungültige verknüpfte Konto-ID",
     "Invalid format": "Ungültiges Format",
     "Invalid format (MM/YY)": "Ungültiges Format (MM/YY)",
     "Expiration date required": "Ablaufdatum erforderlich",
     "Invalid debit type": "Ungültige Abbuchungsart",
     "For deferred debit, specify the debit day or D-X": "Geben Sie bei verzögerter Abbuchung den Abbuchungstag oder T-X an",
-
-    "Description too long": "Beschreibung zu lang",
     "User ID required": "Benutzer-ID erforderlich",
     "Password must contain one lowercase, one uppercase, and one digit": "Das Passwort muss einen Kleinbuchstaben, einen Großbuchstaben und eine Ziffer enthalten",
     "Role required": "Rolle erforderlich",
     "Invalid role": "Ungültige Rolle",
-
     "At least one condition required": "Mindestens eine Bedingung erforderlich",
     "Invalid rule ID": "Ungültige Regel-ID",
-
     "Invalid frequency": "Ungültige Häufigkeit",
     "Invalid planned transaction ID": "Ungültige wiederkehrende Buchungs-ID",
-
     "Invalid import ID": "Ungültige Import-ID",
-
     "Group ID required": "Gruppen-ID erforderlich",
     "Invalid role (user or admin)": "Ungültige Rolle (Benutzer oder Admin)"
   },

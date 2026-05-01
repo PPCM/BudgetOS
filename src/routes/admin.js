@@ -32,4 +32,8 @@ router.get('/smtp', requireSuperAdmin, asyncHandler(adminController.getSmtpSetti
 router.put('/smtp', requireSuperAdmin, asyncHandler(adminController.updateSmtpSettings));
 router.post('/smtp/test', requireSuperAdmin, asyncHandler(adminController.testSmtpConnection));
 
+// Maintenance: duplicate recurring transactions
+router.get('/duplicates/recurring', requireSuperAdmin, asyncHandler(adminController.previewRecurringDuplicates));
+router.post('/duplicates/recurring/cleanup', requireSuperAdmin, asyncHandler(adminController.cleanupRecurringDuplicates));
+
 export default router;

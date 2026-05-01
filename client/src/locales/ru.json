@@ -295,8 +295,18 @@
     "ended": "Завершена",
     "next": "Следующая: {{date}}",
     "loadingData": "Загрузка данных...",
-    "backfill": { "title": "Недостающие транзакции", "message": "{{count}} прошлых транзакций не было создано. Создать их сейчас?", "confirm": "Создать {{count}} транзакций", "skip": "Нет, спасибо" },
-    "cleanup": { "title": "Лишние транзакции", "message": "{{count}} транзакций находятся до новой даты начала. Удалить их?", "confirm": "Удалить {{count}} транзакций", "skip": "Оставить" },
+    "backfill": {
+      "title": "Недостающие транзакции",
+      "message": "{{count}} прошлых транзакций не было создано. Создать их сейчас?",
+      "confirm": "Создать {{count}} транзакций",
+      "skip": "Нет, спасибо"
+    },
+    "cleanup": {
+      "title": "Лишние транзакции",
+      "message": "{{count}} транзакций находятся до новой даты начала. Удалить их?",
+      "confirm": "Удалить {{count}} транзакций",
+      "skip": "Оставить"
+    },
     "sourceAccount": "Счёт списания (дебет)",
     "selectSource": "Выберите счёт списания",
     "destAccount": "Счёт зачисления (кредит) - необязательно",
@@ -774,6 +784,23 @@
       "testSuccess": "SMTP соединение успешно",
       "testFail": "Ошибка SMTP соединения",
       "saved": "Настройки SMTP сохранены"
+    },
+    "duplicates": {
+      "title": "Дубликаты повторяющихся операций",
+      "subtitle": "Обнаружение и очистка дубликатов транзакций, созданных из-за ошибки планировщика",
+      "analyze": "Анализировать",
+      "cleanup": "Удалить {{count}} дубликат(ов)",
+      "confirmCleanup": "Вы уверены, что хотите удалить {{count}} дубликат(ов) транзакций? Это действие необратимо.",
+      "cleanupSuccess": "{{count}} дубликат(ов) успешно удалено",
+      "noDuplicates": "Дубликаты не найдены",
+      "found": "Найдено групп(ы) дубликатов: {{groups}} — транзакций для удаления: {{total}}",
+      "col": {
+        "date": "Дата",
+        "description": "Описание",
+        "account": "Счёт",
+        "amount": "Сумма",
+        "count": "Количество"
+      }
     }
   },
   "errors": {
@@ -819,7 +846,6 @@
     "minLength": "Минимум {{min}} символов",
     "maxLength": "Максимум {{max}} символов",
     "passwordRules": "Пароль должен содержать не менее 8 символов, одну заглавную букву, одну строчную букву и одну цифру",
-
     "Invalid email": "Неверный адрес эл. почты",
     "Email too long": "Адрес эл. почты слишком длинный",
     "Password must be at least 8 characters": "Пароль должен содержать не менее 8 символов",
@@ -832,7 +858,6 @@
     "First name too long": "Имя слишком длинное",
     "Last name required": "Требуется фамилия",
     "Last name too long": "Фамилия слишком длинная",
-
     "Name required": "Требуется название",
     "Name too long": "Название слишком длинное",
     "Name is required": "Название обязательно",
@@ -842,12 +867,10 @@
     "Invalid amount": "Неверная сумма",
     "Invalid color format": "Неверный формат цвета",
     "Invalid account ID": "Неверный идентификатор счёта",
-
     "Invalid parent category ID": "Неверный идентификатор родительской категории",
     "Invalid category type": "Неверный тип категории",
     "Invalid budget": "Неверный бюджет",
     "Invalid category ID": "Неверный идентификатор категории",
-
     "Invalid payee ID": "Неверный идентификатор контрагента",
     "Invalid card ID": "Неверный идентификатор карты",
     "Amount cannot be zero": "Сумма не может быть равна нулю",
@@ -862,28 +885,21 @@
     "Invalid destination account ID": "Неверный идентификатор счёта назначения",
     "At least one transaction required": "Требуется хотя бы одна транзакция",
     "Invalid transaction ID": "Неверный идентификатор транзакции",
-
     "Invalid linked account ID": "Неверный идентификатор привязанного счёта",
     "Invalid format": "Неверный формат",
     "Invalid format (MM/YY)": "Неверный формат (MM/YY)",
     "Expiration date required": "Требуется срок действия",
     "Invalid debit type": "Неверный тип списания",
     "For deferred debit, specify the debit day or D-X": "Для отложенного списания укажите день списания или Д-X",
-
-    "Description too long": "Описание слишком длинное",
     "User ID required": "Требуется идентификатор пользователя",
     "Password must contain one lowercase, one uppercase, and one digit": "Пароль должен содержать одну строчную, одну заглавную букву и одну цифру",
     "Role required": "Требуется роль",
     "Invalid role": "Неверная роль",
-
     "At least one condition required": "Требуется хотя бы одно условие",
     "Invalid rule ID": "Неверный идентификатор правила",
-
     "Invalid frequency": "Неверная периодичность",
     "Invalid planned transaction ID": "Неверный идентификатор регулярной транзакции",
-
     "Invalid import ID": "Неверный идентификатор импорта",
-
     "Group ID required": "Требуется идентификатор группы",
     "Invalid role (user or admin)": "Неверная роль (пользователь или администратор)"
   },

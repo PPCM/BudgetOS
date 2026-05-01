@@ -295,8 +295,18 @@
     "ended": "Avslutad",
     "next": "Nästa: {{date}}",
     "loadingData": "Laddar data...",
-    "backfill": { "title": "Saknade transaktioner", "message": "{{count}} tidigare transaktion(er) har inte skapats. Vill du skapa dem nu?", "confirm": "Skapa {{count}} transaktion(er)", "skip": "Nej tack" },
-    "cleanup": { "title": "Överskjutande transaktioner", "message": "{{count}} transaktion(er) ligger före det nya startdatumet. Vill du radera dem?", "confirm": "Radera {{count}} transaktion(er)", "skip": "Behåll" },
+    "backfill": {
+      "title": "Saknade transaktioner",
+      "message": "{{count}} tidigare transaktion(er) har inte skapats. Vill du skapa dem nu?",
+      "confirm": "Skapa {{count}} transaktion(er)",
+      "skip": "Nej tack"
+    },
+    "cleanup": {
+      "title": "Överskjutande transaktioner",
+      "message": "{{count}} transaktion(er) ligger före det nya startdatumet. Vill du radera dem?",
+      "confirm": "Radera {{count}} transaktion(er)",
+      "skip": "Behåll"
+    },
     "sourceAccount": "Källkonto (debitering)",
     "selectSource": "Välj källkonto",
     "destAccount": "Destinationskonto (kredit) - valfritt",
@@ -774,6 +784,23 @@
       "testSuccess": "SMTP-anslutning lyckades",
       "testFail": "SMTP-anslutning misslyckades",
       "saved": "SMTP-inställningar sparade"
+    },
+    "duplicates": {
+      "title": "Dubbletter av återkommande transaktioner",
+      "subtitle": "Upptäck och rensa dubbletttransaktioner skapade av ett schemaläggarfel",
+      "analyze": "Analysera",
+      "cleanup": "Ta bort {{count}} dubblett(er)",
+      "confirmCleanup": "Är du säker på att du vill ta bort {{count}} dubblett(er)? Den här åtgärden kan inte ångras.",
+      "cleanupSuccess": "{{count}} dubblett(er) togs bort",
+      "noDuplicates": "Inga dubbletter hittades",
+      "found": "{{groups}} dubblettgrupp(er) hittade — {{total}} transaktion(er) att ta bort",
+      "col": {
+        "date": "Datum",
+        "description": "Beskrivning",
+        "account": "Konto",
+        "amount": "Belopp",
+        "count": "Antal"
+      }
     }
   },
   "errors": {
@@ -819,7 +846,6 @@
     "minLength": "Minst {{min}} tecken",
     "maxLength": "Max {{max}} tecken",
     "passwordRules": "Lösenordet måste innehålla minst 8 tecken, en versal, en gemen och en siffra",
-
     "Invalid email": "Ogiltig e-post",
     "Email too long": "E-post för lång",
     "Password must be at least 8 characters": "Lösenordet måste vara minst 8 tecken",
@@ -832,7 +858,6 @@
     "First name too long": "Förnamn för långt",
     "Last name required": "Efternamn krävs",
     "Last name too long": "Efternamn för långt",
-
     "Name required": "Namn krävs",
     "Name too long": "Namn för långt",
     "Name is required": "Namn är obligatoriskt",
@@ -842,12 +867,10 @@
     "Invalid amount": "Ogiltigt belopp",
     "Invalid color format": "Ogiltigt färgformat",
     "Invalid account ID": "Ogiltigt konto-ID",
-
     "Invalid parent category ID": "Ogiltigt överordnat kategori-ID",
     "Invalid category type": "Ogiltig kategorityp",
     "Invalid budget": "Ogiltig budget",
     "Invalid category ID": "Ogiltigt kategori-ID",
-
     "Invalid payee ID": "Ogiltigt mottagare-ID",
     "Invalid card ID": "Ogiltigt kort-ID",
     "Amount cannot be zero": "Belopp kan inte vara noll",
@@ -862,28 +885,21 @@
     "Invalid destination account ID": "Ogiltigt destinationskonto-ID",
     "At least one transaction required": "Minst en transaktion krävs",
     "Invalid transaction ID": "Ogiltigt transaktions-ID",
-
     "Invalid linked account ID": "Ogiltigt kopplat konto-ID",
     "Invalid format": "Ogiltigt format",
     "Invalid format (MM/YY)": "Ogiltigt format (MM/ÅÅ)",
     "Expiration date required": "Utgångsdatum krävs",
     "Invalid debit type": "Ogiltig debiteringstyp",
     "For deferred debit, specify the debit day or D-X": "För uppskjuten debitering, ange debiteringsdagen eller D-X",
-
-    "Description too long": "Beskrivning för lång",
     "User ID required": "Användar-ID krävs",
     "Password must contain one lowercase, one uppercase, and one digit": "Lösenordet måste innehålla en gemen, en versal och en siffra",
     "Role required": "Roll krävs",
     "Invalid role": "Ogiltig roll",
-
     "At least one condition required": "Minst ett villkor krävs",
     "Invalid rule ID": "Ogiltigt regel-ID",
-
     "Invalid frequency": "Ogiltig frekvens",
     "Invalid planned transaction ID": "Ogiltigt återkommande transaktions-ID",
-
     "Invalid import ID": "Ogiltigt import-ID",
-
     "Group ID required": "Grupp-ID krävs",
     "Invalid role (user or admin)": "Ogiltig roll (användare eller admin)"
   },

@@ -306,3 +306,30 @@ export const testSmtpConnection = async (req, res) => {
     throw new BadRequestError(`SMTP connection failed: ${error.message}`, 'SMTP_TEST_FAILED');
   }
 };
+
+/**
+ * Preview duplicate recurring transactions (super_admin only)
+ */
+export const previewRecurringDuplicates = async (req, res) => {
+  const { default: duplicateService } = await import('../services/duplicateService.js');
+  const data = await duplicateService.previewRecurringDuplicates();
+
+  res.json({ success: true, data });
+};
+
+/**
+ * Cleanup duplicate recurring transactions (super_admin only)
+ */
+export const cleanupRecurringDuplicates = async (req, res) => {
+  const { default: duplicateService } = await import('../services/duplicateService.js');
+  const result = await duplicateService.cleanupRecurringDuplicates();
+
+  logger.info('Recurring duplicates cleaned up', {
+    adminId: req.user.id,
+    groupsFound: result.groupsFound,
+    deleted: result.deleted,
+    failed: result.errors.length,
+  });
+
+  res.json({ success: true, data: result });
+};

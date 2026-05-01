@@ -413,6 +413,109 @@ describe('PlannedTransaction.delete', () => {
   })
 })
 
+describe('PlannedTransaction.createOccurrence', () => {
+  let userId
+
+  const todayString = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
+    await createTestAccount(userId)
+  })
+
+  it('advances next_occurrence past today after creating an occurrence dated today', async () => {
+    // Reproduces the production bug: hourly cron created duplicates because
+    // next_occurrence stayed equal to today after createOccurrence
+    const today = todayString()
+
+    const pt = await PlannedTransaction.create(userId, {
+      accountId: 'test-account-1',
+      amount: 100,
+      description: 'Today Rent',
+      type: 'expense',
+      frequency: 'monthly',
+      startDate: today,
+    })
+
+    expect(pt.nextOccurrence).toBe(today)
+
+    await PlannedTransaction.createOccurrence(pt.id, userId, today)
+
+    const after = await PlannedTransaction.findById(pt.id, userId)
+    expect(after.nextOccurrence).not.toBe(today)
+    expect(after.nextOccurrence > today).toBe(true)
+    expect(after.occurrencesCreated).toBe(1)
+  })
+
+  it('does not re-trigger creation when called twice the same day (hourly scheduler)', async () => {
+    const today = todayString()
+
+    const pt = await PlannedTransaction.create(userId, {
+      accountId: 'test-account-1',
+      amount: 100,
+      description: 'Hourly Cron Sim',
+      type: 'expense',
+      frequency: 'monthly',
+      startDate: today,
+    })
+
+    // First cron tick: creates occurrence and advances next_occurrence
+    await PlannedTransaction.createOccurrence(pt.id, userId, today)
+    const after1 = await PlannedTransaction.findById(pt.id, userId)
+    expect(after1.nextOccurrence > today).toBe(true)
+
+    // Subsequent cron ticks would filter out this PT because next_occurrence > today
+    // Verify the scheduler's filter: where('next_occurrence', '<=', today)
+    expect(after1.nextOccurrence <= today).toBe(false)
+  })
+
+  it('returns null next_occurrence when frequency is once', async () => {
+    const today = todayString()
+
+    const pt = await PlannedTransaction.create(userId, {
+      accountId: 'test-account-1',
+      amount: 100,
+      description: 'One-time payment',
+      type: 'expense',
+      frequency: 'once',
+      startDate: today,
+    })
+
+    await PlannedTransaction.createOccurrence(pt.id, userId, today)
+
+    const after = await PlannedTransaction.findById(pt.id, userId)
+    expect(after.nextOccurrence).toBeNull()
+  })
+
+  it('returns null next_occurrence when next would exceed end_date', async () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = todayString()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
+
+    const pt = await PlannedTransaction.create(userId, {
+      accountId: 'test-account-1',
+      amount: 100,
+      description: 'About to end',
+      type: 'expense',
+      frequency: 'monthly',
+      startDate: todayStr,
+      endDate: tomorrowStr,
+    })
+
+    await PlannedTransaction.createOccurrence(pt.id, userId, todayStr)
+
+    const after = await PlannedTransaction.findById(pt.id, userId)
+    expect(after.nextOccurrence).toBeNull()
+  })
+})
+
 describe('PlannedTransaction.format', () => {
   it('formats database row to API response', () => {
     const dbRow = {

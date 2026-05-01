@@ -176,7 +176,23 @@
       "savings": "Сберегательный",
       "cash": "Наличные",
       "investment": "Инвестиционный"
-    }
+    },
+    "deactivate": "Деактивировать",
+    "reactivate": "Реактивировать",
+    "permanentDelete": "Удалить навсегда",
+    "inactiveSection": "Деактивированные счета",
+    "inactiveBadge": "Деактивирован",
+    "confirmDeactivate": "Деактивировать счёт «{{name}}»? Он будет скрыт из итогов и списков, а связанные регулярные операции — приостановлены. Действие обратимо.",
+    "confirmReactivate": "Реактивировать счёт «{{name}}»?",
+    "permanentDeleteWarningTitle": "Необратимое действие",
+    "permanentDeleteWarningBody": "Окончательное удаление счёта «{{name}}» безвозвратно уничтожит:",
+    "permanentDeleteList": {
+      "transactions": "Все его транзакции и вложения",
+      "splits": "Все связанные разбиения",
+      "recurring": "Все связанные регулярные операции"
+    },
+    "permanentDeleteTypeName": "Для подтверждения введите имя счёта: {{name}}",
+    "permanentDeleteConfirm": "Удалить навсегда"
   },
   "categories": {
     "title": "Категории",

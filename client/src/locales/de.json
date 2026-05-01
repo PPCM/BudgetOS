@@ -176,7 +176,23 @@
       "savings": "Sparkonto",
       "cash": "Bargeld",
       "investment": "Anlagekonto"
-    }
+    },
+    "deactivate": "Deaktivieren",
+    "reactivate": "Reaktivieren",
+    "permanentDelete": "Endgültig löschen",
+    "inactiveSection": "Deaktivierte Konten",
+    "inactiveBadge": "Deaktiviert",
+    "confirmDeactivate": "Konto \"{{name}}\" deaktivieren? Es wird aus Summen und Listen ausgeblendet und seine wiederkehrenden Transaktionen werden pausiert. Dies ist umkehrbar.",
+    "confirmReactivate": "Konto \"{{name}}\" reaktivieren?",
+    "permanentDeleteWarningTitle": "Unumkehrbare Aktion",
+    "permanentDeleteWarningBody": "Das endgültige Löschen des Kontos \"{{name}}\" zerstört dauerhaft:",
+    "permanentDeleteList": {
+      "transactions": "Alle Transaktionen und deren Anhänge",
+      "splits": "Alle verknüpften Aufteilungen",
+      "recurring": "Alle verknüpften wiederkehrenden Transaktionen"
+    },
+    "permanentDeleteTypeName": "Zur Bestätigung den Kontonamen eingeben: {{name}}",
+    "permanentDeleteConfirm": "Endgültig löschen"
   },
   "categories": {
     "title": "Kategorien",

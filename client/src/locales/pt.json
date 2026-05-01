@@ -176,7 +176,23 @@
       "savings": "Poupança",
       "cash": "Numerário",
       "investment": "Investimento"
-    }
+    },
+    "deactivate": "Desativar",
+    "reactivate": "Reativar",
+    "permanentDelete": "Eliminar definitivamente",
+    "inactiveSection": "Contas desativadas",
+    "inactiveBadge": "Desativada",
+    "confirmDeactivate": "Desativar a conta \"{{name}}\"? Será ocultada dos totais e das listas, e as suas transações recorrentes serão pausadas. Esta ação é reversível.",
+    "confirmReactivate": "Reativar a conta \"{{name}}\"?",
+    "permanentDeleteWarningTitle": "Ação irreversível",
+    "permanentDeleteWarningBody": "A eliminação definitiva da conta \"{{name}}\" destruirá permanentemente:",
+    "permanentDeleteList": {
+      "transactions": "Todas as suas transações e respetivos anexos",
+      "splits": "Todos os fracionamentos associados",
+      "recurring": "Todas as transações recorrentes associadas"
+    },
+    "permanentDeleteTypeName": "Para confirmar, escreve o nome da conta: {{name}}",
+    "permanentDeleteConfirm": "Eliminar definitivamente"
   },
   "categories": {
     "title": "Categorias",

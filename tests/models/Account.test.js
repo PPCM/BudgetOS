@@ -342,36 +342,131 @@ describe('Account.delete', () => {
     userId = await createTestUser()
   })
 
-  it('soft deletes account with transactions', async () => {
+  it('refuses to delete an active account', async () => {
     const accountId = await createTestAccount(userId)
-    await createTestTransaction(userId, accountId)
 
-    const result = await Account.delete(accountId, userId)
-
-    expect(result.deleted).toBe(true)
-    expect(result.softDelete).toBe(true)
+    await expect(Account.delete(accountId, userId))
+      .rejects.toThrow('Account must be deactivated before permanent deletion')
 
     const db = getTestDb()
-    const row = await db('accounts').where('id', accountId).select('is_active').first()
-    expect(row.is_active).toBeFalsy()
+    const row = await db('accounts').where('id', accountId).first()
+    expect(row).toBeDefined()
+    expect(row.is_active).toBeTruthy()
   })
 
-  it('hard deletes account without transactions', async () => {
+  it('hard deletes a deactivated account (no transactions)', async () => {
     const accountId = await createTestAccount(userId)
+    await Account.deactivate(accountId, userId)
 
     const result = await Account.delete(accountId, userId)
-
     expect(result.deleted).toBe(true)
-    expect(result.softDelete).toBe(false)
 
     const db = getTestDb()
     const row = await db('accounts').where('id', accountId).first()
     expect(row).toBeUndefined()
   })
 
+  it('hard deletes a deactivated account and cascades transactions', async () => {
+    const accountId = await createTestAccount(userId)
+    await createTestTransaction(userId, accountId)
+    await Account.deactivate(accountId, userId)
+
+    await Account.delete(accountId, userId)
+
+    const db = getTestDb()
+    const account = await db('accounts').where('id', accountId).first()
+    expect(account).toBeUndefined()
+    const txs = await db('transactions').where('account_id', accountId)
+    expect(txs).toHaveLength(0)
+  })
+
   it('throws NotFoundError for non-existent account', async () => {
     await expect(Account.delete('non-existent', userId))
       .rejects.toThrow('Account not found')
+  })
+})
+
+describe('Account.deactivate', () => {
+  let userId
+
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
+  })
+
+  it('marks the account as inactive and pauses linked planned transactions', async () => {
+    const accountId = await createTestAccount(userId)
+    const db = getTestDb()
+    await db('planned_transactions').insert({
+      id: 'pt-deact-1',
+      user_id: userId,
+      account_id: accountId,
+      amount: -50,
+      description: 'Linked PT',
+      type: 'expense',
+      frequency: 'monthly',
+      start_date: '2026-01-01',
+      next_occurrence: '2026-02-01',
+      is_active: true,
+    })
+
+    const result = await Account.deactivate(accountId, userId)
+    expect(result.deactivated).toBe(true)
+    expect(result.alreadyInactive).toBe(false)
+
+    const row = await db('accounts').where('id', accountId).first()
+    expect(row.is_active).toBeFalsy()
+    const pt = await db('planned_transactions').where('id', 'pt-deact-1').first()
+    expect(pt.is_active).toBeFalsy()
+  })
+
+  it('is idempotent on an already inactive account', async () => {
+    const accountId = await createTestAccount(userId)
+    await Account.deactivate(accountId, userId)
+    const result = await Account.deactivate(accountId, userId)
+    expect(result.alreadyInactive).toBe(true)
+  })
+})
+
+describe('Account.reactivate', () => {
+  let userId
+
+  beforeEach(async () => {
+    await resetTestDb()
+    userId = await createTestUser()
+  })
+
+  it('flips an inactive account back to active without re-enabling planned transactions', async () => {
+    const accountId = await createTestAccount(userId)
+    const db = getTestDb()
+    await db('planned_transactions').insert({
+      id: 'pt-react-1',
+      user_id: userId,
+      account_id: accountId,
+      amount: -10,
+      description: 'PT to stay paused',
+      type: 'expense',
+      frequency: 'monthly',
+      start_date: '2026-01-01',
+      next_occurrence: '2026-02-01',
+      is_active: true,
+    })
+    await Account.deactivate(accountId, userId)
+
+    const result = await Account.reactivate(accountId, userId)
+    expect(result.reactivated).toBe(true)
+    expect(result.alreadyActive).toBe(false)
+
+    const account = await db('accounts').where('id', accountId).first()
+    expect(account.is_active).toBeTruthy()
+    const pt = await db('planned_transactions').where('id', 'pt-react-1').first()
+    expect(pt.is_active).toBeFalsy()
+  })
+
+  it('is idempotent on an already active account', async () => {
+    const accountId = await createTestAccount(userId)
+    const result = await Account.reactivate(accountId, userId)
+    expect(result.alreadyActive).toBe(true)
   })
 })
 

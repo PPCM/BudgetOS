@@ -107,15 +107,20 @@ export const authApi = {
  * @namespace accountsApi
  */
 export const accountsApi = {
-  getAll: () => api.get('/accounts'),
+  /** @param {Object} [params] - Optional filters (e.g. { includeInactive: true }) */
+  getAll: (params) => api.get('/accounts', { params: cleanParams(params || {}) }),
   /** @param {string} id - Account UUID */
   getOne: (id) => api.get(`/accounts/${id}`),
   /** @param {Object} data - Account data (name, type, currency, etc.) */
   create: (data) => api.post('/accounts', data),
   /** @param {string} id - Account UUID */
   update: (id, data) => api.put(`/accounts/${id}`, data),
-  /** @param {string} id - Account UUID */
+  /** Permanent delete - account must be deactivated first */
   delete: (id) => api.delete(`/accounts/${id}`),
+  /** Soft-disable: hides the account from totals/lists, pauses planned transactions */
+  deactivate: (id) => api.post(`/accounts/${id}/deactivate`),
+  /** Re-enable a previously deactivated account */
+  reactivate: (id) => api.post(`/accounts/${id}/reactivate`),
 }
 
 /**

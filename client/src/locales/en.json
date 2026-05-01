@@ -176,7 +176,23 @@
       "savings": "Savings",
       "cash": "Cash",
       "investment": "Investment"
-    }
+    },
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "permanentDelete": "Delete permanently",
+    "inactiveSection": "Deactivated accounts",
+    "inactiveBadge": "Deactivated",
+    "confirmDeactivate": "Deactivate the account \"{{name}}\"? It will be hidden from totals and lists, and its recurring transactions will be paused. This is reversible.",
+    "confirmReactivate": "Reactivate the account \"{{name}}\"?",
+    "permanentDeleteWarningTitle": "Irreversible action",
+    "permanentDeleteWarningBody": "Permanently deleting account \"{{name}}\" will permanently destroy:",
+    "permanentDeleteList": {
+      "transactions": "All its transactions and their attachments",
+      "splits": "All linked splits",
+      "recurring": "All linked recurring transactions"
+    },
+    "permanentDeleteTypeName": "To confirm, type the account name: {{name}}",
+    "permanentDeleteConfirm": "Delete permanently"
   },
   "categories": {
     "title": "Categories",

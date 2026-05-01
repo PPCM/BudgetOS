@@ -176,7 +176,23 @@
       "savings": "Sparkonto",
       "cash": "Kontanter",
       "investment": "Investeringar"
-    }
+    },
+    "deactivate": "Inaktivera",
+    "reactivate": "Återaktivera",
+    "permanentDelete": "Ta bort permanent",
+    "inactiveSection": "Inaktiverade konton",
+    "inactiveBadge": "Inaktiverat",
+    "confirmDeactivate": "Inaktivera kontot \"{{name}}\"? Det döljs från totaler och listor, och återkommande transaktioner pausas. Åtgärden är reversibel.",
+    "confirmReactivate": "Återaktivera kontot \"{{name}}\"?",
+    "permanentDeleteWarningTitle": "Oåterkallelig åtgärd",
+    "permanentDeleteWarningBody": "Permanent borttagning av kontot \"{{name}}\" raderar permanent:",
+    "permanentDeleteList": {
+      "transactions": "Alla dess transaktioner och bilagor",
+      "splits": "Alla länkade uppdelningar",
+      "recurring": "Alla länkade återkommande transaktioner"
+    },
+    "permanentDeleteTypeName": "Bekräfta genom att skriva kontots namn: {{name}}",
+    "permanentDeleteConfirm": "Ta bort permanent"
   },
   "categories": {
     "title": "Kategorier",

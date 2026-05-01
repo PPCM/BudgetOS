@@ -176,7 +176,23 @@
       "savings": "Épargne",
       "cash": "Espèces",
       "investment": "Investissement"
-    }
+    },
+    "deactivate": "Désactiver",
+    "reactivate": "Réactiver",
+    "permanentDelete": "Supprimer définitivement",
+    "inactiveSection": "Comptes désactivés",
+    "inactiveBadge": "Désactivé",
+    "confirmDeactivate": "Désactiver le compte « {{name}} » ? Il sera caché des totaux et des listes, et ses opérations récurrentes seront mises en pause. L'opération est réversible.",
+    "confirmReactivate": "Réactiver le compte « {{name}} » ?",
+    "permanentDeleteWarningTitle": "Action irréversible",
+    "permanentDeleteWarningBody": "La suppression définitive du compte « {{name}} » entraînera la perte permanente de :",
+    "permanentDeleteList": {
+      "transactions": "Toutes ses transactions et leurs pièces jointes",
+      "splits": "Tous les fractionnements liés",
+      "recurring": "Toutes les opérations récurrentes liées"
+    },
+    "permanentDeleteTypeName": "Pour confirmer, saisis le nom du compte : {{name}}",
+    "permanentDeleteConfirm": "Supprimer définitivement"
   },
   "categories": {
     "title": "Catégories",

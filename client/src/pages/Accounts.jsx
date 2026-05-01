@@ -15,7 +15,8 @@ import FormattedAmountInput from '../components/FormattedAmountInput'
 import {
   Plus, Wallet, PiggyBank, Landmark,
   Pencil, Trash2, X, HandCoins, ArrowRightLeft, CalendarRange,
-  ChevronDown, ChevronRight, TrendingUp, TrendingDown
+  ChevronDown, ChevronRight, TrendingUp, TrendingDown,
+  Power, RotateCcw, AlertTriangle
 } from 'lucide-react'
 import Modal from '../components/Modal'
 
@@ -174,8 +175,10 @@ export default function Accounts() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: () => accountsApi.getAll().then(r => r.data),
+    queryFn: () => accountsApi.getAll({ includeInactive: true }).then(r => r.data),
   })
+
+  const [permanentDeleteAccount, setPermanentDeleteAccount] = useState(null)
 
   const { data: projections } = useQuery({
     queryKey: ['projections'],
@@ -233,12 +236,38 @@ export default function Accounts() {
     },
   })
 
+  const deactivateMutation = useMutation({
+    mutationFn: accountsApi.deactivate,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries(['transactions'])
+      queryClient.invalidateQueries(['dashboard'])
+      queryClient.invalidateQueries(['projections'])
+    },
+    onError: (err) => alert(translateError(err)),
+  })
+
+  const reactivateMutation = useMutation({
+    mutationFn: accountsApi.reactivate,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries(['transactions'])
+      queryClient.invalidateQueries(['dashboard'])
+      queryClient.invalidateQueries(['projections'])
+    },
+    onError: (err) => alert(translateError(err)),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: accountsApi.delete,
-    onSuccess: () => queryClient.invalidateQueries(['accounts']),
-    onError: (err) => {
-      alert(translateError(err))
+    onSuccess: () => {
+      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries(['transactions'])
+      queryClient.invalidateQueries(['dashboard'])
+      queryClient.invalidateQueries(['projections'])
+      setPermanentDeleteAccount(null)
     },
+    onError: (err) => alert(translateError(err)),
   })
 
   const handleSave = (formData) => {
@@ -286,9 +315,9 @@ export default function Accounts() {
         </div>
       )}
 
-      {/* Accounts list */}
+      {/* Active accounts list */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data?.data?.map((account) => {
+        {data?.data?.filter(a => a.isActive).map((account) => {
           const TypeIcon = accountTypeIcons[account.type] || Wallet
           return (
             <div key={account.id} className="card hover:shadow-md transition-shadow relative group">
@@ -303,14 +332,14 @@ export default function Accounts() {
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm(t('accounts.confirmDelete', { name: account.name }))) {
-                      deleteMutation.mutate(account.id)
+                    if (confirm(t('accounts.confirmDeactivate', { name: account.name }))) {
+                      deactivateMutation.mutate(account.id)
                     }
                   }}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title={t('common.delete')}
+                  className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                  title={t('accounts.deactivate')}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Power className="w-4 h-4" />
                 </button>
               </div>
 
@@ -427,6 +456,69 @@ export default function Accounts() {
         })}
       </div>
 
+      {/* Inactive accounts section */}
+      {(() => {
+        const inactive = data?.data?.filter(a => !a.isActive) || []
+        if (inactive.length === 0) return null
+        return (
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center gap-2 border-t pt-6">
+              <h2 className="text-lg font-semibold text-gray-700">{t('accounts.inactiveSection')}</h2>
+              <span className="text-sm text-gray-500">({inactive.length})</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {inactive.map((account) => {
+                const TypeIcon = accountTypeIcons[account.type] || Wallet
+                return (
+                  <div key={account.id} className="card opacity-70 hover:opacity-100 transition-opacity relative group border-dashed border-gray-300">
+                    <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => {
+                          if (confirm(t('accounts.confirmReactivate', { name: account.name }))) {
+                            reactivateMutation.mutate(account.id)
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title={t('accounts.reactivate')}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setPermanentDeleteAccount(account)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title={t('accounts.permanentDelete')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center grayscale"
+                        style={{ backgroundColor: account.color + '20', color: account.color }}
+                      >
+                        <TypeIcon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0 pr-16">
+                        <h3 className="font-semibold text-gray-700 truncate">{account.name}</h3>
+                        <p className="text-sm text-gray-500">{accountTypes[account.type]?.label}</p>
+                        <span className="inline-block mt-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                          {t('accounts.inactiveBadge')}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-xl font-semibold text-gray-500">
+                        {formatCurrency(account.currentBalance)}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
       {(modalOpen || editingAccount) && (
         <AccountModal
           account={editingAccount}
@@ -434,6 +526,83 @@ export default function Accounts() {
           onSave={handleSave}
         />
       )}
+
+      {permanentDeleteAccount && (
+        <PermanentDeleteModal
+          account={permanentDeleteAccount}
+          onClose={() => setPermanentDeleteAccount(null)}
+          onConfirm={() => deleteMutation.mutate(permanentDeleteAccount.id)}
+          isPending={deleteMutation.isPending}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * Strong-confirmation modal for permanent account deletion.
+ * Requires the user to retype the account name to enable the confirm button.
+ */
+function PermanentDeleteModal({ account, onClose, onConfirm, isPending }) {
+  const { t } = useTranslation()
+  const [typed, setTyped] = useState('')
+  const canConfirm = typed.trim() === account.name && !isPending
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="bg-white rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <h2 className="text-lg font-semibold text-red-700">{t('accounts.permanentDelete')}</h2>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800 space-y-2">
+            <p className="font-semibold">{t('accounts.permanentDeleteWarningTitle')}</p>
+            <p>{t('accounts.permanentDeleteWarningBody', { name: account.name })}</p>
+            <ul className="list-disc list-inside text-xs space-y-0.5 pt-1">
+              <li>{t('accounts.permanentDeleteList.transactions')}</li>
+              <li>{t('accounts.permanentDeleteList.splits')}</li>
+              <li>{t('accounts.permanentDeleteList.recurring')}</li>
+            </ul>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              {t('accounts.permanentDeleteTypeName', { name: account.name })}
+            </label>
+            <input
+              type="text"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              className="input w-full"
+              placeholder={account.name}
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 p-4 border-t">
+          <button type="button" onClick={onClose} className="btn">
+            {t('common.cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canConfirm}
+            className="btn bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPending ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            {t('accounts.permanentDeleteConfirm')}
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }

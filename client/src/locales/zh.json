@@ -176,7 +176,23 @@
       "savings": "储蓄账户",
       "cash": "现金",
       "investment": "投资账户"
-    }
+    },
+    "deactivate": "停用",
+    "reactivate": "重新启用",
+    "permanentDelete": "永久删除",
+    "inactiveSection": "已停用账户",
+    "inactiveBadge": "已停用",
+    "confirmDeactivate": "停用账户 \"{{name}}\"？它将从汇总和列表中隐藏，相关的定期交易将被暂停。此操作可恢复。",
+    "confirmReactivate": "重新启用账户 \"{{name}}\"？",
+    "permanentDeleteWarningTitle": "不可逆操作",
+    "permanentDeleteWarningBody": "永久删除账户 \"{{name}}\" 将永久销毁：",
+    "permanentDeleteList": {
+      "transactions": "其所有交易及其附件",
+      "splits": "所有关联的拆分",
+      "recurring": "所有关联的定期交易"
+    },
+    "permanentDeleteTypeName": "确认请输入账户名：{{name}}",
+    "permanentDeleteConfirm": "永久删除"
   },
   "categories": {
     "title": "分类",

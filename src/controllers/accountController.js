@@ -25,6 +25,16 @@ export const deleteAccount = async (req, res) => {
   res.json({ success: true, ...result });
 };
 
+export const deactivateAccount = async (req, res) => {
+  const result = await Account.deactivate(req.params.id, req.user.id);
+  res.json({ success: true, ...result });
+};
+
+export const reactivateAccount = async (req, res) => {
+  const result = await Account.reactivate(req.params.id, req.user.id);
+  res.json({ success: true, ...result });
+};
+
 export const getAccountStats = async (req, res) => {
   const stats = await Account.getStats(req.params.id, req.user.id, req.query.period);
   res.json({ success: true, data: { stats } });

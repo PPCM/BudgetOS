@@ -58,6 +58,10 @@ export const listAccountsQuerySchema = z.object({
     .string()
     .transform((val) => val === 'true')
     .optional(),
+  includeInactive: z
+    .string()
+    .transform((val) => val === 'true')
+    .optional(),
   includeBalance: z
     .string()
     .transform((val) => val !== 'false')

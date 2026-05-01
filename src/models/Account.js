@@ -1,6 +1,6 @@
 import knex from '../database/connection.js';
 import { generateId, roundAmount } from '../utils/helpers.js';
-import { NotFoundError } from '../utils/errors.js';
+import { BadRequestError, NotFoundError } from '../utils/errors.js';
 import dateHelpers from '../database/dateHelpers.js';
 import { buildUpdates } from '../utils/modelHelpers.js';
 
@@ -28,7 +28,7 @@ export class Account {
   }
 
   /**
-   * Find account by ID
+   * Find account by ID (active accounts only)
    */
   static async findById(id, userId) {
     const account = await knex('accounts')
@@ -39,7 +39,7 @@ export class Account {
   }
 
   /**
-   * Find account by ID or throw
+   * Find account by ID or throw (active accounts only)
    */
   static async findByIdOrFail(id, userId) {
     const account = await Account.findById(id, userId);
@@ -48,14 +48,31 @@ export class Account {
   }
 
   /**
-   * List user accounts
+   * Find account by ID regardless of is_active state.
+   * Used by lifecycle endpoints (deactivate/reactivate/permanent delete)
+   * which must operate on inactive rows.
+   */
+  static async findAnyByIdOrFail(id, userId) {
+    const account = await knex('accounts')
+      .where({ id, user_id: userId })
+      .first();
+    if (!account) throw new NotFoundError('Account not found', 'ACCOUNT_NOT_FOUND');
+    return Account.format(account);
+  }
+
+  /**
+   * List user accounts.
+   * Defaults to active only. Pass includeInactive=true to also return
+   * deactivated accounts (so the Accounts page can offer reactivate /
+   * permanent-delete actions on them).
    */
   static async findByUser(userId, options = {}) {
-    const { type, isActive = true, includeBalance = true } = options;
+    const { type, isActive, includeInactive = false, includeBalance = true } = options;
 
     let query = knex('accounts').where('user_id', userId);
     if (type) query = query.where('type', type);
     if (isActive !== undefined) query = query.where('is_active', isActive);
+    else if (!includeInactive) query = query.where('is_active', true);
 
     const accounts = await query.orderBy('sort_order', 'asc').orderBy('name', 'asc');
 
@@ -146,12 +163,14 @@ export class Account {
   }
 
   /**
-   * Delete account (soft delete if has transactions)
+   * Deactivate an account (reversible).
+   * Hides the account from totals/lists/forecasts and pauses its planned
+   * transactions. Existing transactions are kept.
    */
-  static async delete(id, userId) {
-    await Account.findByIdOrFail(id, userId);
+  static async deactivate(id, userId) {
+    const account = await Account.findAnyByIdOrFail(id, userId);
+    if (!account.isActive) return { deactivated: true, alreadyInactive: true };
 
-    // Deactivate planned transactions linked to this account
     await knex('planned_transactions')
       .where('user_id', userId)
       .where(function () {
@@ -159,16 +178,40 @@ export class Account {
       })
       .update({ is_active: false });
 
-    const txCount = await knex('transactions').where('account_id', id).count('* as count').first();
-    const count = txCount?.count || 0;
+    await knex('accounts').where({ id, user_id: userId }).update({ is_active: false });
+    return { deactivated: true, alreadyInactive: false };
+  }
 
-    if (count > 0) {
-      await knex('accounts').where({ id, user_id: userId }).update({ is_active: false });
-    } else {
-      await knex('accounts').where({ id, user_id: userId }).del();
+  /**
+   * Reactivate a previously deactivated account.
+   * Planned transactions are NOT auto-reactivated; the user re-enables
+   * the ones they actually want.
+   */
+  static async reactivate(id, userId) {
+    const account = await Account.findAnyByIdOrFail(id, userId);
+    if (account.isActive) return { reactivated: true, alreadyActive: true };
+
+    await knex('accounts').where({ id, user_id: userId }).update({ is_active: true });
+    return { reactivated: true, alreadyActive: false };
+  }
+
+  /**
+   * Permanent (hard) delete an account and all its data.
+   * Refused unless the account is already deactivated, to force the user
+   * through an explicit two-step intent. Cascading FKs remove transactions,
+   * splits and planned transactions tied to the account.
+   */
+  static async delete(id, userId) {
+    const account = await Account.findAnyByIdOrFail(id, userId);
+    if (account.isActive) {
+      throw new BadRequestError(
+        'Account must be deactivated before permanent deletion',
+        'ACCOUNT_MUST_BE_DEACTIVATED'
+      );
     }
 
-    return { deleted: true, softDelete: count > 0 };
+    await knex('accounts').where({ id, user_id: userId }).del();
+    return { deleted: true };
   }
 
   /**

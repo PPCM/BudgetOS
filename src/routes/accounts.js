@@ -15,6 +15,8 @@ router.post('/recalculate', asyncHandler(accountController.recalculateBalances))
 router.get('/:id', validate({ params: accountIdParamSchema }), asyncHandler(accountController.getAccount));
 router.put('/:id', validate({ params: accountIdParamSchema, body: updateAccountSchema }), asyncHandler(accountController.updateAccount));
 router.delete('/:id', validate({ params: accountIdParamSchema }), asyncHandler(accountController.deleteAccount));
+router.post('/:id/deactivate', validate({ params: accountIdParamSchema }), asyncHandler(accountController.deactivateAccount));
+router.post('/:id/reactivate', validate({ params: accountIdParamSchema }), asyncHandler(accountController.reactivateAccount));
 router.get('/:id/stats', validate({ params: accountIdParamSchema }), asyncHandler(accountController.getAccountStats));
 
 export default router;

@@ -41,6 +41,7 @@
   "overrides": {
     "@remix-run/router": ">=1.23.2",
     "lodash": ">=4.17.23",
-    "esbuild": ">=0.25.0"
+    "esbuild": ">=0.25.0",
+    "follow-redirects": ">=1.16.0"
   }
 }

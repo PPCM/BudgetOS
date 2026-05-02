@@ -11,6 +11,12 @@ updates:
     labels:
       - dependencies
       - docker
+    # Stay on the current LTS line. Node 25 is "Current" and reaches EOL well
+    # before Node 24 LTS does; major bumps are reviewed manually.
+    ignore:
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
 
   # GitHub Actions used by workflows
   - package-ecosystem: github-actions

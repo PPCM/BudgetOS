@@ -3,6 +3,12 @@ name: Build and push Docker image
 on:
   release:
     types: [published]
+  # Weekly refresh so the published image keeps absorbing upstream base-image
+  # patches between releases (Docker Scout "Up-to-Date Base Images" policy).
+  # Tags only the floating refs (latest, X, X.Y) - not the immutable X.Y.Z.
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,7 +18,25 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
+      - id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            ref="${{ github.event.release.tag_name }}"
+            published_at="${{ github.event.release.published_at }}"
+          else
+            ref=$(gh api repos/${{ github.repository }}/releases/latest -q .tag_name)
+            published_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          fi
+          {
+            echo "ref=$ref"
+            echo "published_at=$published_at"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.ref }}
 
       - uses: docker/setup-qemu-action@v3
 
@@ -28,9 +52,9 @@ jobs:
         with:
           images: ppcm/budgetos
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern={{version}},value=${{ steps.ref.outputs.ref }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.ref.outputs.ref }}
+            type=semver,pattern={{major}},value=${{ steps.ref.outputs.ref }}
             type=raw,value=latest
 
       - uses: docker/build-push-action@v6
@@ -39,11 +63,15 @@ jobs:
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          # pull=true forces a fresh fetch of the FROM image on every build,
+          # so the GHA layer cache cannot pin us to an outdated base digest
+          # (Docker Scout "Up-to-Date Base Images" policy).
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ github.event.release.tag_name }}
-            BUILD_DATE=${{ github.event.release.published_at }}
+            VERSION=${{ steps.ref.outputs.ref }}
+            BUILD_DATE=${{ steps.ref.outputs.published_at }}
             VCS_REF=${{ github.sha }}
           sbom: true
           provenance: mode=max

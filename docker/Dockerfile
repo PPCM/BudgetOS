@@ -24,7 +24,8 @@ LABEL org.opencontainers.image.title="BudgetOS" \
       org.opencontainers.image.source="https://github.com/PPCM/BudgetOS" \
       org.opencontainers.image.documentation="https://github.com/PPCM/BudgetOS#readme" \
       org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0" \
-      org.opencontainers.image.vendor="PPCM"
+      org.opencontainers.image.vendor="PPCM" \
+      org.opencontainers.image.base.name="docker.io/library/node:24-alpine3.23"
 
 # Patch Alpine packages and install production deps, then remove npm/npx/corepack
 WORKDIR /app

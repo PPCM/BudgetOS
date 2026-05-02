@@ -37,10 +37,15 @@ COPY src/ ./src/
 COPY knexfile.js ./
 COPY --from=frontend /app/client/dist ./client/dist/
 
-# jszip is dual MIT / GPL-3.0-or-later. We elect MIT, which doesn't require
-# carrying the GPL text. Replace the bundled LICENSE with a MIT-only copy so
-# license scanners (Docker Scout, etc.) don't flag the image on GPL/AGPL terms.
-RUN if [ -f node_modules/jszip/LICENSE.markdown ]; then \
+# jszip is dual-licensed "(MIT OR GPL-3.0-or-later)". We elect MIT, but the
+# SBOM emitted by syft reads node_modules/jszip/package.json verbatim and so
+# preserves the GPL/AGPL hit even when we don't ship the GPL text.
+# Pin the manifest to MIT-only and replace LICENSE.markdown with the MIT-only
+# section so both syft and file-based license scanners agree.
+RUN if [ -f node_modules/jszip/package.json ]; then \
+      node -e "const fs=require('fs');const p='node_modules/jszip/package.json';const j=JSON.parse(fs.readFileSync(p));j.license='MIT';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');" ; \
+    fi && \
+    if [ -f node_modules/jszip/LICENSE.markdown ]; then \
       awk '/^The MIT License$/,/^GPL version 3$/' node_modules/jszip/LICENSE.markdown \
         | sed -e '$d' -e '$d' \
         > node_modules/jszip/LICENSE.markdown.new && \

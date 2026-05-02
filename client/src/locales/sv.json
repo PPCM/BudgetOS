@@ -764,9 +764,9 @@
       "memberAdded": "Medlem tillagd",
       "memberRoleUpdated": "Medlemsroll uppdaterad",
       "memberRemoved": "Medlem borttagen",
-      "memberDeleted": "Användare borttagen",
+      "memberDeleted": "Medlem borttagen från gruppen",
       "confirmRemoveMember": "Ta bort denna medlem från gruppen?",
-      "confirmDeleteMember": "Ta bort den här användaren från gruppen? Användarens konto raderas inte.",
+      "confirmDeleteMember": "Ta bort {{email}} från den här gruppen? Användarkontot raderas inte.",
       "selectUser": "Välj en användare",
       "groupRole": "Roll i grupp",
       "administrator": "Administratör",
@@ -775,7 +775,8 @@
       "defaultDecimalSeparator": "Standard decimaltecken",
       "defaultDigitGrouping": "Standard siffergrupperingssymbol",
       "existingUser": "Befintlig användare",
-      "newMember": "Ny användare"
+      "newMember": "Ny användare",
+      "removeMember": "Ta bort från gruppen"
     },
     "settings": {
       "title": "Systeminställningar",

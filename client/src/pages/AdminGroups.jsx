@@ -11,9 +11,10 @@ import { translateError } from '../lib/errorHelper'
 import { useAuth } from '../contexts/AuthContext'
 import {
   Plus, X, Trash2, Pencil, Users, UserPlus,
-  ChevronDown, ChevronUp, FolderTree
+  ChevronDown, ChevronUp, FolderTree, UserMinus
 } from 'lucide-react'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 import PasswordInput from '../components/PasswordInput'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
@@ -391,11 +392,14 @@ function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
       queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
       queryClient.invalidateQueries({ queryKey: ['admin-groups'] })
       toast.success(t('admin.groups.memberDeleted'))
+      setRemoveMemberCandidate(null)
     },
     onError: (err) => {
       toast.error(translateError(err))
     },
   })
+
+  const [removeMemberCandidate, setRemoveMemberCandidate] = useState(null)
 
   const members = membersData?.data || []
   const memberCount = group.memberCount ?? members.length
@@ -503,15 +507,11 @@ function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
                       <option value="admin">{t('admin.users.groupRoles.admin')}</option>
                     </select>
                     <button
-                      onClick={() => {
-                        if (confirm(t('admin.groups.confirmDeleteMember'))) {
-                          deleteMemberMutation.mutate(member.userId || member.id)
-                        }
-                      }}
+                      onClick={() => setRemoveMemberCandidate(member)}
                       className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
-                      title={t('common.delete')}
+                      title={t('admin.groups.removeMember')}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <UserMinus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -526,6 +526,22 @@ function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
               users={users || []}
               existingMemberIds={members.map((m) => m.userId || m.id)}
               isSuperAdmin={isSuperAdmin}
+            />
+          )}
+
+          {removeMemberCandidate && (
+            <ConfirmModal
+              variant="warning"
+              icon={UserMinus}
+              title={t('admin.groups.removeMember')}
+              message={t('admin.groups.confirmDeleteMember', {
+                email: removeMemberCandidate.email || '',
+              })}
+              confirmLabel={t('admin.groups.removeMember')}
+              cancelLabel={t('common.cancel')}
+              onConfirm={() => deleteMemberMutation.mutate(removeMemberCandidate.userId || removeMemberCandidate.id)}
+              onClose={() => setRemoveMemberCandidate(null)}
+              isPending={deleteMemberMutation.isPending}
             />
           )}
         </div>

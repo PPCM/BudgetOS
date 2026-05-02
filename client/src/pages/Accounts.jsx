@@ -19,6 +19,7 @@ import {
   Power, RotateCcw, AlertTriangle
 } from 'lucide-react'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 
 /**
  * Account type icons mapping
@@ -179,6 +180,7 @@ export default function Accounts() {
   })
 
   const [permanentDeleteAccount, setPermanentDeleteAccount] = useState(null)
+  const [pendingConfirm, setPendingConfirm] = useState(null) // { type: 'deactivate' | 'reactivate', account }
 
   const { data: projections } = useQuery({
     queryKey: ['projections'],
@@ -331,11 +333,7 @@ export default function Accounts() {
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(t('accounts.confirmDeactivate', { name: account.name }))) {
-                      deactivateMutation.mutate(account.id)
-                    }
-                  }}
+                  onClick={() => setPendingConfirm({ type: 'deactivate', account })}
                   className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                   title={t('accounts.deactivate')}
                 >
@@ -473,11 +471,7 @@ export default function Accounts() {
                   <div key={account.id} className="card opacity-70 hover:opacity-100 transition-opacity relative group border-dashed border-gray-300">
                     <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => {
-                          if (confirm(t('accounts.confirmReactivate', { name: account.name }))) {
-                            reactivateMutation.mutate(account.id)
-                          }
-                        }}
+                        onClick={() => setPendingConfirm({ type: 'reactivate', account })}
                         className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                         title={t('accounts.reactivate')}
                       >
@@ -533,6 +527,40 @@ export default function Accounts() {
           onClose={() => setPermanentDeleteAccount(null)}
           onConfirm={() => deleteMutation.mutate(permanentDeleteAccount.id)}
           isPending={deleteMutation.isPending}
+        />
+      )}
+
+      {pendingConfirm?.type === 'deactivate' && (
+        <ConfirmModal
+          variant="warning"
+          icon={Power}
+          title={t('accounts.deactivate')}
+          message={t('accounts.confirmDeactivate', { name: pendingConfirm.account.name })}
+          confirmLabel={t('accounts.deactivate')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            deactivateMutation.mutate(pendingConfirm.account.id)
+            setPendingConfirm(null)
+          }}
+          onClose={() => setPendingConfirm(null)}
+          isPending={deactivateMutation.isPending}
+        />
+      )}
+
+      {pendingConfirm?.type === 'reactivate' && (
+        <ConfirmModal
+          variant="success"
+          icon={RotateCcw}
+          title={t('accounts.reactivate')}
+          message={t('accounts.confirmReactivate', { name: pendingConfirm.account.name })}
+          confirmLabel={t('accounts.reactivate')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            reactivateMutation.mutate(pendingConfirm.account.id)
+            setPendingConfirm(null)
+          }}
+          onClose={() => setPendingConfirm(null)}
+          isPending={reactivateMutation.isPending}
         />
       )}
     </div>

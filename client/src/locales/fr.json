@@ -764,9 +764,9 @@
       "memberAdded": "Membre ajouté",
       "memberRoleUpdated": "Rôle du membre mis à jour",
       "memberRemoved": "Membre retiré",
-      "memberDeleted": "Utilisateur supprimé",
+      "memberDeleted": "Membre retiré du groupe",
       "confirmRemoveMember": "Retirer ce membre du groupe ?",
-      "confirmDeleteMember": "Retirer cet utilisateur du groupe ? Son compte ne sera pas supprimé.",
+      "confirmDeleteMember": "Retirer {{email}} de ce groupe ? Son compte utilisateur ne sera pas supprimé.",
       "selectUser": "Sélectionner un utilisateur",
       "groupRole": "Rôle dans le groupe",
       "administrator": "Administrateur",
@@ -775,7 +775,8 @@
       "defaultDecimalSeparator": "Séparateur décimal par défaut",
       "defaultDigitGrouping": "Symbole de groupement des chiffres par défaut",
       "existingUser": "Utilisateur existant",
-      "newMember": "Nouvel utilisateur"
+      "newMember": "Nouvel utilisateur",
+      "removeMember": "Retirer du groupe"
     },
     "settings": {
       "title": "Paramètres système",

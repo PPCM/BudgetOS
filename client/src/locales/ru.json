@@ -764,9 +764,9 @@
       "memberAdded": "Участник добавлен",
       "memberRoleUpdated": "Роль участника обновлена",
       "memberRemoved": "Участник удалён",
-      "memberDeleted": "Пользователь удалён",
+      "memberDeleted": "Участник удалён из группы",
       "confirmRemoveMember": "Удалить этого участника из группы?",
-      "confirmDeleteMember": "Удалить этого пользователя из группы? Его учётная запись не будет удалена.",
+      "confirmDeleteMember": "Удалить {{email}} из этой группы? Учётная запись пользователя сохранится.",
       "selectUser": "Выберите пользователя",
       "groupRole": "Роль в группе",
       "administrator": "Администратор",
@@ -775,7 +775,8 @@
       "defaultDecimalSeparator": "Десятичный разделитель по умолчанию",
       "defaultDigitGrouping": "Символ группировки по умолчанию",
       "existingUser": "Существующий пользователь",
-      "newMember": "Новый пользователь"
+      "newMember": "Новый пользователь",
+      "removeMember": "Удалить из группы"
     },
     "settings": {
       "title": "Системные настройки",

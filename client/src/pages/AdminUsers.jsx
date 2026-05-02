@@ -15,6 +15,7 @@ import {
   Power, RotateCcw, AlertTriangle
 } from 'lucide-react'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 import PasswordInput from '../components/PasswordInput'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import { useToast } from '../components/Toast'
@@ -647,6 +648,7 @@ export default function AdminUsers() {
   })
 
   const [permanentDeleteUser, setPermanentDeleteUser] = useState(null)
+  const [pendingConfirm, setPendingConfirm] = useState(null) // { type: 'suspend' | 'reactivate', user }
 
   const roleMutation = useMutation({
     mutationFn: ({ id, role }) => adminApi.updateUserRole(id, role),
@@ -791,11 +793,7 @@ export default function AdminUsers() {
                         </button>
                         {u.isActive ? (
                           <button
-                            onClick={() => {
-                              if (confirm(t('admin.users.confirmSuspend', { email: u.email }))) {
-                                suspendMutation.mutate(u.id)
-                              }
-                            }}
+                            onClick={() => setPendingConfirm({ type: 'suspend', user: u })}
                             className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                             title={t('admin.users.suspend')}
                           >
@@ -804,11 +802,7 @@ export default function AdminUsers() {
                         ) : (
                           <>
                             <button
-                              onClick={() => {
-                                if (confirm(t('admin.users.confirmReactivate', { email: u.email }))) {
-                                  reactivateMutation.mutate(u.id)
-                                }
-                              }}
+                              onClick={() => setPendingConfirm({ type: 'reactivate', user: u })}
                               className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                               title={t('admin.users.reactivate')}
                             >
@@ -863,6 +857,40 @@ export default function AdminUsers() {
           onClose={() => setPermanentDeleteUser(null)}
           onConfirm={() => deleteMutation.mutate(permanentDeleteUser.id)}
           isPending={deleteMutation.isPending}
+        />
+      )}
+
+      {pendingConfirm?.type === 'suspend' && (
+        <ConfirmModal
+          variant="warning"
+          icon={Power}
+          title={t('admin.users.suspend')}
+          message={t('admin.users.confirmSuspend', { email: pendingConfirm.user.email })}
+          confirmLabel={t('admin.users.suspend')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            suspendMutation.mutate(pendingConfirm.user.id)
+            setPendingConfirm(null)
+          }}
+          onClose={() => setPendingConfirm(null)}
+          isPending={suspendMutation.isPending}
+        />
+      )}
+
+      {pendingConfirm?.type === 'reactivate' && (
+        <ConfirmModal
+          variant="success"
+          icon={RotateCcw}
+          title={t('admin.users.reactivate')}
+          message={t('admin.users.confirmReactivate', { email: pendingConfirm.user.email })}
+          confirmLabel={t('admin.users.reactivate')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            reactivateMutation.mutate(pendingConfirm.user.id)
+            setPendingConfirm(null)
+          }}
+          onClose={() => setPendingConfirm(null)}
+          isPending={reactivateMutation.isPending}
         />
       )}
     </div>

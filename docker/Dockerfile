@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:24-alpine3.23 AS frontend
+FROM node:24.15.0-alpine3.23 AS frontend
 WORKDIR /app
 COPY package.json ./
 WORKDIR /app/client
@@ -9,7 +9,7 @@ COPY client/ ./
 RUN npm run build
 
 # Stage 2: Production
-FROM node:24-alpine3.23
+FROM node:24.15.0-alpine3.23
 
 ARG VERSION=1.0.0
 ARG BUILD_DATE
@@ -25,7 +25,7 @@ LABEL org.opencontainers.image.title="BudgetOS" \
       org.opencontainers.image.documentation="https://github.com/PPCM/BudgetOS#readme" \
       org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0" \
       org.opencontainers.image.vendor="PPCM" \
-      org.opencontainers.image.base.name="docker.io/library/node:24-alpine3.23"
+      org.opencontainers.image.base.name="docker.io/library/node:24.15.0-alpine3.23"
 
 # Patch Alpine packages and install production deps, then remove npm/npx/corepack
 WORKDIR /app

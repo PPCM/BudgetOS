@@ -1,7 +1,7 @@
 {
   "name": "budgetos-client",
   "private": true,
-  "version": "1.6.5",
+  "version": "1.6.6",
   "license": "SEE LICENSE IN ../LICENSE",
   "type": "module",
   "scripts": {

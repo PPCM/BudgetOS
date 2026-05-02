@@ -674,14 +674,14 @@
       "searchPlaceholder": "Sök efter e-post eller namn...",
       "allRoles": "Alla roller",
       "allStatuses": "Alla statusar",
-      "suspend": "Stäng av",
+      "suspend": "Spärra",
       "reactivate": "Återaktivera",
-      "confirmSuspend": "Stäng av användaren \"{{email}}\"?",
+      "confirmSuspend": "Spärra användaren {{email}}? De kan inte längre logga in, men deras data bevaras. Åtgärden är reversibel.",
       "confirmDelete": "Ta bort användaren \"{{email}}\" och all deras data?",
       "created": "Användare skapad",
       "updated": "Användare uppdaterad",
       "deleted": "Användare borttagen",
-      "suspended": "Användare avstängd",
+      "suspended": "Användare spärrad",
       "reactivated": "Användare återaktiverad",
       "roleUpdated": "Roll uppdaterad",
       "noUsers": "Inga användare hittades",
@@ -729,7 +729,19 @@
         "russian": "Русский",
         "chinese": "中文",
         "swedish": "Svenska"
-      }
+      },
+      "permanentDelete": "Ta bort permanent",
+      "confirmReactivate": "Återaktivera användaren {{email}}?",
+      "permanentDeleteWarningTitle": "Oåterkallelig åtgärd",
+      "permanentDeleteWarningBody": "Permanent borttagning av användaren {{email}} raderar permanent:",
+      "permanentDeleteList": {
+        "accounts": "Alla deras bankkonton",
+        "transactions": "Alla deras transaktioner och bilagor",
+        "recurring": "Alla deras återkommande transaktioner",
+        "memberships": "Alla deras gruppmedlemskap"
+      },
+      "permanentDeleteTypeEmail": "Bekräfta genom att skriva användarens e-post: {{email}}",
+      "permanentDeleteConfirm": "Ta bort permanent"
     },
     "groups": {
       "title": "Grupper",
@@ -754,7 +766,7 @@
       "memberRemoved": "Medlem borttagen",
       "memberDeleted": "Användare borttagen",
       "confirmRemoveMember": "Ta bort denna medlem från gruppen?",
-      "confirmDeleteMember": "Ta bort denna användare och all deras data?",
+      "confirmDeleteMember": "Ta bort den här användaren från gruppen? Användarens konto raderas inte.",
       "selectUser": "Välj en användare",
       "groupRole": "Roll i grupp",
       "administrator": "Administratör",

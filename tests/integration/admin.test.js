@@ -136,6 +136,48 @@ describe('Admin - User Management', () => {
     expect(res.body.data.user.isActive).toBe(true)
   })
 
+  it('should refuse to permanent-delete an active user', async () => {
+    const { agent, csrfToken } = await createAuthenticatedSuperAdmin(app)
+    const { user } = await createAuthenticatedAgent(app)
+
+    const res = await agent
+      .delete(`/api/v1/admin/users/${user.id}`)
+      .set('X-CSRF-Token', csrfToken)
+
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('USER_MUST_BE_SUSPENDED')
+
+    // User must still exist in DB
+    const db = getTestDb()
+    const dbUser = await db('users').where('id', user.id).first()
+    expect(dbUser).toBeDefined()
+  })
+
+  it('should permanent-delete a suspended user (cascade wipes their data)', async () => {
+    const { agent, csrfToken } = await createAuthenticatedSuperAdmin(app)
+    const { user, agent: userAgent, csrfToken: userCsrf } = await createAuthenticatedAgent(app)
+
+    // Create some data on the user's behalf so we can verify cascade
+    await userAgent
+      .post('/api/v1/accounts')
+      .set('X-CSRF-Token', userCsrf)
+      .send({ name: 'About to vanish', type: 'checking', initialBalance: 0 })
+
+    // Suspend then delete
+    await agent.put(`/api/v1/admin/users/${user.id}/suspend`).set('X-CSRF-Token', csrfToken)
+    const res = await agent
+      .delete(`/api/v1/admin/users/${user.id}`)
+      .set('X-CSRF-Token', csrfToken)
+
+    expect(res.status).toBe(200)
+
+    const db = getTestDb()
+    const dbUser = await db('users').where('id', user.id).first()
+    expect(dbUser).toBeUndefined()
+    const accounts = await db('accounts').where('user_id', user.id)
+    expect(accounts).toHaveLength(0)
+  })
+
   it('should change user role', async () => {
     const { agent, csrfToken } = await createAuthenticatedSuperAdmin(app)
     const { user } = await createAuthenticatedAgent(app)
@@ -240,9 +282,11 @@ describe('Admin - User Management', () => {
     expect(res.status).toBe(403)
   })
 
-  it('should delete a user (super_admin)', async () => {
+  it('should delete a user (super_admin) - after suspend', async () => {
     const { agent, csrfToken } = await createAuthenticatedSuperAdmin(app)
     const { user } = await createAuthenticatedAgent(app)
+
+    await agent.put(`/api/v1/admin/users/${user.id}/suspend`).set('X-CSRF-Token', csrfToken)
 
     const res = await agent
       .delete(`/api/v1/admin/users/${user.id}`)
@@ -257,7 +301,7 @@ describe('Admin - User Management', () => {
     expect(dbUser).toBeUndefined()
   })
 
-  it('should delete a user without deleting their group', async () => {
+  it('should delete a user without deleting their group - after suspend', async () => {
     const { agent, csrfToken } = await createAuthenticatedSuperAdmin(app)
     const { user } = await createAuthenticatedAgent(app)
 
@@ -273,7 +317,8 @@ describe('Admin - User Management', () => {
       .set('X-CSRF-Token', csrfToken)
       .send({ userId: user.id, role: 'member' })
 
-    // Delete the user
+    // Suspend then delete the user
+    await agent.put(`/api/v1/admin/users/${user.id}/suspend`).set('X-CSRF-Token', csrfToken)
     const res = await agent
       .delete(`/api/v1/admin/users/${user.id}`)
       .set('X-CSRF-Token', csrfToken)
@@ -310,18 +355,16 @@ describe('Admin - User Management', () => {
     // Create a second super_admin
     const { user: secondAdmin } = await createAuthenticatedAgent(app, { role: 'super_admin', email: 'sa2@test.com' })
 
-    // Delete the second super_admin (should work, there are still 2)
+    // Suspend then delete the second super_admin (should work, there are still 2)
+    await agent.put(`/api/v1/admin/users/${secondAdmin.id}/suspend`).set('X-CSRF-Token', csrfToken)
     const res1 = await agent
       .delete(`/api/v1/admin/users/${secondAdmin.id}`)
       .set('X-CSRF-Token', csrfToken)
     expect(res1.status).toBe(200)
 
-    // Now create a regular user and try to change to super_admin then delete
-    // Actually: the only super_admin left is the authenticated one, and self-delete is blocked separately
-    // Let's verify by creating another super_admin, deleting one, then trying to delete the other
     const { user: thirdAdmin } = await createAuthenticatedAgent(app, { role: 'super_admin', email: 'sa3@test.com' })
 
-    // Delete third admin (should work, 2 super_admins exist: authenticated + third)
+    await agent.put(`/api/v1/admin/users/${thirdAdmin.id}/suspend`).set('X-CSRF-Token', csrfToken)
     const res2 = await agent
       .delete(`/api/v1/admin/users/${thirdAdmin.id}`)
       .set('X-CSRF-Token', csrfToken)

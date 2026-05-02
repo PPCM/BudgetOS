@@ -676,7 +676,7 @@
       "allStatuses": "Alle Status",
       "suspend": "Sperren",
       "reactivate": "Reaktivieren",
-      "confirmSuspend": "Benutzer \"{{email}}\" sperren?",
+      "confirmSuspend": "Benutzer {{email}} sperren? Eine Anmeldung ist nicht mehr möglich, die Daten bleiben aber erhalten. Die Aktion ist umkehrbar.",
       "confirmDelete": "Benutzer \"{{email}}\" und alle zugehörigen Daten löschen?",
       "created": "Benutzer erfolgreich erstellt",
       "updated": "Benutzer aktualisiert",
@@ -729,7 +729,19 @@
         "russian": "Русский",
         "chinese": "中文",
         "swedish": "Svenska"
-      }
+      },
+      "permanentDelete": "Endgültig löschen",
+      "confirmReactivate": "Benutzer {{email}} reaktivieren?",
+      "permanentDeleteWarningTitle": "Unumkehrbare Aktion",
+      "permanentDeleteWarningBody": "Das endgültige Löschen des Benutzers {{email}} zerstört dauerhaft:",
+      "permanentDeleteList": {
+        "accounts": "Alle seine Bankkonten",
+        "transactions": "Alle seine Transaktionen und Anhänge",
+        "recurring": "Alle seine wiederkehrenden Transaktionen",
+        "memberships": "Alle seine Gruppenzugehörigkeiten"
+      },
+      "permanentDeleteTypeEmail": "Zur Bestätigung die E-Mail des Benutzers eingeben: {{email}}",
+      "permanentDeleteConfirm": "Endgültig löschen"
     },
     "groups": {
       "title": "Gruppen",
@@ -754,7 +766,7 @@
       "memberRemoved": "Mitglied entfernt",
       "memberDeleted": "Benutzer gelöscht",
       "confirmRemoveMember": "Dieses Mitglied aus der Gruppe entfernen?",
-      "confirmDeleteMember": "Diesen Benutzer und alle zugehörigen Daten löschen?",
+      "confirmDeleteMember": "Diesen Benutzer aus der Gruppe entfernen? Sein Konto wird nicht gelöscht.",
       "selectUser": "Benutzer auswählen",
       "groupRole": "Rolle in der Gruppe",
       "administrator": "Administrator",

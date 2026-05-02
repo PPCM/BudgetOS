@@ -176,32 +176,25 @@ export const updateMember = async (req, res) => {
 };
 
 /**
- * Delete a member (user and all their data) from a group
+ * Remove a user from a group's membership.
+ * Only severs the group_members link; the user account is preserved.
+ * To permanently delete the user, use DELETE /admin/users/:userId after suspending.
  */
 export const removeMember = async (req, res) => {
   const { groupId, userId } = req.params;
 
   if (userId === req.user.id) {
-    throw new BadRequestError('You cannot delete yourself', 'CANNOT_DELETE_SELF');
+    throw new BadRequestError('You cannot remove yourself', 'CANNOT_REMOVE_SELF');
   }
 
-  // Prevent deleting the last super_admin
-  const targetUser = await User.findByIdAny(userId);
-  if (targetUser?.role === 'super_admin') {
-    const { data: superAdmins } = await User.findAll({ role: 'super_admin' });
-    if (superAdmins.length <= 1) {
-      throw new BadRequestError('Cannot delete the last super administrator', 'CANNOT_DELETE_LAST_SUPER_ADMIN');
-    }
-  }
+  await Group.removeMember(groupId, userId);
 
-  await User.delete(userId);
-
-  logger.info('User deleted from group', {
-    groupId, userId, deletedBy: req.user.id,
+  logger.info('Member removed from group', {
+    groupId, userId, removedBy: req.user.id,
   });
 
   res.json({
     success: true,
-    message: 'User deleted',
+    message: 'Member removed',
   });
 };

@@ -676,7 +676,7 @@
       "allStatuses": "全部状态",
       "suspend": "停用",
       "reactivate": "重新启用",
-      "confirmSuspend": "停用用户 \"{{email}}\"？",
+      "confirmSuspend": "停用用户 {{email}}？该用户将无法登录，但其数据会被保留。此操作可恢复。",
       "confirmDelete": "删除用户 \"{{email}}\" 及其所有数据？",
       "created": "用户创建成功",
       "updated": "用户已更新",
@@ -729,7 +729,19 @@
         "russian": "Русский",
         "chinese": "中文",
         "swedish": "Svenska"
-      }
+      },
+      "permanentDelete": "永久删除",
+      "confirmReactivate": "重新启用用户 {{email}}？",
+      "permanentDeleteWarningTitle": "不可逆操作",
+      "permanentDeleteWarningBody": "永久删除用户 {{email}} 将永久销毁：",
+      "permanentDeleteList": {
+        "accounts": "其所有银行账户",
+        "transactions": "其所有交易及附件",
+        "recurring": "其所有定期交易",
+        "memberships": "其所有组成员资格"
+      },
+      "permanentDeleteTypeEmail": "确认请输入用户邮箱：{{email}}",
+      "permanentDeleteConfirm": "永久删除"
     },
     "groups": {
       "title": "群组",
@@ -754,7 +766,7 @@
       "memberRemoved": "成员已移除",
       "memberDeleted": "用户已删除",
       "confirmRemoveMember": "从群组中移除此成员？",
-      "confirmDeleteMember": "删除此用户及其所有数据？",
+      "confirmDeleteMember": "将此用户从组中移除？该用户的账户不会被删除。",
       "selectUser": "选择用户",
       "groupRole": "群组内角色",
       "administrator": "管理员",

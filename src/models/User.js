@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import knex from '../database/connection.js';
 import { generateId } from '../utils/helpers.js';
 import config from '../config/index.js';
-import { NotFoundError, ConflictError } from '../utils/errors.js';
+import { BadRequestError, NotFoundError, ConflictError } from '../utils/errors.js';
 import { buildUpdates, paginationMeta } from '../utils/modelHelpers.js';
 
 /**
@@ -181,11 +181,19 @@ export class User {
   }
 
   /**
-   * Permanently delete a user and all associated data (cascaded by DB)
+   * Permanently delete a user and all associated data (cascaded by DB).
+   * Refused unless the user is already suspended (is_active=false), to
+   * force the caller through an explicit two-step intent.
    */
   static async delete(id) {
     const user = await knex('users').where('id', id).first();
     if (!user) throw new NotFoundError('User not found', 'USER_NOT_FOUND');
+    if (user.is_active) {
+      throw new BadRequestError(
+        'User must be suspended before permanent deletion',
+        'USER_MUST_BE_SUSPENDED'
+      );
+    }
     await knex('users').where('id', id).del();
   }
 

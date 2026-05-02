@@ -676,7 +676,7 @@
       "allStatuses": "Tous les statuts",
       "suspend": "Suspendre",
       "reactivate": "Réactiver",
-      "confirmSuspend": "Suspendre l'utilisateur \"{{email}}\" ?",
+      "confirmSuspend": "Suspendre l'utilisateur {{email}} ? Il ne pourra plus se connecter, mais ses données restent intactes. L'opération est réversible.",
       "confirmDelete": "Supprimer l'utilisateur \"{{email}}\" et toutes ses données ?",
       "created": "Utilisateur créé avec succès",
       "updated": "Utilisateur mis à jour",
@@ -729,7 +729,19 @@
         "russian": "Русский",
         "chinese": "中文",
         "swedish": "Svenska"
-      }
+      },
+      "permanentDelete": "Supprimer définitivement",
+      "confirmReactivate": "Réactiver l'utilisateur {{email}} ?",
+      "permanentDeleteWarningTitle": "Action irréversible",
+      "permanentDeleteWarningBody": "La suppression définitive de l'utilisateur {{email}} entraînera la perte permanente de :",
+      "permanentDeleteList": {
+        "accounts": "Tous ses comptes bancaires",
+        "transactions": "Toutes ses transactions et leurs pièces jointes",
+        "recurring": "Toutes ses opérations récurrentes",
+        "memberships": "Toutes ses appartenances de groupe"
+      },
+      "permanentDeleteTypeEmail": "Pour confirmer, saisis l'email de l'utilisateur : {{email}}",
+      "permanentDeleteConfirm": "Supprimer définitivement"
     },
     "groups": {
       "title": "Groupes",
@@ -754,7 +766,7 @@
       "memberRemoved": "Membre retiré",
       "memberDeleted": "Utilisateur supprimé",
       "confirmRemoveMember": "Retirer ce membre du groupe ?",
-      "confirmDeleteMember": "Supprimer cet utilisateur et toutes ses données ?",
+      "confirmDeleteMember": "Retirer cet utilisateur du groupe ? Son compte ne sera pas supprimé.",
       "selectUser": "Sélectionner un utilisateur",
       "groupRole": "Rôle dans le groupe",
       "administrator": "Administrateur",

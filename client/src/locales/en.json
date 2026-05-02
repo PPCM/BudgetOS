@@ -676,7 +676,7 @@
       "allStatuses": "All statuses",
       "suspend": "Suspend",
       "reactivate": "Reactivate",
-      "confirmSuspend": "Suspend user \"{{email}}\"?",
+      "confirmSuspend": "Suspend user {{email}}? They will no longer be able to log in, but their data is preserved. This is reversible.",
       "confirmDelete": "Delete user \"{{email}}\" and all their data?",
       "created": "User created successfully",
       "updated": "User updated",
@@ -729,7 +729,19 @@
         "russian": "Русский",
         "chinese": "中文",
         "swedish": "Svenska"
-      }
+      },
+      "permanentDelete": "Delete permanently",
+      "confirmReactivate": "Reactivate user {{email}}?",
+      "permanentDeleteWarningTitle": "Irreversible action",
+      "permanentDeleteWarningBody": "Permanently deleting user {{email}} will permanently destroy:",
+      "permanentDeleteList": {
+        "accounts": "All their bank accounts",
+        "transactions": "All their transactions and attachments",
+        "recurring": "All their recurring transactions",
+        "memberships": "All their group memberships"
+      },
+      "permanentDeleteTypeEmail": "To confirm, type the user's email: {{email}}",
+      "permanentDeleteConfirm": "Delete permanently"
     },
     "groups": {
       "title": "Groups",
@@ -754,7 +766,7 @@
       "memberRemoved": "Member removed",
       "memberDeleted": "User deleted",
       "confirmRemoveMember": "Remove this member from the group?",
-      "confirmDeleteMember": "Delete this user and all their data?",
+      "confirmDeleteMember": "Remove this user from the group? Their account will not be deleted.",
       "selectUser": "Select a user",
       "groupRole": "Role in group",
       "administrator": "Administrator",

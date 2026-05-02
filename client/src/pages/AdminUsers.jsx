@@ -11,7 +11,8 @@ import { translateError } from '../lib/errorHelper'
 import { useFormatters } from '../hooks/useFormatters'
 import {
   Plus, Search, X, Shield,
-  ChevronDown, Pencil, Trash2, UserPlus
+  ChevronDown, Pencil, Trash2, UserPlus,
+  Power, RotateCcw, AlertTriangle
 } from 'lucide-react'
 import Modal from '../components/Modal'
 import PasswordInput from '../components/PasswordInput'
@@ -620,11 +621,32 @@ export default function AdminUsers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
       toast.success(t('admin.users.deleted'))
+      setPermanentDeleteUser(null)
     },
     onError: (err) => {
       toast.error(translateError(err))
     },
   })
+
+  const suspendMutation = useMutation({
+    mutationFn: adminApi.suspendUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      toast.success(t('admin.users.suspended'))
+    },
+    onError: (err) => toast.error(translateError(err)),
+  })
+
+  const reactivateMutation = useMutation({
+    mutationFn: adminApi.reactivateUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      toast.success(t('admin.users.reactivated'))
+    },
+    onError: (err) => toast.error(translateError(err)),
+  })
+
+  const [permanentDeleteUser, setPermanentDeleteUser] = useState(null)
 
   const roleMutation = useMutation({
     mutationFn: ({ id, role }) => adminApi.updateUserRole(id, role),
@@ -767,17 +789,40 @@ export default function AdminUsers() {
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(t('admin.users.confirmDelete', { email: u.email }))) {
-                              deleteMutation.mutate(u.id)
-                            }
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title={t('common.delete')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {u.isActive ? (
+                          <button
+                            onClick={() => {
+                              if (confirm(t('admin.users.confirmSuspend', { email: u.email }))) {
+                                suspendMutation.mutate(u.id)
+                              }
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            title={t('admin.users.suspend')}
+                          >
+                            <Power className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                if (confirm(t('admin.users.confirmReactivate', { email: u.email }))) {
+                                  reactivateMutation.mutate(u.id)
+                                }
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title={t('admin.users.reactivate')}
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setPermanentDeleteUser(u)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title={t('admin.users.permanentDelete')}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -811,6 +856,84 @@ export default function AdminUsers() {
           appDefaultLocale={appDefaultLocale}
         />
       )}
+
+      {permanentDeleteUser && (
+        <PermanentDeleteUserModal
+          user={permanentDeleteUser}
+          onClose={() => setPermanentDeleteUser(null)}
+          onConfirm={() => deleteMutation.mutate(permanentDeleteUser.id)}
+          isPending={deleteMutation.isPending}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * Strong-confirmation modal for permanent user deletion.
+ * Requires the user to retype the target email to enable the confirm button.
+ */
+function PermanentDeleteUserModal({ user, onClose, onConfirm, isPending }) {
+  const { t } = useTranslation()
+  const [typed, setTyped] = useState('')
+  const canConfirm = typed.trim().toLowerCase() === user.email.toLowerCase() && !isPending
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="bg-white rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <h2 className="text-lg font-semibold text-red-700">{t('admin.users.permanentDelete')}</h2>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800 space-y-2">
+            <p className="font-semibold">{t('admin.users.permanentDeleteWarningTitle')}</p>
+            <p>{t('admin.users.permanentDeleteWarningBody', { email: user.email })}</p>
+            <ul className="list-disc list-inside text-xs space-y-0.5 pt-1">
+              <li>{t('admin.users.permanentDeleteList.accounts')}</li>
+              <li>{t('admin.users.permanentDeleteList.transactions')}</li>
+              <li>{t('admin.users.permanentDeleteList.recurring')}</li>
+              <li>{t('admin.users.permanentDeleteList.memberships')}</li>
+            </ul>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              {t('admin.users.permanentDeleteTypeEmail', { email: user.email })}
+            </label>
+            <input
+              type="text"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              className="input w-full"
+              placeholder={user.email}
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 p-4 border-t">
+          <button type="button" onClick={onClose} className="btn">
+            {t('common.cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canConfirm}
+            className="btn bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPending ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            {t('admin.users.permanentDeleteConfirm')}
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }

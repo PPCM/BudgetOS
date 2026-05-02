@@ -12,6 +12,7 @@ import FormattedAmountInput from '../components/FormattedAmountInput'
 import { translateError } from '../lib/errorHelper'
 import { CreditCard, Calendar, Clock, Plus, Pencil, Trash2, X, Filter, ArrowUpDown } from 'lucide-react'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 
 /**
  * Modal form for creating or editing a credit card
@@ -224,6 +225,7 @@ export default function CreditCards() {
   const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
+  const [deleteCandidate, setDeleteCandidate] = useState(null)
   /** @type {''|'active'|'expired'} Filter by card status */
   const [statusFilter, setStatusFilter] = useState('')
   /** @type {'name'|'expiration_date'} Sort field */
@@ -280,11 +282,7 @@ export default function CreditCards() {
 
   const handleEdit = (card) => setEditingCard(card)
 
-  const handleDelete = (card) => {
-    if (confirm(t('creditCards.confirmDelete', { name: card.name }))) {
-      deleteMutation.mutate(card.id)
-    }
-  }
+  const handleDelete = (card) => setDeleteCandidate(card)
 
   if (isLoading) {
     return <div className="flex justify-center py-12">
@@ -403,6 +401,22 @@ export default function CreditCards() {
           accounts={accountsData?.data}
           onClose={() => { setModalOpen(false); setEditingCard(null) }}
           onSave={handleSave}
+        />
+      )}
+
+      {deleteCandidate && (
+        <ConfirmModal
+          variant="danger"
+          title={t('common.delete')}
+          message={t('creditCards.confirmDelete', { name: deleteCandidate.name })}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            deleteMutation.mutate(deleteCandidate.id)
+            setDeleteCandidate(null)
+          }}
+          onClose={() => setDeleteCandidate(null)}
+          isPending={deleteMutation.isPending}
         />
       )}
     </div>

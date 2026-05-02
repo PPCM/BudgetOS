@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 import AccountTabs from '../components/AccountTabs'
 import { useToast } from '../components/Toast'
 import { findKnownLogo } from '../lib/knownLogos'
@@ -494,6 +495,7 @@ export default function Transactions() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
+  const [deleteCandidate, setDeleteCandidate] = useState(null)
   /** @type {Set<string>} Set of expanded transaction IDs */
   const [expandedRows, setExpandedRows] = useState(new Set())
   /** @type {boolean} Whether reconciliation mode is active */
@@ -866,11 +868,7 @@ export default function Transactions() {
     setModalOpen(true)
   }, [])
 
-  const handleDelete = useCallback((tx) => {
-    if (confirm(t('transactions.confirmDelete', { description: tx.description }))) {
-      deleteMutation.mutate(tx.id)
-    }
-  }, [deleteMutation])
+  const handleDelete = useCallback((tx) => setDeleteCandidate(tx), [])
 
   return (
     <div className="space-y-6">
@@ -1258,6 +1256,22 @@ export default function Transactions() {
           onCreatePayee={handleCreatePayee}
           onCreateCategory={handleCreateCategory}
           toast={toast}
+        />
+      )}
+
+      {deleteCandidate && (
+        <ConfirmModal
+          variant="danger"
+          title={t('common.delete')}
+          message={t('transactions.confirmDelete', { description: deleteCandidate.description })}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            deleteMutation.mutate(deleteCandidate.id)
+            setDeleteCandidate(null)
+          }}
+          onClose={() => setDeleteCandidate(null)}
+          isPending={deleteMutation.isPending}
         />
       )}
     </div>

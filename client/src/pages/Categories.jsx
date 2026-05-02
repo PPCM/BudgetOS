@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { getIconComponent, availableIconNames } from '../lib/iconMap'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 
 const defaultColors = [
   '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
@@ -154,6 +155,7 @@ export default function Categories() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const [deleteCandidate, setDeleteCandidate] = useState(null)
   const fileInputRef = useRef()
   const queryClient = useQueryClient()
 
@@ -201,11 +203,7 @@ export default function Categories() {
     setModalOpen(true)
   }
 
-  const handleDelete = (category) => {
-    if (confirm(t('categories.confirmDelete', { name: category.name }))) {
-      deleteMutation.mutate(category.id)
-    }
-  }
+  const handleDelete = (category) => setDeleteCandidate(category)
 
   const handleExport = () => {
     const exportData = data?.map(({ id, userId, createdAt, updatedAt, ...rest }) => rest) || []
@@ -371,6 +369,22 @@ export default function Categories() {
           category={editingCategory}
           onClose={() => { setModalOpen(false); setEditingCategory(null); }}
           onSave={handleSave}
+        />
+      )}
+
+      {deleteCandidate && (
+        <ConfirmModal
+          variant="danger"
+          title={t('common.delete')}
+          message={t('categories.confirmDelete', { name: deleteCandidate.name })}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            deleteMutation.mutate(deleteCandidate.id)
+            setDeleteCandidate(null)
+          }}
+          onClose={() => setDeleteCandidate(null)}
+          isPending={deleteMutation.isPending}
         />
       )}
     </div>

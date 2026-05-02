@@ -7,6 +7,7 @@ import { Plus, Search, Pencil, Trash2, X, User, Users, AlertTriangle } from 'luc
 import PayeeImageEditor from '../components/PayeeImageEditor'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 import { findKnownLogo } from '../lib/knownLogos'
 
 // Delete confirmation modal with transaction handling
@@ -229,6 +230,7 @@ export default function Payees() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deletingPayee, setDeletingPayee] = useState(null)
   const [deleteTransactionCount, setDeleteTransactionCount] = useState(0)
+  const [simpleDeleteCandidate, setSimpleDeleteCandidate] = useState(null)
   const [search, setSearch] = useState('')
   const queryClient = useQueryClient()
 
@@ -314,9 +316,7 @@ export default function Payees() {
 
       if (count === 0) {
         // No transactions, simple confirmation
-        if (confirm(t('payees.confirmDelete', { name: payee.name }))) {
-          deleteMutation.mutate(payee.id)
-        }
+        setSimpleDeleteCandidate(payee)
       } else {
         // Transactions exist, open choice modal
         setDeletingPayee(payee)
@@ -443,6 +443,22 @@ export default function Payees() {
           onClose={() => { setDeleteModalOpen(false); setDeletingPayee(null); }}
           onConfirm={handleConfirmDelete}
           onCreatePayee={handleCreatePayee}
+        />
+      )}
+
+      {simpleDeleteCandidate && (
+        <ConfirmModal
+          variant="danger"
+          title={t('common.delete')}
+          message={t('payees.confirmDelete', { name: simpleDeleteCandidate.name })}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            deleteMutation.mutate(simpleDeleteCandidate.id)
+            setSimpleDeleteCandidate(null)
+          }}
+          onClose={() => setSimpleDeleteCandidate(null)}
+          isPending={deleteMutation.isPending}
         />
       )}
     </div>

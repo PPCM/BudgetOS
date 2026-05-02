@@ -15,6 +15,7 @@ import { getIconComponent } from '../lib/iconMap'
 import axios from 'axios'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 import AccountTabs from '../components/AccountTabs'
 
 function PlannedModal({ planned, accounts, categories, payees, defaultAccountId, onClose, onSave, onCreatePayee, onCreateCategory }) {
@@ -360,6 +361,7 @@ export default function PlannedTransactions() {
   const { formatCurrency, formatDate } = useFormatters()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPlanned, setEditingPlanned] = useState(null)
+  const [deleteCandidate, setDeleteCandidate] = useState(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const [accountTab, setAccountTab] = useState(() => searchParams.get('account') || getPersistedAccountTab())
   const [backfillPrompt, setBackfillPrompt] = useState(null) // { id, count, type }
@@ -794,11 +796,7 @@ export default function PlannedTransactions() {
                       <Pencil className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(t('planned.confirmDelete', { description: tx.description }))) {
-                          deleteMutation.mutate(tx.id)
-                        }
-                      }}
+                      onClick={() => setDeleteCandidate(tx)}
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                     >
                       <Trash2 className="w-5 h-5" />
@@ -892,6 +890,22 @@ export default function PlannedTransactions() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {deleteCandidate && (
+        <ConfirmModal
+          variant="danger"
+          title={t('common.delete')}
+          message={t('planned.confirmDelete', { description: deleteCandidate.description })}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            deleteMutation.mutate(deleteCandidate.id)
+            setDeleteCandidate(null)
+          }}
+          onClose={() => setDeleteCandidate(null)}
+          isPending={deleteMutation.isPending}
+        />
       )}
     </div>
   )

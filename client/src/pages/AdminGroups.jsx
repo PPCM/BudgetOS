@@ -353,6 +353,7 @@ function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const [addMemberOpen, setAddMemberOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const queryClient = useQueryClient()
   const toast = useToast()
 
@@ -441,11 +442,7 @@ function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
               <Pencil className="w-4 h-4" />
             </button>
             <button
-              onClick={() => {
-                if (confirm(t('admin.groups.confirmDelete', { name: group.name }))) {
-                  onDelete(group.id)
-                }
-              }}
+              onClick={() => setDeleteConfirmOpen(true)}
               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title={t('common.delete')}
             >
@@ -545,6 +542,21 @@ function GroupCard({ group, onEdit, onDelete, users, isSuperAdmin }) {
             />
           )}
         </div>
+      )}
+
+      {deleteConfirmOpen && (
+        <ConfirmModal
+          variant="danger"
+          title={t('common.delete')}
+          message={t('admin.groups.confirmDelete', { name: group.name })}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            onDelete(group.id)
+            setDeleteConfirmOpen(false)
+          }}
+          onClose={() => setDeleteConfirmOpen(false)}
+        />
       )}
     </div>
   )

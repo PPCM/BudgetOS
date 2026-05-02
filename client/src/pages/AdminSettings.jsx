@@ -10,6 +10,7 @@ import { adminApi, groupsApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import { Cog, Save, Mail, Send, CheckCircle, XCircle, Wrench, Trash2, Search, AlertTriangle } from 'lucide-react'
 import FormLanguageSelect from '../components/FormLanguageSelect'
+import ConfirmModal from '../components/ConfirmModal'
 import { useToast } from '../components/Toast'
 
 /**
@@ -38,6 +39,7 @@ export default function AdminSettings() {
   const [smtpDirty, setSmtpDirty] = useState(false)
   const [smtpTestResult, setSmtpTestResult] = useState(null)
   const [duplicatesPreview, setDuplicatesPreview] = useState(null)
+  const [cleanupConfirmOpen, setCleanupConfirmOpen] = useState(false)
   const queryClient = useQueryClient()
   const toast = useToast()
 
@@ -152,9 +154,7 @@ export default function AdminSettings() {
   const handleCleanupDuplicates = () => {
     const total = duplicatesPreview?.totalDuplicates ?? 0
     if (!total) return
-    if (window.confirm(t('admin.duplicates.confirmCleanup', { count: total }))) {
-      duplicatesCleanupMutation.mutate()
-    }
+    setCleanupConfirmOpen(true)
   }
 
   const handleSmtpChange = (key, value) => {
@@ -558,6 +558,22 @@ export default function AdminSettings() {
           </div>
         )}
       </div>
+
+      {cleanupConfirmOpen && (
+        <ConfirmModal
+          variant="danger"
+          title={t('admin.duplicates.cleanup', { count: duplicatesPreview?.totalDuplicates ?? 0 })}
+          message={t('admin.duplicates.confirmCleanup', { count: duplicatesPreview?.totalDuplicates ?? 0 })}
+          confirmLabel={t('admin.duplicates.cleanup', { count: duplicatesPreview?.totalDuplicates ?? 0 })}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            duplicatesCleanupMutation.mutate()
+            setCleanupConfirmOpen(false)
+          }}
+          onClose={() => setCleanupConfirmOpen(false)}
+          isPending={duplicatesCleanupMutation.isPending}
+        />
+      )}
     </div>
   )
 }

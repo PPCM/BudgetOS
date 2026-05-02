@@ -8,7 +8,7 @@
  * resource name/email before enabling the confirm button.
  */
 
-import { X, AlertTriangle, CheckCircle, Info } from 'lucide-react'
+import { X, AlertTriangle, CheckCircle, Info, Trash2 } from 'lucide-react'
 import Modal from './Modal'
 
 const variants = {
@@ -17,6 +17,12 @@ const variants = {
     iconClass: 'text-amber-600',
     titleClass: 'text-amber-700',
     confirmClass: 'bg-amber-600 hover:bg-amber-700 text-white',
+  },
+  danger: {
+    icon: Trash2,
+    iconClass: 'text-red-600',
+    titleClass: 'text-red-700',
+    confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
   },
   success: {
     icon: CheckCircle,

@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:24.15.0-alpine3.23 AS frontend
+FROM node:24.16.0-alpine3.23 AS frontend
 WORKDIR /app
 COPY package.json ./
 WORKDIR /app/client
@@ -9,7 +9,7 @@ COPY client/ ./
 RUN npm run build
 
 # Stage 2: Production
-FROM node:24.15.0-alpine3.23
+FROM node:24.16.0-alpine3.23
 
 ARG VERSION=1.0.0
 ARG BUILD_DATE

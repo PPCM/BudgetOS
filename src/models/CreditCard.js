@@ -1,8 +1,7 @@
 import knex from '../database/connection.js';
-import dateHelpers from '../database/dateHelpers.js';
-import { generateId, roundAmount, calculateDeferredDebitDate, getCycleForPurchase, formatDateISO } from '../utils/helpers.js';
+import { generateId, roundAmount, getCycleForPurchase, formatDateISO } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
-import { addMonths, setDate, subDays, endOfMonth, startOfMonth, format } from 'date-fns';
+import { addMonths, setDate, subDays, endOfMonth } from 'date-fns';
 import { buildUpdates } from '../utils/modelHelpers.js';
 import Account from './Account.js';
 
@@ -426,7 +425,7 @@ export class CreditCard {
   /**
    * Get the pending debit amount
    */
-  static async getPendingDebitAmount(cardId, userId) {
+  static async getPendingDebitAmount(cardId, _userId) {
     const result = await knex('credit_card_cycles')
       .where({ credit_card_id: cardId, status: 'pending' })
       .select(knex.raw('COALESCE(SUM(total_amount), 0) as total'))

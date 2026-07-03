@@ -5,7 +5,7 @@ import config from './config/index.js';
 import logger from './utils/logger.js';
 
 const require = createRequire(import.meta.url);
-const { name: appName, version: appVersion } = require('../package.json');
+const { version: appVersion } = require('../package.json');
 import { initDatabase, closeDatabase } from './database/connection.js';
 import createApp from './app.js';
 import schedulerService from './services/schedulerService.js';
@@ -78,7 +78,7 @@ const startServer = async () => {
       shutdown('UNCAUGHT_EXCEPTION');
     });
 
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', (reason, _promise) => {
       logger.error('Unhandled rejection', { reason: String(reason) });
     });
 

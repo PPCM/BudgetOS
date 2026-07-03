@@ -379,7 +379,7 @@ export class User {
       digitGrouping: user.digit_grouping ?? ' ',
       timezone: user.timezone,
       isActive: Boolean(user.is_active),
-      status: Boolean(user.is_active) ? 'active' : 'suspended',
+      status: user.is_active ? 'active' : 'suspended',
       emailVerified: Boolean(user.email_verified),
       lastLoginAt: user.last_login_at,
       createdAt: user.created_at,

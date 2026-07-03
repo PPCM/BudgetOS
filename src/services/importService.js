@@ -89,7 +89,7 @@ export class ImportService {
           fs.unlinkSync(resolvedFilePath);
         }
       }
-    } catch (e) {
+    } catch {
       // Non-critical: file cleanup failure
     }
 
@@ -234,7 +234,7 @@ export class ImportService {
     let matchResults;
     try {
       matchResults = JSON.parse(imp.match_results);
-    } catch (e) {
+    } catch {
       throw new BadRequestError('Corrupted analysis results');
     }
 
@@ -301,7 +301,7 @@ export class ImportService {
           if (ccId && newTx) {
             try {
               await CreditCard.assignTransactionToCycle(newTx.id, ccId, userId);
-            } catch (e) {
+            } catch {
               // Non-critical: cycle assignment failure
             }
           }
@@ -316,7 +316,7 @@ export class ImportService {
           try {
             await PayeeAlias.learnAlias(userId, payeeId, txData.description, merchantPattern);
             aliasesLearned++;
-          } catch (e) {
+          } catch {
             // Non-critical: alias learning failure
           }
         }

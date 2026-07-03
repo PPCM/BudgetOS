@@ -5,7 +5,7 @@ import config from '../config/index.js';
 /**
  * Global error handler
  */
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
   const logContext = {
     method: req.method,
     path: req.path,

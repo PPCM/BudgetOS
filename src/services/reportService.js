@@ -1,7 +1,7 @@
 import knex from '../database/connection.js';
 import dateHelpers from '../database/dateHelpers.js';
 import { roundAmount, formatDateISO } from '../utils/helpers.js';
-import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, endOfYear, addDays, isBefore, isAfter, isEqual } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, format, eachMonthOfInterval, startOfYear, addDays, isBefore, isAfter, isEqual } from 'date-fns';
 import { advanceByFrequency } from '../utils/dateFrequency.js';
 
 export class ReportService {

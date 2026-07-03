@@ -1,6 +1,6 @@
 import knex from '../database/connection.js';
 import dateHelpers from '../database/dateHelpers.js';
-import { generateId, roundAmount, normalizeDescription } from '../utils/helpers.js';
+import { generateId } from '../utils/helpers.js';
 import { NotFoundError } from '../utils/errors.js';
 import Account from './Account.js';
 import { buildUpdates, paginationMeta } from '../utils/modelHelpers.js';

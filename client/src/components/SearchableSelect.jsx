@@ -11,7 +11,6 @@ export default function SearchableSelect({
   allowCreate = false,
   createLabel = 'Créer',
   onCreate,
-  displayValue,
   renderOption,
   className = '',
   disabled = false,

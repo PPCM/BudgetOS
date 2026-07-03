@@ -133,7 +133,8 @@ function PayeeModal({ payee, onClose, onSave }) {
         setAutoLogoApplied(true)
       }
     }
-  }, []) // Only on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount
+  }, [])
 
   // Auto-detect logo when name changes
   useEffect(() => {
@@ -145,6 +146,7 @@ function PayeeModal({ payee, onClose, onSave }) {
       setFormData(prev => ({ ...prev, imageUrl: knownLogo }))
       setAutoLogoApplied(true)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the typed name changes
   }, [formData.name])
 
   const handleNameChange = (e) => {

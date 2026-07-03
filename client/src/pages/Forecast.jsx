@@ -17,7 +17,7 @@ import { getIconComponent } from '../lib/iconMap'
 import {
   Search, TrendingUp, TrendingDown, ArrowLeftRight,
   Calendar, X, ArrowUpDown, ArrowUp, ArrowDown,
-  RotateCcw, Users, Tag, Loader2
+  RotateCcw, Users
 } from 'lucide-react'
 
 const SortIcon = ({ column, sort }) => {
@@ -149,7 +149,7 @@ export default function Forecast() {
         handleAccountTab('')
       }
     }
-  }, [accountsData?.data])
+  }, [accountsData?.data, accountTab, handleAccountTab])
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories', { flat: true }],

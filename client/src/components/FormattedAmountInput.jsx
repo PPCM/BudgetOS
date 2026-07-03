@@ -199,7 +199,7 @@ export default function FormattedAmountInput({ value, onChange, className, place
         }
       }
     }
-  }, [countSignificant, findDisplayPos, isGroupChar, onChange, setCursor, toDisplay, value])
+  }, [countSignificant, digitGroup, findDisplayPos, isGroupChar, onChange, setCursor, toDisplay, value])
 
   return (
     <input

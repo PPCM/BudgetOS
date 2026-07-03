@@ -23,7 +23,7 @@
  *   persistence on save, and click-outside behavior.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, beforeAll } from 'vitest'
 
 // These tests are designed to be run manually via Chrome MCP.
 // Each test documents the expected behavior and the validation steps.

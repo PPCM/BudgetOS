@@ -28,10 +28,12 @@ export default [
       ...react.configs.flat['jsx-runtime'].rules,
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // Off: context files intentionally co-locate hooks/helpers with providers.
+      // This rule only affects HMR granularity, not correctness.
+      'react-refresh/only-export-components': 'off',
       // The codebase does not use PropTypes.
       'react/prop-types': 'off',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
     },
   },
 
@@ -58,7 +60,7 @@ export default [
       // Count components referenced in JSX as used (avoids false unused-import).
       'react/jsx-uses-vars': 'error',
       'react/prop-types': 'off',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
     },
   },
 

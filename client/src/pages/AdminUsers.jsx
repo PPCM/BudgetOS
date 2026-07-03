@@ -3,14 +3,14 @@
  * Provides user listing, creation, editing, suspension, reactivation, and role management
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, groupsApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import { useFormatters } from '../hooks/useFormatters'
 import {
-  Plus, Search, X, Shield,
+  Plus, Search, X,
   ChevronDown, Pencil, Trash2, UserPlus,
   Power, RotateCcw, AlertTriangle
 } from 'lucide-react'
@@ -517,13 +517,6 @@ export default function AdminUsers() {
   const [statusFilter, setStatusFilter] = useState('')
   const queryClient = useQueryClient()
   const toast = useToast()
-
-  /** Role display configuration */
-  const roleBadges = {
-    super_admin: { label: t('admin.users.roles.super_admin'), classes: 'bg-purple-100 text-purple-700' },
-    admin: { label: t('admin.users.roles.admin'), classes: 'bg-blue-100 text-blue-700' },
-    user: { label: t('admin.users.roles.user'), classes: 'bg-gray-100 text-gray-700' },
-  }
 
   /** Status display configuration */
   const statusBadges = {

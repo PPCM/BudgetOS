@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api, { categoriesApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import {
-  Plus, Wand2, Trash2, X, CheckCircle,
+  Plus, Wand2, Trash2, X,
   ToggleLeft, ToggleRight, GripVertical
 } from 'lucide-react'
 import Modal from '../components/Modal'

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronUp, CreditCard, ArrowRightLeft, PlusCircle, XCircle, CheckCircle, Link2, RefreshCw, Loader2 } from 'lucide-react'
 import SearchableSelect from './SearchableSelect'
-import { formatCurrency, formatDate } from '../lib/utils'
+import { formatCurrency } from '../lib/utils'
 import { importApi } from '../lib/api'
 
 const matchTypeBadge = {
@@ -16,7 +16,6 @@ export default function ImportReviewRow({
   transaction,
   index,
   payees,
-  creditCards,
   accountId,
   onUpdate,
 }) {
@@ -37,7 +36,6 @@ export default function ImportReviewRow({
 
   const action = tx._action || defaultAction
   const payeeId = tx._payeeId !== undefined ? tx._payeeId : (tx.suggestedPayeeId || null)
-  const creditCardId = tx._creditCardId !== undefined ? tx._creditCardId : (tx.creditCardId || null)
 
   const handleChange = (field, value) => {
     onUpdate(index, { [`_${field}`]: value })

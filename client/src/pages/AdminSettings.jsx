@@ -48,7 +48,7 @@ export default function AdminSettings() {
     queryFn: () => adminApi.getSettings().then(r => r.data),
   })
 
-  const { data: smtpSettingsData, isLoading: smtpLoading } = useQuery({
+  const { data: smtpSettingsData } = useQuery({
     queryKey: ['admin-smtp-settings'],
     queryFn: () => adminApi.getSmtpSettings().then(r => r.data),
   })

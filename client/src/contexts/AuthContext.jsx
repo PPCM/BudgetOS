@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
       } catch {
         setUserSettings(null)
       }
-    } catch (error) {
+    } catch {
       setUser(null)
       setUserSettings(null)
       setUserGroups([])

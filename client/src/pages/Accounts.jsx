@@ -160,7 +160,7 @@ function AccountModal({ account, onClose, onSave }) {
  */
 export default function Accounts() {
   const { t } = useTranslation()
-  const { formatCurrency, formatDate } = useFormatters()
+  const { formatCurrency } = useFormatters()
   const { userSettings } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)

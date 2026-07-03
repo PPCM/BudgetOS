@@ -459,7 +459,7 @@ export default function Import() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTransactions.map((tx, i) => {
+                  {filteredTransactions.map((tx) => {
                     // Find original index in full array
                     const originalIndex = analyzeResult.transactions.indexOf(tx)
                     return (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Lock, ArrowLeft, CheckCircle, AlertCircle, XCircle } from 'lucide-react'
 import { authApi, preloadCsrfToken } from '../lib/api'
@@ -56,7 +56,6 @@ function PasswordStrength({ password }) {
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
-  const navigate = useNavigate()
   const { t } = useTranslation()
 
   const [password, setPassword] = useState('')

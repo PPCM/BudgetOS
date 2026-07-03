@@ -9,8 +9,8 @@ import { formatLocalDate } from '../lib/utils'
 import { useFormatters, parseAmount } from '../hooks/useFormatters'
 import FormattedAmountInput from '../components/FormattedAmountInput'
 import {
-  Plus, Calendar, Clock, Repeat, Trash2, X, Pencil, Tag,
-  TrendingUp, TrendingDown, ArrowLeftRight, Play, Users
+  Plus, Calendar, Clock, Repeat, Trash2, X, Pencil,
+  TrendingUp, TrendingDown, ArrowLeftRight, Users
 } from 'lucide-react'
 import { getIconComponent } from '../lib/iconMap'
 import SearchableSelect from '../components/SearchableSelect'
@@ -444,7 +444,7 @@ export default function PlannedTransactions() {
         handleAccountTab('')
       }
     }
-  }, [accounts])
+  }, [accounts, accountTab, handleAccountTab])
 
   // Filter planned transactions and upcoming by account tab
   const filteredPlanned = useMemo(() => {

@@ -660,7 +660,7 @@ export default function Transactions() {
         handleAccountTab('')
       }
     }
-  }, [accountsData?.data])
+  }, [accountsData?.data, accountTab, handleAccountTab])
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories', { flat: true }],

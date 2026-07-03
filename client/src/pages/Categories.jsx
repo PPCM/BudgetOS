@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { categoriesApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
 import {
-  Tag, TrendingUp, TrendingDown, ArrowLeftRight, Plus,
+  TrendingUp, TrendingDown, ArrowLeftRight, Plus,
   Pencil, Trash2, X, Download, Upload, Check
 } from 'lucide-react'
 import { getIconComponent, availableIconNames } from '../lib/iconMap'

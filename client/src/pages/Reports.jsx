@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { reportsApi } from '../lib/api'
 import { useFormatters } from '../hooks/useFormatters'
-import { BarChart3, PieChart, TrendingUp, Calendar } from 'lucide-react'
+import { PieChart, TrendingUp, Calendar } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPie, Pie, Cell, LineChart, Line

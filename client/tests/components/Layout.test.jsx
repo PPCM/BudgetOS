@@ -4,7 +4,7 @@
  * and matches the version from the root package.json
  */
 
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { readFileSync } from 'fs'
 import path from 'path'

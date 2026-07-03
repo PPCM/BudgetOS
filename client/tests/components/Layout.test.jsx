@@ -24,11 +24,7 @@ vi.mock('react-router-dom', () => ({
 }))
 
 // Mock react-i18next
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => key,
-  }),
-}))
+// react-i18next is mocked globally in tests/setup.js (t returns the key)
 
 // Mock AuthContext
 vi.mock('../../src/contexts/AuthContext', () => ({

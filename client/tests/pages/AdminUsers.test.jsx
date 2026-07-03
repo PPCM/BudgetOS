@@ -8,12 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-// Mock i18n so t() returns translation keys (tests assert on keys)
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key) => key, i18n: { language: 'fr' } }),
-  initReactI18next: { type: '3rdParty', init: () => {} },
-  Trans: ({ children }) => children,
-}))
+// react-i18next is mocked globally in tests/setup.js (t returns the key)
 
 // Mock AuthContext (Modal consumes useAuth for userSettings)
 vi.mock('../../src/contexts/AuthContext', () => ({

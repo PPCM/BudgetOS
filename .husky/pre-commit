@@ -1,4 +1,6 @@
 #!/bin/sh
+echo "=> Backend lint..."
+npm run lint || exit 1
 echo "=> Client lint..."
 npm --prefix client run lint || exit 1
 echo "=> Unit tests..."

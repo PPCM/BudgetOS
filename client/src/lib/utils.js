@@ -84,7 +84,8 @@ export function formatDateRelative(date) {
 
   if (diff === 0) return "Aujourd'hui"
   if (diff === 1) return 'Hier'
-  if (diff < 7) return `Il y a ${diff} jours`
+  // Only relative for the recent past; future dates (diff < 0) show the date.
+  if (diff >= 2 && diff < 7) return `Il y a ${diff} jours`
   return formatDate(date)
 }
 

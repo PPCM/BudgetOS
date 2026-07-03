@@ -94,7 +94,9 @@ export function useFormatters() {
 
       if (diff === 0) return t('dates.today')
       if (diff === 1) return t('dates.yesterday')
-      if (diff < 7) return t('dates.daysAgo', { count: diff })
+      // Only use "N days ago" for the recent past; future dates (diff < 0) and
+      // anything a week or older fall back to the absolute date.
+      if (diff >= 2 && diff < 7) return t('dates.daysAgo', { count: diff })
       return formatDate(date)
     }
 

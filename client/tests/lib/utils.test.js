@@ -107,6 +107,10 @@ describe('formatDateRelative', () => {
   it('returns formatted date for older dates', () => {
     expect(formatDateRelative(new Date(2026, 0, 10))).toBe('10/01/2026')
   })
+
+  it('returns the formatted date for future dates (no "Il y a -N jours")', () => {
+    expect(formatDateRelative(new Date(2026, 0, 25))).toBe('25/01/2026')
+  })
 })
 
 describe('formatLocalDate', () => {

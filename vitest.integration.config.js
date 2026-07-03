@@ -5,11 +5,9 @@ export default defineConfig({
     globals: true,
     include: ['tests/integration/**/*.{test,spec}.js'],
     testTimeout: 30000,
+    // Integration tests share a single test database, so run files sequentially
+    // (never in parallel) to avoid cross-test interference and DB deadlocks.
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    fileParallelism: false,
   },
 })

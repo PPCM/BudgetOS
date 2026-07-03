@@ -121,4 +121,5 @@ export async function seedSystemSettings() {
   }
 }
 
-export { setupTestDb, getTestDb, closeTestDb, resetTestDb }
+// Direct re-export (live bindings) so consumers can import these from helpers.js
+export { setupTestDb, getTestDb, closeTestDb, resetTestDb } from '../setup.js'

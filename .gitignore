@@ -58,9 +58,6 @@ data/budgetos-e2e-test.db
 .eslintcache
 *.tsbuildinfo
 
-# Documentation (local changelogs)
-doc/changelog/
-
 # Examples (sample bank files)
 examples/
 

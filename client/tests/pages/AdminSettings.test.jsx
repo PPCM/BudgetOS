@@ -7,6 +7,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+// Mock i18n so t() returns translation keys (tests assert on keys)
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key) => key, i18n: { language: 'fr' } }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
+  Trans: ({ children }) => children,
+}))
+
 // Prevent i18n side-effect initialization via errorHelper
 vi.mock('../../src/lib/errorHelper', () => ({
   translateError: (err) => err?.response?.data?.message || err?.message || 'Error',
@@ -137,7 +144,7 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      const saveButton = screen.getByText('common.save').closest('button')
+      const saveButton = screen.getAllByText('common.save')[0].closest('button')
       expect(saveButton).toBeDisabled()
     })
   })
@@ -184,7 +191,7 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      const saveButton = screen.getByText('common.save').closest('button')
+      const saveButton = screen.getAllByText('common.save')[0].closest('button')
       expect(saveButton).toBeDisabled()
 
       fireEvent.click(getToggleButton())
@@ -227,7 +234,7 @@ describe('AdminSettings', () => {
       renderWithProviders(<AdminSettings />)
       await waitForSettingsLoaded()
 
-      const saveButton = screen.getByText('common.save').closest('button')
+      const saveButton = screen.getAllByText('common.save')[0].closest('button')
       expect(saveButton).toBeDisabled()
 
       const select = screen.getByText('Default Group').closest('select')

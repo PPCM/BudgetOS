@@ -40,14 +40,13 @@ vi.mock('../../src/contexts/AuthContext', () => ({
 }))
 
 // Mock lucide-react icons
-vi.mock('lucide-react', () => {
+vi.mock('lucide-react', async (importOriginal) => {
+  const actual = await importOriginal()
   const icon = (props) => <svg {...props} />
-  return {
-    LayoutDashboard: icon, Wallet: icon, ArrowLeftRight: icon,
-    CreditCard: icon, Tags: icon, BarChart3: icon, LogOut: icon,
-    Menu: icon, X: icon, Upload: icon, Repeat: icon, Wand2: icon,
-    Settings: icon, Users: icon, Shield: icon, FolderTree: icon, Cog: icon,
-  }
+  // Stub every real icon export so new icons don't break the mock.
+  const stubs = {}
+  for (const key of Object.keys(actual)) stubs[key] = icon
+  return stubs
 })
 
 import Layout from '../../src/components/Layout'

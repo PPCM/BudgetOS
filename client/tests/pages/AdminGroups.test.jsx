@@ -382,19 +382,19 @@ describe('AdminGroups', () => {
   describe('delete group', () => {
     it('calls delete API when confirming deletion', async () => {
       groupsApi.delete.mockResolvedValue({ data: {} })
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
 
-      const deleteButtons = screen.getAllByTitle('common.delete')
+      // Click the group delete button to open the confirmation modal
+      fireEvent.click(screen.getAllByTitle('common.delete')[0])
+      // Confirm inside the modal (scoped to avoid the row icon buttons)
+      const modal = document.querySelector('.fixed.inset-0')
       await act(async () => {
-        fireEvent.click(deleteButtons[0])
+        fireEvent.click(within(modal).getByRole('button', { name: 'common.delete' }))
       })
 
       expect(groupsApi.delete).toHaveBeenCalledWith('g1', expect.anything())
-
-      window.confirm.mockRestore()
     })
 
     it('does not delete when cancelling confirmation', async () => {
@@ -487,14 +487,13 @@ describe('AdminGroups', () => {
       fireEvent.click(screen.getAllByText('admin.groups.showMembers')[0])
 
       await waitFor(() => {
-        // After expanding: 3 group card + 2 member = 5 delete buttons
-        expect(screen.getAllByTitle('common.delete').length).toBe(5)
+        // After expanding: 2 members each get a dedicated remove button
+        expect(screen.getAllByTitle('admin.groups.removeMember').length).toBe(2)
       })
     })
 
     it('calls removeMember API when confirming deletion', async () => {
       groupsApi.removeMember.mockResolvedValue({ data: {} })
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       renderWithProviders(<AdminGroups />)
       await waitForGroupsLoaded()
@@ -505,15 +504,16 @@ describe('AdminGroups', () => {
         expect(screen.getByText('Alice Martin')).toBeInTheDocument()
       })
 
-      // Delete buttons order: [group1-delete, alice-delete, bob-delete, group2-delete, group3-delete]
-      const allDeleteButtons = screen.getAllByTitle('common.delete')
-      fireEvent.click(allDeleteButtons[1]) // Alice's delete button
+      // Click Alice's remove button, then confirm inside the modal
+      fireEvent.click(screen.getAllByTitle('admin.groups.removeMember')[0])
+      const modal = document.querySelector('.fixed.inset-0')
+      await act(async () => {
+        fireEvent.click(within(modal).getByRole('button', { name: 'admin.groups.removeMember' }))
+      })
 
       await waitFor(() => {
         expect(groupsApi.removeMember).toHaveBeenCalledWith('g1', 'u1')
       })
-
-      window.confirm.mockRestore()
     })
   })
 

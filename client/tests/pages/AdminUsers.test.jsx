@@ -8,6 +8,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+// Mock i18n so t() returns translation keys (tests assert on keys)
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key) => key, i18n: { language: 'fr' } }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
+  Trans: ({ children }) => children,
+}))
+
+// Mock AuthContext (Modal consumes useAuth for userSettings)
+vi.mock('../../src/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: '1', email: 'admin@test.com', role: 'super_admin' },
+    userSettings: {},
+    isGroupAdmin: false,
+  }),
+}))
+
 // Prevent i18n side-effect initialization via errorHelper
 vi.mock('../../src/lib/errorHelper', () => ({
   translateError: (err) => {
@@ -65,6 +81,7 @@ const mockUsers = [
     lastName: 'User',
     role: 'super_admin',
     status: 'active',
+    isActive: true,
     locale: 'fr',
     currency: 'EUR',
     createdAt: '2026-01-15T10:00:00.000Z',
@@ -76,6 +93,7 @@ const mockUsers = [
     lastName: 'Doe',
     role: 'user',
     status: 'active',
+    isActive: true,
     locale: 'en',
     currency: 'USD',
     createdAt: '2026-01-20T10:00:00.000Z',
@@ -87,6 +105,7 @@ const mockUsers = [
     lastName: 'Smith',
     role: 'user',
     status: 'suspended',
+    isActive: false,
     locale: 'fr',
     currency: 'EUR',
     createdAt: '2026-01-10T10:00:00.000Z',
@@ -209,12 +228,14 @@ describe('AdminUsers', () => {
       expect(within(tableBody).getByText('admin.users.statuses.suspended')).toBeInTheDocument()
     })
 
-    it('displays delete button for each user', async () => {
+    it('displays lifecycle actions (suspend for active, permanent delete for inactive)', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      const deleteButtons = screen.getAllByTitle('common.delete')
-      expect(deleteButtons.length).toBe(3)
+      // Active users (u1, u2) can be suspended; the inactive user (u3) can be
+      // reactivated or permanently deleted.
+      expect(screen.getAllByTitle('admin.users.suspend').length).toBe(2)
+      expect(screen.getAllByTitle('admin.users.permanentDelete').length).toBe(1)
     })
 
     it('displays edit button (icon only) for each user', async () => {
@@ -784,33 +805,40 @@ describe('AdminUsers', () => {
   })
 
   describe('delete user', () => {
-    it('calls deleteUser API when confirming deletion', async () => {
+    it('calls deleteUser API when confirming permanent deletion', async () => {
       adminApi.deleteUser.mockResolvedValue({ data: {} })
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      await act(async () => {
-        fireEvent.click(screen.getAllByTitle('common.delete')[0])
+      // Open the permanent-delete modal for the inactive user (u3)
+      fireEvent.click(screen.getByTitle('admin.users.permanentDelete'))
+      // Confirm requires typing the user's email
+      fireEvent.change(screen.getByPlaceholderText('suspended@test.com'), {
+        target: { value: 'suspended@test.com' },
       })
 
-      expect(adminApi.deleteUser).toHaveBeenCalledWith('u1', expect.anything())
+      await act(async () => {
+        fireEvent.click(screen.getByText('admin.users.permanentDeleteConfirm').closest('button'))
+      })
 
-      window.confirm.mockRestore()
+      expect(adminApi.deleteUser).toHaveBeenCalledWith('u3', expect.anything())
     })
 
-    it('does not call deleteUser when cancelling confirmation', async () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(false)
-
+    it('does not call deleteUser when the typed email does not match', async () => {
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
-      fireEvent.click(screen.getAllByTitle('common.delete')[0])
+      fireEvent.click(screen.getByTitle('admin.users.permanentDelete'))
+      // Wrong email keeps the confirm button disabled
+      fireEvent.change(screen.getByPlaceholderText('suspended@test.com'), {
+        target: { value: 'wrong@test.com' },
+      })
+      const confirmButton = screen.getByText('admin.users.permanentDeleteConfirm').closest('button')
+      expect(confirmButton).toBeDisabled()
+      fireEvent.click(confirmButton)
 
       expect(adminApi.deleteUser).not.toHaveBeenCalled()
-
-      window.confirm.mockRestore()
     })
   })
 
@@ -1367,20 +1395,22 @@ describe('AdminUsers', () => {
       adminApi.deleteUser.mockRejectedValue({
         response: { data: { error: { message: 'Cannot delete super admin' } } },
       })
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       renderWithProviders(<AdminUsers />)
       await waitForUsersLoaded()
 
+      fireEvent.click(screen.getByTitle('admin.users.permanentDelete'))
+      fireEvent.change(screen.getByPlaceholderText('suspended@test.com'), {
+        target: { value: 'suspended@test.com' },
+      })
+
       await act(async () => {
-        fireEvent.click(screen.getAllByTitle('common.delete')[0])
+        fireEvent.click(screen.getByText('admin.users.permanentDeleteConfirm').closest('button'))
       })
 
       await waitFor(() => {
         expect(mockToast.error).toHaveBeenCalledWith('Cannot delete super admin')
       })
-
-      window.confirm.mockRestore()
     })
   })
 

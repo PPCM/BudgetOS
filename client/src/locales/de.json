@@ -49,7 +49,8 @@
     "ok": "OK",
     "remove": "Entfernen",
     "select": "Auswählen",
-    "vsLastMonth": "{{value}}% ggü. Vormonat"
+    "vsLastMonth": "{{value}}% ggü. Vormonat",
+    "tags": "Tags"
   },
   "nav": {
     "dashboard": "Übersicht",
@@ -431,6 +432,13 @@
       "tooltip": "Kontoabgleich-Modus",
       "markReconciled": "Als abgeglichen markieren",
       "unmarkReconciled": "Abgleich aufheben"
+    },
+    "details": {
+      "checkNumber": "Schecknummer",
+      "valueDate": "Wertstellungsdatum",
+      "purchaseDate": "Kaufdatum",
+      "accountingDate": "Buchungsdatum",
+      "recurring": "Wiederkehrend"
     }
   },
   "import": {
@@ -943,6 +951,18 @@
   "searchableSelect": {
     "searchPlaceholder": "Eingeben, um zu suchen...",
     "noResults": "Keine Ergebnisse",
-    "createLabel": "Erstellen"
+    "createLabel": "Erstellen",
+    "placeholder": "Auswählen...",
+    "creating": "Wird erstellt..."
+  },
+  "payeeImage": {
+    "title": "Empfängerbild",
+    "current": "Aktuelles Bild",
+    "upload": "Bild hochladen",
+    "dropHint": "Bild klicken oder ziehen",
+    "formatHint": "PNG, JPEG oder GIF • Max. 5 MB • Auf 256×256 skaliert",
+    "unsupportedFormat": "Nicht unterstütztes Format. Verwenden Sie PNG, JPEG oder GIF.",
+    "tooLarge": "Datei zu groß. Maximal 5 MB.",
+    "uploadError": "Fehler beim Hochladen"
   }
 }

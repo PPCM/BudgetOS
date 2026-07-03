@@ -49,7 +49,8 @@
     "ok": "OK",
     "remove": "Remover",
     "select": "Selecionar",
-    "vsLastMonth": "{{value}}% em relação ao mês anterior"
+    "vsLastMonth": "{{value}}% em relação ao mês anterior",
+    "tags": "Etiquetas"
   },
   "nav": {
     "dashboard": "Painel",
@@ -431,6 +432,13 @@
       "tooltip": "Modo de reconciliação bancária",
       "markReconciled": "Marcar como reconciliado",
       "unmarkReconciled": "Anular reconciliação"
+    },
+    "details": {
+      "checkNumber": "Número do cheque",
+      "valueDate": "Data-valor",
+      "purchaseDate": "Data de compra",
+      "accountingDate": "Data contábil",
+      "recurring": "Recorrente"
     }
   },
   "import": {
@@ -943,6 +951,18 @@
   "searchableSelect": {
     "searchPlaceholder": "Escreva para pesquisar...",
     "noResults": "Sem resultados",
-    "createLabel": "Criar"
+    "createLabel": "Criar",
+    "placeholder": "Selecionar...",
+    "creating": "A criar..."
+  },
+  "payeeImage": {
+    "title": "Imagem do beneficiário",
+    "current": "Imagem atual",
+    "upload": "Carregar uma imagem",
+    "dropHint": "Clique ou arraste uma imagem",
+    "formatHint": "PNG, JPEG ou GIF • Máx. 5 MB • Redimensionada para 256×256",
+    "unsupportedFormat": "Formato não suportado. Use PNG, JPEG ou GIF.",
+    "tooLarge": "Ficheiro demasiado grande. Máximo 5 MB.",
+    "uploadError": "Erro ao carregar"
   }
 }

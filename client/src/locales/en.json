@@ -49,7 +49,8 @@
     "ok": "OK",
     "remove": "Remove",
     "select": "Select",
-    "vsLastMonth": "{{value}}% vs last month"
+    "vsLastMonth": "{{value}}% vs last month",
+    "tags": "Tags"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -431,6 +432,13 @@
       "tooltip": "Bank reconciliation mode",
       "markReconciled": "Mark as reconciled",
       "unmarkReconciled": "Undo reconciliation"
+    },
+    "details": {
+      "checkNumber": "Check number",
+      "valueDate": "Value date",
+      "purchaseDate": "Purchase date",
+      "accountingDate": "Accounting date",
+      "recurring": "Recurring"
     }
   },
   "import": {
@@ -943,6 +951,18 @@
   "searchableSelect": {
     "searchPlaceholder": "Type to search...",
     "noResults": "No results",
-    "createLabel": "Create"
+    "createLabel": "Create",
+    "placeholder": "Select...",
+    "creating": "Creating..."
+  },
+  "payeeImage": {
+    "title": "Payee image",
+    "current": "Current image",
+    "upload": "Upload an image",
+    "dropHint": "Click or drag an image",
+    "formatHint": "PNG, JPEG or GIF • Max 5 MB • Resized to 256×256",
+    "unsupportedFormat": "Unsupported format. Use PNG, JPEG or GIF.",
+    "tooLarge": "File too large. Maximum 5 MB.",
+    "uploadError": "Upload error"
   }
 }

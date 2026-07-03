@@ -49,7 +49,8 @@
     "ok": "OK",
     "remove": "Убрать",
     "select": "Выбрать",
-    "vsLastMonth": "{{value}}% к прошлому месяцу"
+    "vsLastMonth": "{{value}}% к прошлому месяцу",
+    "tags": "Теги"
   },
   "nav": {
     "dashboard": "Панель управления",
@@ -431,6 +432,13 @@
       "tooltip": "Режим банковской сверки",
       "markReconciled": "Отметить как сверено",
       "unmarkReconciled": "Отменить сверку"
+    },
+    "details": {
+      "checkNumber": "Номер чека",
+      "valueDate": "Дата валютирования",
+      "purchaseDate": "Дата покупки",
+      "accountingDate": "Дата проводки",
+      "recurring": "Повторяющаяся"
     }
   },
   "import": {
@@ -943,6 +951,18 @@
   "searchableSelect": {
     "searchPlaceholder": "Введите для поиска...",
     "noResults": "Нет результатов",
-    "createLabel": "Создать"
+    "createLabel": "Создать",
+    "placeholder": "Выбрать...",
+    "creating": "Создание..."
+  },
+  "payeeImage": {
+    "title": "Изображение получателя",
+    "current": "Текущее изображение",
+    "upload": "Загрузить изображение",
+    "dropHint": "Нажмите или перетащите изображение",
+    "formatHint": "PNG, JPEG или GIF • Макс. 5 МБ • Изменён до 256×256",
+    "unsupportedFormat": "Неподдерживаемый формат. Используйте PNG, JPEG или GIF.",
+    "tooLarge": "Файл слишком большой. Максимум 5 МБ.",
+    "uploadError": "Ошибка загрузки"
   }
 }

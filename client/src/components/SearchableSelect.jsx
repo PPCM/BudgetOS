@@ -1,20 +1,26 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Plus, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function SearchableSelect({
   value,
   onChange,
   options = [],
-  placeholder = 'Sélectionner...',
-  emptyMessage = 'Aucun résultat',
+  placeholder,
+  emptyMessage,
   allowCreate = false,
-  createLabel = 'Créer',
+  createLabel,
   onCreate,
   renderOption,
   className = '',
   disabled = false,
 }) {
+  const { t } = useTranslation()
+  // Fall back to translated defaults when the caller doesn't pass these props.
+  const ph = placeholder ?? t('searchableSelect.placeholder')
+  const empty = emptyMessage ?? t('searchableSelect.noResults')
+  const createLbl = createLabel ?? t('searchableSelect.createLabel')
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [creating, setCreating] = useState(false)
@@ -162,7 +168,7 @@ export default function SearchableSelect({
         })
       ) : !showCreateOption ? (
         <div className="px-3 py-3 text-sm text-gray-500 text-center">
-          {emptyMessage}
+          {empty}
         </div>
       ) : null}
 
@@ -174,7 +180,7 @@ export default function SearchableSelect({
           className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-primary-50 text-primary-600"
         >
           <Plus className="w-4 h-4" />
-          <span>{creating ? 'Création...' : createLabel.replace('{{name}}', inputValue)}</span>
+          <span>{creating ? t('searchableSelect.creating') : createLbl.replace('{{name}}', inputValue)}</span>
         </button>
       )}
     </div>
@@ -190,7 +196,7 @@ export default function SearchableSelect({
           onChange={handleInputChange}
           onFocus={() => !disabled && setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={ph}
           disabled={disabled}
           className={`input w-full pr-16 ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
         />

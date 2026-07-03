@@ -85,32 +85,32 @@ function renderRow(tx) {
 describe('TransactionExpandedRow', () => {
   it('renders check number when present', () => {
     renderRow({ ...baseTx, checkNumber: 'CHK-042' })
-    expect(screen.getByText('N° de chèque :')).toBeInTheDocument()
+    expect(screen.getByText('transactions.details.checkNumber :')).toBeInTheDocument()
     expect(screen.getByText('CHK-042')).toBeInTheDocument()
   })
 
   it('renders notes when present', () => {
     renderRow({ ...baseTx, notes: 'Weekly groceries' })
-    expect(screen.getByText('Notes :')).toBeInTheDocument()
+    expect(screen.getByText('common.notes :')).toBeInTheDocument()
     expect(screen.getByText('Weekly groceries')).toBeInTheDocument()
   })
 
   it('renders tags when present', () => {
     renderRow({ ...baseTx, tags: ['food', 'weekly'] })
-    expect(screen.getByText('Tags :')).toBeInTheDocument()
+    expect(screen.getByText('common.tags :')).toBeInTheDocument()
     expect(screen.getByText('food')).toBeInTheDocument()
     expect(screen.getByText('weekly')).toBeInTheDocument()
   })
 
   it('renders recurring indicator', () => {
     renderRow({ ...baseTx, isRecurring: true })
-    expect(screen.getByText('Récurrente :')).toBeInTheDocument()
-    expect(screen.getByText('Oui')).toBeInTheDocument()
+    expect(screen.getByText('transactions.details.recurring :')).toBeInTheDocument()
+    expect(screen.getByText('common.yes')).toBeInTheDocument()
   })
 
   it('renders linked account for transfers', () => {
     renderRow({ ...baseTx, type: 'transfer', linkedAccountName: 'Livret A' })
-    expect(screen.getByText('Compte lié :')).toBeInTheDocument()
+    expect(screen.getByText('creditCards.linkedAccount :')).toBeInTheDocument()
     expect(screen.getByText('Livret A')).toBeInTheDocument()
   })
 
@@ -122,17 +122,17 @@ describe('TransactionExpandedRow', () => {
 
   it('does not render check number when null', () => {
     renderRow({ ...baseTx, notes: 'test', checkNumber: null })
-    expect(screen.queryByText('N° de chèque :')).not.toBeInTheDocument()
+    expect(screen.queryByText('transactions.details.checkNumber :')).not.toBeInTheDocument()
   })
 
   it('renders value date when present', () => {
     renderRow({ ...baseTx, valueDate: '2026-01-20' })
-    expect(screen.getByText('Date de valeur :')).toBeInTheDocument()
+    expect(screen.getByText('transactions.details.valueDate :')).toBeInTheDocument()
   })
 
   it('renders purchase date when present', () => {
     renderRow({ ...baseTx, purchaseDate: '2026-01-18' })
-    expect(screen.getByText("Date d'achat :")).toBeInTheDocument()
+    expect(screen.getByText('transactions.details.purchaseDate :')).toBeInTheDocument()
   })
 
   it('renders multiple details together', () => {
@@ -142,8 +142,8 @@ describe('TransactionExpandedRow', () => {
       checkNumber: 'CHK-100',
       isRecurring: true,
     })
-    expect(screen.getByText('Notes :')).toBeInTheDocument()
-    expect(screen.getByText('N° de chèque :')).toBeInTheDocument()
-    expect(screen.getByText('Récurrente :')).toBeInTheDocument()
+    expect(screen.getByText('common.notes :')).toBeInTheDocument()
+    expect(screen.getByText('transactions.details.checkNumber :')).toBeInTheDocument()
+    expect(screen.getByText('transactions.details.recurring :')).toBeInTheDocument()
   })
 })

@@ -5,6 +5,7 @@
 import {
   FileText, Hash, Tag, Calendar, RefreshCw, ArrowLeftRight
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { formatDate } from '../lib/utils'
 
 /**
@@ -32,20 +33,21 @@ export function hasExpandableDetails(tx) {
  * @param {number} props.colSpan - Number of columns to span
  */
 export default function TransactionExpandedRow({ tx, colSpan }) {
+  const { t } = useTranslation()
   const details = []
 
   if (tx.notes) {
-    details.push({ icon: FileText, label: 'Notes', value: tx.notes })
+    details.push({ icon: FileText, label: t('common.notes'), value: tx.notes })
   }
 
   if (tx.checkNumber) {
-    details.push({ icon: Hash, label: 'N° de chèque', value: tx.checkNumber })
+    details.push({ icon: Hash, label: t('transactions.details.checkNumber'), value: tx.checkNumber })
   }
 
   if (tx.tags && tx.tags.length > 0) {
     details.push({
       icon: Tag,
-      label: 'Tags',
+      label: t('common.tags'),
       value: (
         <div className="flex flex-wrap gap-1">
           {tx.tags.map((tag) => (
@@ -62,23 +64,23 @@ export default function TransactionExpandedRow({ tx, colSpan }) {
   }
 
   if (tx.valueDate) {
-    details.push({ icon: Calendar, label: 'Date de valeur', value: formatDate(tx.valueDate) })
+    details.push({ icon: Calendar, label: t('transactions.details.valueDate'), value: formatDate(tx.valueDate) })
   }
 
   if (tx.purchaseDate) {
-    details.push({ icon: Calendar, label: "Date d'achat", value: formatDate(tx.purchaseDate) })
+    details.push({ icon: Calendar, label: t('transactions.details.purchaseDate'), value: formatDate(tx.purchaseDate) })
   }
 
   if (tx.accountingDate) {
-    details.push({ icon: Calendar, label: 'Date comptable', value: formatDate(tx.accountingDate) })
+    details.push({ icon: Calendar, label: t('transactions.details.accountingDate'), value: formatDate(tx.accountingDate) })
   }
 
   if (tx.isRecurring) {
-    details.push({ icon: RefreshCw, label: 'Récurrente', value: 'Oui' })
+    details.push({ icon: RefreshCw, label: t('transactions.details.recurring'), value: t('common.yes') })
   }
 
   if (tx.type === 'transfer' && tx.linkedAccountName) {
-    details.push({ icon: ArrowLeftRight, label: 'Compte lié', value: tx.linkedAccountName })
+    details.push({ icon: ArrowLeftRight, label: t('creditCards.linkedAccount'), value: tx.linkedAccountName })
   }
 
   return (

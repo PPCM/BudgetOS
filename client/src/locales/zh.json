@@ -49,7 +49,8 @@
     "ok": "确定",
     "remove": "移除",
     "select": "选择",
-    "vsLastMonth": "{{value}}% 较上月"
+    "vsLastMonth": "{{value}}% 较上月",
+    "tags": "标签"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -431,6 +432,13 @@
       "tooltip": "银行对账模式",
       "markReconciled": "标记为已对账",
       "unmarkReconciled": "取消对账"
+    },
+    "details": {
+      "checkNumber": "支票号码",
+      "valueDate": "起息日",
+      "purchaseDate": "购买日期",
+      "accountingDate": "记账日期",
+      "recurring": "定期"
     }
   },
   "import": {
@@ -943,6 +951,18 @@
   "searchableSelect": {
     "searchPlaceholder": "输入以搜索...",
     "noResults": "无结果",
-    "createLabel": "创建"
+    "createLabel": "创建",
+    "placeholder": "选择...",
+    "creating": "创建中..."
+  },
+  "payeeImage": {
+    "title": "收款方图片",
+    "current": "当前图片",
+    "upload": "上传图片",
+    "dropHint": "点击或拖动图片",
+    "formatHint": "PNG、JPEG 或 GIF • 最大 5 MB • 调整为 256×256",
+    "unsupportedFormat": "不支持的格式。请使用 PNG、JPEG 或 GIF。",
+    "tooLarge": "文件太大。最大 5 MB。",
+    "uploadError": "上传错误"
   }
 }

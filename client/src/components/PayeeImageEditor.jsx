@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Upload, X, User, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { uploadsApi } from '../lib/api'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -35,8 +36,9 @@ export default function PayeeImageEditor({
   imageUrl, 
   payeeName, 
   onImageChange,
-  size = 'lg' 
+  size = 'lg'
 }) {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState('')
@@ -56,12 +58,12 @@ export default function PayeeImageEditor({
 
     // Validation
     if (!['image/png', 'image/jpeg', 'image/gif'].includes(file.type)) {
-      setError('Format non supporté. Utilisez PNG, JPEG ou GIF.')
+      setError(t('payeeImage.unsupportedFormat'))
       return
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError('Fichier trop volumineux. Maximum 5 Mo.')
+      setError(t('payeeImage.tooLarge'))
       return
     }
 
@@ -73,7 +75,7 @@ export default function PayeeImageEditor({
       onImageChange(response.data.data.imageUrl)
       setIsOpen(false)
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Erreur lors du téléchargement')
+      setError(err.response?.data?.error?.message || t('payeeImage.uploadError'))
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) {
@@ -120,7 +122,7 @@ export default function PayeeImageEditor({
           <div className="bg-white rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Image du tiers</h3>
+              <h3 className="text-lg font-semibold">{t('payeeImage.title')}</h3>
               <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-gray-100 rounded">
                 <X className="w-5 h-5" />
               </button>
@@ -132,17 +134,17 @@ export default function PayeeImageEditor({
                 <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                   <img
                     src={imageUrl}
-                    alt="Actuelle"
+                    alt={t('payeeImage.current')}
                     className="w-16 h-16 rounded-full object-cover"
                   />
                   <div className="flex-1">
-                    <p className="text-sm text-gray-600">Image actuelle</p>
+                    <p className="text-sm text-gray-600">{t('payeeImage.current')}</p>
                   </div>
                   <button
                     onClick={removeImage}
                     className="btn btn-secondary text-sm px-3 py-1"
                   >
-                    Supprimer
+                    {t('common.delete')}
                   </button>
                 </div>
               )}
@@ -151,7 +153,7 @@ export default function PayeeImageEditor({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Upload className="w-4 h-4 inline mr-1" />
-                  Télécharger une image
+                  {t('payeeImage.upload')}
                 </label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors">
                   <input
@@ -172,10 +174,10 @@ export default function PayeeImageEditor({
                       <>
                         <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                         <p className="text-sm text-gray-600">
-                          Cliquez ou glissez une image
+                          {t('payeeImage.dropHint')}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          PNG, JPEG ou GIF • Max 5 Mo • Redimensionnée à 256×256
+                          {t('payeeImage.formatHint')}
                         </p>
                       </>
                     )}
@@ -197,7 +199,7 @@ export default function PayeeImageEditor({
                 onClick={() => setIsOpen(false)}
                 className="btn btn-secondary w-full"
               >
-                Fermer
+                {t('common.close')}
               </button>
             </div>
           </div>

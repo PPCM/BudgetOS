@@ -8,7 +8,7 @@ import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema,
 
 const router = Router();
 
-// Routes publiques
+// Public routes
 router.get('/setup-status', asyncHandler(authController.getSetupStatus));
 router.post('/register', authRateLimiter, validate({ body: registerSchema }), asyncHandler(authController.register));
 router.post('/login', authRateLimiter, validate({ body: loginSchema }), asyncHandler(authController.login));
@@ -16,7 +16,7 @@ router.post('/forgot-password', authRateLimiter, validate({ body: forgotPassword
 router.get('/validate-reset-token', authRateLimiter, validate({ query: validateResetTokenSchema }), asyncHandler(authController.validateResetToken));
 router.post('/reset-password', authRateLimiter, validate({ body: resetPasswordSchema }), asyncHandler(authController.resetPassword));
 
-// Routes protégées
+// Protected routes
 router.post('/logout', requireAuth, asyncHandler(authController.logout));
 router.get('/me', requireAuth, asyncHandler(authController.getMe));
 router.put('/profile', requireAuth, validate({ body: updateProfileSchema }), asyncHandler(authController.updateProfile));

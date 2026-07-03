@@ -328,7 +328,7 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
             </div>
           )}
 
-          {/* Comptes - affichage différent pour les virements */}
+          {/* Accounts - different display for transfers */}
           {formData.type === 'transfer' ? (
             <div className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div>
@@ -625,7 +625,7 @@ export default function Transactions() {
     setFilters(prev => ({ ...prev, startDate, endDate }))
   }, [userSettings?.weekStartDay])
 
-  // Scroll infini avec IntersectionObserver
+  // Infinite scroll with IntersectionObserver
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -686,7 +686,7 @@ export default function Transactions() {
 
   const handleCreatePayee = async (name) => {
     try {
-      // Rechercher un logo connu pour cette entreprise
+      // Look up a known logo for this company
       const imageUrl = findKnownLogo(name)
       const result = await createPayeeMutation.mutateAsync({ name, imageUrl })
       return result.data.data
@@ -805,7 +805,7 @@ export default function Transactions() {
   }, [toggleReconcileMutation])
 
   const handleSave = (formData) => {
-    // Filtrer les données pour n'envoyer que les champs nécessaires
+    // Filter the data to send only the necessary fields
     const cleanData = {
       accountId: formData.accountId || null,
       categoryId: formData.categoryId || null,
@@ -816,7 +816,7 @@ export default function Transactions() {
       type: formData.type,
     }
 
-    // Pour les virements, ajouter le compte destination
+    // For transfers, add the destination account
     if (formData.type === 'transfer') {
       cleanData.toAccountId = formData.toAccountId || null
       cleanData.checkNumber = null
@@ -979,7 +979,7 @@ export default function Transactions() {
           </div>
         </div>
         
-        {/* Filtres de date */}
+        {/* Date filters */}
         <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t items-center">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
@@ -1230,7 +1230,7 @@ export default function Transactions() {
               </table>
             </div>
 
-            {/* Élément de déclenchement du scroll infini */}
+            {/* Infinite scroll trigger element */}
             <div ref={loadMoreRef} className="h-1" />
 
             {/* Loader de chargement */}

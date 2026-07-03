@@ -1,8 +1,8 @@
-// Mapping des noms d'entreprises connues vers leurs logos
-// Les noms sont en minuscules pour la comparaison
+// Mapping of known company names to their logos
+// Names are lowercase for comparison
 
 const knownLogos = {
-  // Grande Distribution - International
+  // Large retail - International
   'aldi': '/logos/aldi.png',
   'aldi sud': '/logos/aldi.png',
   'aldi nord': '/logos/aldi.png',
@@ -14,7 +14,7 @@ const knownLogos = {
   'spar': '/logos/spar.png',
   'walmart': '/logos/walmart.png',
 
-  // Grande Distribution - France
+  // Large retail - France
   'auchan': '/logos/auchan.png',
   'casino': '/logos/casino.png',
   'géant casino': '/logos/casino.png',
@@ -37,7 +37,7 @@ const knownLogos = {
   'hyper u': '/logos/systemeu.png',
   'u express': '/logos/systemeu.png',
 
-  // Grande Distribution - Allemagne
+  // Large retail - Germany
   'edeka': '/logos/edeka.png',
   'kaufland': '/logos/kaufland.png',
   'penny': '/logos/penny.png',
@@ -54,7 +54,7 @@ const knownLogos = {
   'tesco': '/logos/tesco.png',
   'waitrose': '/logos/waitrose.png',
 
-  // Grande Distribution - Espagne / Portugal
+  // Large retail - Spain / Portugal
   'continente': '/logos/continente.png',
   'dia': '/logos/dia.png',
   'el corte inglés': '/logos/elcorteingles.png',
@@ -62,23 +62,23 @@ const knownLogos = {
   'mercadona': '/logos/mercadona.png',
   'pingo doce': '/logos/pingo-doce.png',
 
-  // Grande Distribution - Italie
+  // Large retail - Italy
   'conad': '/logos/conad.png',
   'coop': '/logos/coop.png',
   'esselunga': '/logos/esselunga.png',
 
-  // Grande Distribution - Suède / Nordiques
+  // Large retail - Sweden / Nordics
   'ica': '/logos/ica.png',
   'willys': '/logos/willys.png',
 
-  // Grande Distribution - USA
+  // Large retail - USA
   'kroger': '/logos/kroger.png',
   'target': '/logos/target.png',
   "trader joe's": '/logos/traderjoes.png',
   'trader joes': '/logos/traderjoes.png',
   'whole foods': '/logos/wholefoods.png',
 
-  // E-commerce - Généralistes
+  // E-commerce - Generalists
   'aliexpress': '/logos/aliexpress.png',
   'amazon': '/logos/amazon.png',
   'ebay': '/logos/ebay.png',
@@ -86,7 +86,7 @@ const knownLogos = {
   'temu': '/logos/temu.png',
   'wish': '/logos/wish.png',
 
-  // E-commerce - Tech / Électronique
+  // E-commerce - Tech / Electronics
   'apple': '/logos/apple.png',
   'boulanger': '/logos/boulanger.png',
   'darty': '/logos/darty.png',
@@ -111,7 +111,7 @@ const knownLogos = {
   'ikea': '/logos/ikea.png',
   'leroy merlin': '/logos/leroymerlin.png',
 
-  // Énergie / Télécom
+  // Energy / Telecom
   'edf': '/logos/edf.png',
   'free': '/logos/free.png',
   'orange': '/logos/orange.png',
@@ -128,28 +128,28 @@ const knownLogos = {
 }
 
 /**
- * Recherche un logo connu pour un nom de tiers donné
- * @param {string} name - Nom du tiers
- * @returns {string|null} - URL du logo ou null si non trouvé
+ * Look up a known logo for a given payee name
+ * @param {string} name - Payee name
+ * @returns {string|null} - Logo URL or null if not found
  */
 export function findKnownLogo(name) {
   if (!name || name.length < 3) return null
   
   const normalized = name.toLowerCase().trim()
   
-  // Recherche exacte d'abord
+  // Exact match first
   if (knownLogos[normalized]) {
     return knownLogos[normalized]
   }
   
-  // Recherche : le nom saisi contient le nom complet d'une entreprise connue
-  // (ex: "Carrefour Market" contient "carrefour")
-  // On trie par longueur décroissante pour matcher le plus spécifique d'abord
+  // Search: the entered name contains the full name of a known company
+  // (e.g. "Carrefour Market" contains "carrefour")
+  // Sort by descending length to match the most specific first
   const sortedCompanies = Object.keys(knownLogos).sort((a, b) => b.length - a.length)
   
   for (const company of sortedCompanies) {
-    // Le nom doit contenir le mot complet de l'entreprise (pas juste quelques lettres)
-    // On vérifie que c'est un mot complet avec des limites de mots
+    // The name must contain the company's full word (not just a few letters)
+    // We check that it's a full word using word boundaries
     const regex = new RegExp(`\\b${company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
     if (regex.test(normalized)) {
       return knownLogos[company]

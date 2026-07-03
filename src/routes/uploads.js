@@ -6,10 +6,10 @@ const router = Router();
 
 router.use(requireAuth);
 
-// Upload d'image pour un tiers
+// Image upload for a payee
 router.post('/payee-image', upload.single('image'), uploadPayeeImage);
 
-// Suppression d'image
+// Image deletion
 router.delete('/payee-image', deletePayeeImage);
 
 export default router;

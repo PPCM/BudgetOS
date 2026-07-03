@@ -28,14 +28,14 @@ export default function SearchableSelect({
   const containerRef = useRef(null)
   const inputRef = useRef(null)
 
-  // Obtenir le label d'une option
+  // Get the label of an option
   const getLabel = (opt) => typeof opt === 'string' ? opt : (opt.name || opt.label || '')
   const getId = (opt) => typeof opt === 'string' ? opt : opt.id
 
-  // Option sélectionnée
+  // Selected option
   const selectedOption = options.find((opt) => getId(opt) === value)
 
-  // Mettre à jour l'input quand la sélection change
+  // Update the input when the selection changes
   // Don't reset inputValue if value is set but option not found (newly created item)
   useEffect(() => {
     if (!isOpen) {
@@ -49,7 +49,7 @@ export default function SearchableSelect({
     }
   }, [selectedOption, isOpen, value])
 
-  // Calculer la position du dropdown
+  // Compute the dropdown position
   useEffect(() => {
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
@@ -63,7 +63,7 @@ export default function SearchableSelect({
     }
   }, [isOpen])
 
-  // Fermer le dropdown quand on clique à l'extérieur
+  // Close the dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -79,13 +79,13 @@ export default function SearchableSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Filtrer les options
+  // Filter the options
   const filteredOptions = options.filter((opt) => {
     if (!inputValue) return true
     return getLabel(opt).toLowerCase().includes(inputValue.toLowerCase())
   })
 
-  // Première suggestion (pour auto-complétion visuelle)
+  // First suggestion (for visual auto-completion)
   const firstMatch = inputValue ? filteredOptions[0] : null
 
   const handleInputChange = (e) => {
@@ -119,7 +119,7 @@ export default function SearchableSelect({
       setIsOpen(false)
       // Let the useEffect handle inputValue reset to preserve newly created items
     } else if (e.key === 'Tab' && firstMatch && inputValue) {
-      // Auto-complétion avec Tab
+      // Auto-completion with Tab
       e.preventDefault()
       handleSelect(firstMatch)
     }
@@ -221,7 +221,7 @@ export default function SearchableSelect({
         </div>
       </div>
 
-      {/* Portal pour sortir de la modal */}
+      {/* Portal to escape the modal */}
       {!disabled && createPortal(dropdownContent, document.body)}
     </div>
   )

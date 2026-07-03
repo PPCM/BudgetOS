@@ -4,7 +4,7 @@ import config from '../config/index.js';
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
-// Format personnalisé pour les logs
+// Custom format for logs
 const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
   let log = `${timestamp} [${level}]: ${message}`;
   
@@ -19,7 +19,7 @@ const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => 
   return log;
 });
 
-// Transports selon l'environnement
+// Transports depending on the environment
 const transports = [
   new winston.transports.Console({
     format: combine(
@@ -31,7 +31,7 @@ const transports = [
   }),
 ];
 
-// En production, ajouter les fichiers de log
+// In production, add the log files
 if (config.isProd) {
   transports.push(
     new winston.transports.File({
@@ -60,7 +60,7 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-// Créer un child logger avec contexte
+// Create a child logger with context
 logger.child = (context) => {
   return {
     debug: (message, meta = {}) => logger.debug(message, { ...context, ...meta }),

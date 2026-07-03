@@ -7,9 +7,9 @@ import fs from 'fs';
 const FileStore = FileStoreFactory(session);
 
 /**
- * Configuration des sessions
- * En développement: File store
- * En production: Redis (configuré séparément)
+ * Session configuration
+ * In development: File store
+ * In production: Redis (configured separately)
  */
 export const createSessionMiddleware = () => {
   const sessionsPath = path.join(config.paths.data, 'sessions');
@@ -43,7 +43,7 @@ export const createSessionMiddleware = () => {
 };
 
 /**
- * Middleware pour régénérer la session après authentification
+ * Middleware to regenerate the session after authentication
  */
 export const regenerateSession = (req) => {
   return new Promise((resolve, reject) => {
@@ -56,7 +56,7 @@ export const regenerateSession = (req) => {
         return;
       }
       
-      // Restaurer les données de session (sauf les infos sensibles)
+      // Restore session data (except sensitive info)
       Object.assign(req.session, sessionData);
       resolve();
     });
@@ -64,7 +64,7 @@ export const regenerateSession = (req) => {
 };
 
 /**
- * Middleware pour détruire la session
+ * Middleware to destroy the session
  */
 export const destroySession = (req) => {
   return new Promise((resolve, reject) => {

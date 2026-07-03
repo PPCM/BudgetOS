@@ -23,7 +23,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      // Toujours rafraîchir le token CSRF avant le login
+      // Always refresh the CSRF token before login
       await preloadCsrfToken()
       await login(email, password)
       navigate('/')

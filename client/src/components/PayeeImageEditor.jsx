@@ -5,7 +5,7 @@ import { uploadsApi } from '../lib/api'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
-// Modal spécial pour l'éditeur d'image (z-index élevé pour s'afficher au-dessus des autres modals)
+// Special modal for the image editor (high z-index to display above other modals)
 function ImageEditModal({ children, onClose }) {
   const overlayRef = useRef(null)
 
@@ -51,7 +51,7 @@ export default function PayeeImageEditor({
     xl: 'w-24 h-24',
   }
 
-  // Upload d'une image personnalisée
+  // Upload a custom image
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -84,7 +84,7 @@ export default function PayeeImageEditor({
     }
   }
 
-  // Supprimer l'image
+  // Remove the image
   const removeImage = () => {
     onImageChange(null)
     setIsOpen(false)
@@ -92,7 +92,7 @@ export default function PayeeImageEditor({
 
   return (
     <div className="relative inline-block">
-      {/* Image actuelle */}
+      {/* Current image */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -116,7 +116,7 @@ export default function PayeeImageEditor({
         </div>
       </button>
 
-      {/* Modal d'édition */}
+      {/* Edit modal */}
       {isOpen && (
         <ImageEditModal onClose={() => setIsOpen(false)}>
           <div className="bg-white rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden">
@@ -129,7 +129,7 @@ export default function PayeeImageEditor({
             </div>
 
             <div className="p-4 space-y-4 overflow-y-auto">
-              {/* Image actuelle */}
+              {/* Current image */}
               {imageUrl && (
                 <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                   <img
@@ -149,7 +149,7 @@ export default function PayeeImageEditor({
                 </div>
               )}
 
-              {/* Upload personnalisé */}
+              {/* Custom upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Upload className="w-4 h-4 inline mr-1" />
@@ -185,7 +185,7 @@ export default function PayeeImageEditor({
                 </div>
               </div>
 
-              {/* Erreur */}
+              {/* Error */}
               {error && (
                 <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
                   {error}

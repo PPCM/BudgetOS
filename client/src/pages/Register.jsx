@@ -23,7 +23,7 @@ export default function Register() {
   const toast = useToast()
   const { t } = useTranslation()
 
-  // Pré-charger le token CSRF au montage du composant
+  // Preload the CSRF token on component mount
   useEffect(() => {
     preloadCsrfToken()
   }, [])

@@ -21,23 +21,23 @@ const ensureDirectories = () => {
   });
 };
 
-// Démarrer le serveur
+// Start the server
 const startServer = async () => {
   try {
-    // Créer les répertoires
+    // Create the directories
     ensureDirectories();
 
-    // Initialiser la base de données
+    // Initialize the database
     await initDatabase();
     logger.info('Database initialized');
 
-    // Créer l'application
+    // Create the application
     const app = createApp();
 
-    // Démarrer le scheduler pour les transactions planifiées
+    // Start the scheduler for planned transactions
     schedulerService.start();
 
-    // Démarrer le serveur HTTP
+    // Start the HTTP server
     const server = app.listen(config.server.port, config.server.host, () => {
       const banner = `
   ____            _            _    ___  ____
@@ -51,7 +51,7 @@ const startServer = async () => {
       logger.info(`Environment: ${config.env}`);
     });
 
-    // Gestion de l'arrêt propre
+    // Graceful shutdown handling
     const shutdown = async (signal) => {
       logger.info(`${signal} received, shutting down gracefully...`);
       
@@ -62,7 +62,7 @@ const startServer = async () => {
         process.exit(0);
       });
 
-      // Forcer l'arrêt après 10s
+      // Force shutdown after 10s
       setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
@@ -72,7 +72,7 @@ const startServer = async () => {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
 
-    // Gestion des erreurs non capturées
+    // Uncaught error handling
     process.on('uncaughtException', (err) => {
       logger.error('Uncaught exception', { error: err.message, stack: err.stack });
       shutdown('UNCAUGHT_EXCEPTION');

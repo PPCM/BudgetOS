@@ -2,12 +2,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { format, addDays, addMonths, differenceInDays, startOfMonth, endOfMonth, setDate, subDays } from 'date-fns';
 
 /**
- * Génère un UUID v4
+ * Generate a UUID v4
  */
 export const generateId = () => uuidv4();
 
 /**
- * Formate un montant avec devise
+ * Format an amount with currency
  */
 export const formatCurrency = (amount, currency = 'EUR', locale = 'fr-FR') => {
   return new Intl.NumberFormat(locale, {
@@ -17,33 +17,33 @@ export const formatCurrency = (amount, currency = 'EUR', locale = 'fr-FR') => {
 };
 
 /**
- * Arrondit un montant à 2 décimales
+ * Round an amount to 2 decimals
  */
 export const roundAmount = (amount) => {
   return Math.round(amount * 100) / 100;
 };
 
 /**
- * Formate une date en ISO
+ * Format a date to ISO
  */
 export const formatDateISO = (date) => {
   return format(new Date(date), 'yyyy-MM-dd');
 };
 
 /**
- * Formate une date en format français
+ * Format a date in French format
  */
 export const formatDateFR = (date) => {
   return format(new Date(date), 'dd/MM/yyyy');
 };
 
 /**
- * Calcule la date de débit d'une carte à débit différé
- * @param {Date} purchaseDate - Date d'achat
- * @param {Object} cardConfig - Configuration de la carte
- * @param {number} cardConfig.cycleStartDay - Jour de début de cycle (ex: 26)
- * @param {number} cardConfig.debitDay - Jour de prélèvement (ex: 5)
- * @param {number} cardConfig.debitDaysBeforeEnd - Alternative: J-X avant fin de mois
+ * Calculate the debit date of a deferred-debit card
+ * @param {Date} purchaseDate - Purchase date
+ * @param {Object} cardConfig - Card configuration
+ * @param {number} cardConfig.cycleStartDay - Cycle start day (e.g. 26)
+ * @param {number} cardConfig.debitDay - Debit day (e.g. 5)
+ * @param {number} cardConfig.debitDaysBeforeEnd - Alternative: D-X before end of month
  */
 export const calculateDeferredDebitDate = (purchaseDate, cardConfig) => {
   const purchase = new Date(purchaseDate);
@@ -52,25 +52,25 @@ export const calculateDeferredDebitDate = (purchaseDate, cardConfig) => {
   let billingMonth;
   let debitDate;
   
-  // Déterminer le mois de facturation selon le cycle
+  // Determine the billing month based on the cycle
   if (purchaseDay >= cardConfig.cycleStartDay) {
-    // Achat dans le nouveau cycle -> facturé le mois suivant
+    // Purchase in the new cycle -> billed next month
     billingMonth = addMonths(purchase, 1);
   } else {
-    // Achat avant la date de cycle -> facturé ce mois
+    // Purchase before the cycle date -> billed this month
     billingMonth = purchase;
   }
-  
-  // Calculer la date de débit
+
+  // Calculate the debit date
   if (cardConfig.debitDay) {
-    // Jour fixe du mois
+    // Fixed day of the month
     debitDate = setDate(addMonths(billingMonth, 1), cardConfig.debitDay);
   } else if (cardConfig.debitDaysBeforeEnd) {
-    // J-X avant fin de mois
+    // D-X before end of month
     const monthEnd = endOfMonth(addMonths(billingMonth, 1));
     debitDate = subDays(monthEnd, cardConfig.debitDaysBeforeEnd);
   } else {
-    // Par défaut: le 5 du mois suivant
+    // Default: the 5th of the next month
     debitDate = setDate(addMonths(billingMonth, 1), 5);
   }
   
@@ -78,9 +78,9 @@ export const calculateDeferredDebitDate = (purchaseDate, cardConfig) => {
 };
 
 /**
- * Détermine le cycle de facturation d'une opération carte
- * @param {Date} purchaseDate - Date d'achat
- * @param {number} cycleStartDay - Jour de début de cycle
+ * Determine the billing cycle of a card operation
+ * @param {Date} purchaseDate - Purchase date
+ * @param {number} cycleStartDay - Cycle start day
  */
 export const getCycleForPurchase = (purchaseDate, cycleStartDay) => {
   const purchase = new Date(purchaseDate);
@@ -89,11 +89,11 @@ export const getCycleForPurchase = (purchaseDate, cycleStartDay) => {
   let cycleStart, cycleEnd;
   
   if (purchaseDay >= cycleStartDay) {
-    // Nouveau cycle commencé
+    // New cycle started
     cycleStart = setDate(purchase, cycleStartDay);
     cycleEnd = subDays(setDate(addMonths(purchase, 1), cycleStartDay), 1);
   } else {
-    // Cycle du mois précédent
+    // Previous month's cycle
     cycleStart = setDate(addMonths(purchase, -1), cycleStartDay);
     cycleEnd = subDays(setDate(purchase, cycleStartDay), 1);
   }
@@ -106,11 +106,11 @@ export const getCycleForPurchase = (purchaseDate, cycleStartDay) => {
 };
 
 /**
- * Calcule les prévisions de trésorerie
- * @param {number} currentBalance - Solde actuel
- * @param {Array} plannedTransactions - Transactions planifiées
- * @param {Array} deferredDebits - Débits différés à venir
- * @param {number} days - Horizon en jours
+ * Calculate cash-flow forecast
+ * @param {number} currentBalance - Current balance
+ * @param {Array} plannedTransactions - Planned transactions
+ * @param {Array} deferredDebits - Upcoming deferred debits
+ * @param {number} days - Horizon in days
  */
 export const calculateForecast = (currentBalance, plannedTransactions, deferredDebits, days) => {
   const today = new Date();
@@ -119,14 +119,14 @@ export const calculateForecast = (currentBalance, plannedTransactions, deferredD
   let balance = currentBalance;
   const dailyBalances = [];
   
-  // Combiner toutes les opérations futures
+  // Combine all future operations
   const futureOperations = [
     ...plannedTransactions.map(t => ({ date: new Date(t.date), amount: t.amount })),
     ...deferredDebits.map(d => ({ date: new Date(d.debitDate), amount: -d.amount })),
   ].filter(op => op.date >= today && op.date <= horizon)
    .sort((a, b) => a.date - b.date);
   
-  // Calculer le solde jour par jour
+  // Calculate the balance day by day
   let currentDate = today;
   let opIndex = 0;
   
@@ -155,11 +155,11 @@ export const calculateForecast = (currentBalance, plannedTransactions, deferredD
 };
 
 /**
- * Détecte les doublons potentiels lors de l'import
- * @param {Object} importedTx - Transaction importée
- * @param {Array} existingTxs - Transactions existantes
- * @param {number} dateTolerance - Tolérance en jours pour la date
- * @param {number} amountTolerance - Tolérance en % pour le montant
+ * Detect potential duplicates during import
+ * @param {Object} importedTx - Imported transaction
+ * @param {Array} existingTxs - Existing transactions
+ * @param {number} dateTolerance - Tolerance in days for the date
+ * @param {number} amountTolerance - Tolerance in % for the amount
  */
 export const findPotentialDuplicates = (importedTx, existingTxs, dateTolerance = 2, amountTolerance = 0.01) => {
   const importDate = new Date(importedTx.date);
@@ -169,11 +169,11 @@ export const findPotentialDuplicates = (importedTx, existingTxs, dateTolerance =
     const txDate = new Date(tx.date);
     const txAmount = Math.abs(tx.amount);
     
-    // Vérifier la proximité de date
+    // Check date proximity
     const daysDiff = Math.abs(differenceInDays(importDate, txDate));
     if (daysDiff > dateTolerance) return false;
     
-    // Vérifier la proximité du montant
+    // Check amount proximity
     const amountDiff = Math.abs(importAmount - txAmount) / importAmount;
     if (amountDiff > amountTolerance) return false;
     
@@ -182,47 +182,47 @@ export const findPotentialDuplicates = (importedTx, existingTxs, dateTolerance =
 };
 
 /**
- * Normalise une description pour la correspondance
+ * Normalize a description for matching
  */
 export const normalizeDescription = (description) => {
   if (!description) return '';
   return description
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
-    .replace(/[^a-z0-9\s]/g, '') // Garde lettres, chiffres, espaces
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9\s]/g, '') // Keep letters, digits, spaces
     .replace(/\s+/g, ' ')
     .trim();
 };
 
 /**
- * Calcule un score de correspondance entre deux transactions
+ * Calculate a match score between two transactions
  */
 export const calculateMatchScore = (tx1, tx2) => {
   let score = 0;
 
-  // Correspondance exacte du montant: +50 points
+  // Exact amount match: +50 points
   if (tx1.amount === tx2.amount) {
     score += 50;
   } else {
-    // Correspondance proche: +30 points
+    // Close match: +30 points
     const amountDiff = Math.abs(tx1.amount - tx2.amount) / Math.abs(tx1.amount);
     if (amountDiff <= 0.01) score += 30;
   }
 
-  // Correspondance de date exacte: +30 points
+  // Exact date match: +30 points
   const date1 = formatDateISO(tx1.date);
   const date2 = formatDateISO(tx2.date);
   if (date1 === date2) {
     score += 30;
   } else {
-    // Date proche: +15 points
+    // Close date: +15 points
     const daysDiff = Math.abs(differenceInDays(new Date(date1), new Date(date2)));
     if (daysDiff <= 2) score += 15;
     else if (daysDiff <= 5) score += 5;
   }
 
-  // Correspondance de description: +20 points
+  // Description match: +20 points
   const desc1 = normalizeDescription(tx1.description);
   const desc2 = normalizeDescription(tx2.description);
   if (desc1 && desc2) {
@@ -247,7 +247,7 @@ export const calculateMatchScore = (tx1, tx2) => {
 };
 
 /**
- * Pagine un tableau
+ * Paginate an array
  */
 export const paginate = (array, page = 1, limit = 20) => {
   const startIndex = (page - 1) * limit;

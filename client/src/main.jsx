@@ -11,10 +11,10 @@ import './index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // Données valides 5 minutes
+      staleTime: 5 * 60 * 1000, // Data valid for 5 minutes
       retry: 1,
-      refetchOnWindowFocus: false, // Pas de refetch au retour sur l'onglet
-      refetchOnReconnect: false, // Pas de refetch à la reconnexion réseau
+      refetchOnWindowFocus: false, // No refetch when returning to the tab
+      refetchOnReconnect: false, // No refetch on network reconnect
     },
   },
 })

@@ -172,7 +172,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
                   className="input"
                 >
                   {[...Array(28)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{t('creditCards.dayOfMonth', { day: i + 1 })}</option>
+                    <option key={i + 1} value={i + 1}>{t('creditCards.dayOfMonth', { n: i + 1 })}</option>
                   ))}
                 </select>
               </div>
@@ -184,7 +184,7 @@ function CreditCardModal({ card, accounts, onClose, onSave }) {
                   className="input"
                 >
                   {[...Array(28)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{t('creditCards.dayOfMonth', { day: i + 1 })}</option>
+                    <option key={i + 1} value={i + 1}>{t('creditCards.dayOfMonth', { n: i + 1 })}</option>
                   ))}
                 </select>
               </div>

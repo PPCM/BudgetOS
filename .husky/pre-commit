@@ -1,4 +1,6 @@
 #!/bin/sh
+echo "=> Client lint..."
+npm --prefix client run lint || exit 1
 echo "=> Unit tests..."
 npx vitest run --reporter=dot || exit 1
 echo "=> Integration tests..."

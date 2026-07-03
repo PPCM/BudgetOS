@@ -9,7 +9,7 @@ import { useSearchParams } from 'react-router-dom'
 import { getPersistedAccountTab, setPersistedAccountTab } from '../lib/accountTabPersistence'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi, payeesApi, creditCardsApi } from '../lib/api'
-import { getDatePeriod } from '../lib/utils'
+import { getDatePeriod, formatLocalDate } from '../lib/utils'
 import { translateError } from '../lib/errorHelper'
 import { useFormatters, parseAmount } from '../hooks/useFormatters'
 import FormattedAmountInput from '../components/FormattedAmountInput'
@@ -123,7 +123,7 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
       payeeId: '',
       amount: '',
       description: '',
-      date: new Date().toISOString().split('T')[0],
+      date: formatLocalDate(new Date()),
       type: 'expense',
       checkNumber: '',
       creditCardId: '',
@@ -160,11 +160,11 @@ export function TransactionModal({ transaction, accounts, categories, payees, cr
   const filteredCategories = useMemo(() =>
     categories?.filter(c => c.type === formData.type || c.type === 'transfer')
       .sort((a, b) => a.name.localeCompare(b.name, i18n.language)) || []
-  , [categories, formData.type])
+  , [categories, formData.type, i18n.language])
 
   const sortedPayees = useMemo(() =>
     payees ? [...payees].sort((a, b) => a.name.localeCompare(b.name, i18n.language)) : []
-  , [payees])
+  , [payees, i18n.language])
 
   // Derived variables for card/check ↔ account consistency
   const selectedCard = creditCards?.find(cc => cc.id === formData.creditCardId && formData.creditCardId !== '__selecting__')

@@ -5,6 +5,7 @@ import {
   formatDate,
   formatDateRelative,
   formatLocalDate,
+  parseLocalDate,
   getDatePeriod,
 } from '../../src/lib/utils'
 
@@ -49,6 +50,33 @@ describe('formatDate', () => {
 
   it('handles Date objects', () => {
     expect(formatDate(new Date(2026, 0, 20))).toBe('20/01/2026')
+  })
+
+  it('keeps the same day regardless of timezone (no UTC off-by-one)', () => {
+    // 'new Date("2026-12-31")' parses as UTC midnight and would shift to Dec 30
+    // when formatted west of UTC. parseLocalDate keeps it on Dec 31.
+    expect(formatDate('2026-12-31')).toBe('31/12/2026')
+  })
+})
+
+describe('parseLocalDate', () => {
+  it('parses a YYYY-MM-DD string as a local date', () => {
+    const d = parseLocalDate('2026-01-20')
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getMonth()).toBe(0)
+    expect(d.getDate()).toBe(20)
+    expect(d.getHours()).toBe(0)
+  })
+
+  it('passes Date objects through unchanged', () => {
+    const original = new Date(2026, 5, 15)
+    expect(parseLocalDate(original).getTime()).toBe(original.getTime())
+  })
+
+  it('handles ISO strings with a time component', () => {
+    const d = parseLocalDate('2026-01-20T10:30:00')
+    expect(d.getFullYear()).toBe(2026)
+    expect(d.getDate()).toBe(20)
   })
 })
 

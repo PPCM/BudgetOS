@@ -556,7 +556,8 @@
       "description": "描述",
       "amount": "金额"
     },
-    "conditionCount": "{{count}} 个条件"
+    "conditionCount": "{{count}} 个条件",
+    "confirmDelete": "删除规则\"{{name}}\"？"
   },
   "reports": {
     "title": "报表",
@@ -637,7 +638,8 @@
         "EUR": "欧元 (€)",
         "USD": "美元 ($)",
         "GBP": "英镑 (£)",
-        "CHF": "瑞士法郎 (CHF)"
+        "CHF": "瑞士法郎 (CHF)",
+        "CAD": "加拿大元 (CA$)"
       },
       "weekDays": {
         "monday": "星期一",

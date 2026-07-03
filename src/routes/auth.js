@@ -13,7 +13,7 @@ router.get('/setup-status', asyncHandler(authController.getSetupStatus));
 router.post('/register', authRateLimiter, validate({ body: registerSchema }), asyncHandler(authController.register));
 router.post('/login', authRateLimiter, validate({ body: loginSchema }), asyncHandler(authController.login));
 router.post('/forgot-password', authRateLimiter, validate({ body: forgotPasswordSchema }), asyncHandler(authController.forgotPassword));
-router.get('/validate-reset-token', validate({ query: validateResetTokenSchema }), asyncHandler(authController.validateResetToken));
+router.get('/validate-reset-token', authRateLimiter, validate({ query: validateResetTokenSchema }), asyncHandler(authController.validateResetToken));
 router.post('/reset-password', authRateLimiter, validate({ body: resetPasswordSchema }), asyncHandler(authController.resetPassword));
 
 // Routes protégées

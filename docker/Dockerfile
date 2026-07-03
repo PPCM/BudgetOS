@@ -52,8 +52,8 @@ RUN if [ -f node_modules/jszip/package.json ]; then \
         > node_modules/jszip/LICENSE.markdown.new && \
       mv node_modules/jszip/LICENSE.markdown.new node_modules/jszip/LICENSE.markdown ; \
     fi
-RUN mkdir -p data uploads logs client/public/uploads/payees && \
-    chown -R node:node data uploads logs client/public/uploads
+RUN mkdir -p data uploads/payees logs && \
+    chown -R node:node data uploads logs
 
 USER node
 

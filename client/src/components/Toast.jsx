@@ -3,7 +3,7 @@
  * Provides a context-based toast notification system with different types
  */
 
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react'
 import i18n from '../i18n'
 
@@ -125,12 +125,12 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const toast = useCallback({
+  const toast = useMemo(() => ({
     success: (message, title) => addToast({ type: 'success', message, title }),
     error: (message, title = i18n.t('common.error')) => addToast({ type: 'error', message, title, duration: 15000 }),
     warning: (message, title) => addToast({ type: 'warning', message, title }),
     info: (message, title) => addToast({ type: 'info', message, title }),
-  }, [addToast])
+  }), [addToast])
 
   return (
     <ToastContext.Provider value={toast}>

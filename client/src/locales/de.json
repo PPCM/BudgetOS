@@ -556,7 +556,8 @@
       "description": "Beschreibung",
       "amount": "Betrag"
     },
-    "conditionCount": "{{count}} Bedingung(en)"
+    "conditionCount": "{{count}} Bedingung(en)",
+    "confirmDelete": "Regel \"{{name}}\" löschen?"
   },
   "reports": {
     "title": "Berichte",
@@ -637,7 +638,8 @@
         "EUR": "Euro (€)",
         "USD": "Dollar ($)",
         "GBP": "Britisches Pfund (£)",
-        "CHF": "Schweizer Franken (CHF)"
+        "CHF": "Schweizer Franken (CHF)",
+        "CAD": "Kanadischer Dollar (CA$)"
       },
       "weekDays": {
         "monday": "Montag",

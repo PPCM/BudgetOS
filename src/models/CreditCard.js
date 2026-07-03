@@ -4,6 +4,7 @@ import { generateId, roundAmount, calculateDeferredDebitDate, getCycleForPurchas
 import { NotFoundError } from '../utils/errors.js';
 import { addMonths, setDate, subDays, endOfMonth, startOfMonth, format } from 'date-fns';
 import { buildUpdates } from '../utils/modelHelpers.js';
+import Account from './Account.js';
 
 /**
  * Parse a MM/YY expiration date string and return a comparable numeric value.
@@ -520,7 +521,11 @@ export class CreditCard {
     const cycle = await knex('credit_card_cycles').where({ id: cycleId }).first();
     if (!cycle || cycle.status !== 'pending') return null;
 
-    const card = await knex('credit_cards').where({ id: cycle.credit_card_id }).first();
+    // Filter the card by user_id so a cycle belonging to another user cannot be
+    // debited (ownership check / IDOR protection).
+    const card = await knex('credit_cards')
+      .where({ id: cycle.credit_card_id, user_id: userId })
+      .first();
     if (!card || !card.linked_account_id) return null;
 
     const debitId = generateId();
@@ -547,6 +552,9 @@ export class CreditCard {
           status: 'debited',
           debit_transaction_id: debitId,
         });
+
+      // Recompute the debited account balance within the same transaction.
+      await Account.updateBalance(card.linked_account_id, userId, trx);
     });
 
     return debitId;

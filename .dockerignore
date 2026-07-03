@@ -3,6 +3,7 @@ client/node_modules
 client/dist
 data
 uploads
+client/public/uploads
 logs
 .env
 .env.*

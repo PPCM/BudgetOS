@@ -65,7 +65,17 @@ export class Rule {
         case 'greater_than': match = Number(actual) > Number(target); break;
         case 'less_than': match = Number(actual) < Number(target); break;
         case 'between': match = Number(actual) >= target[0] && Number(actual) <= target[1]; break;
-        case 'regex': match = new RegExp(target, cond.caseSensitive ? '' : 'i').test(actual); break;
+        case 'regex':
+          // User-supplied pattern: guard against invalid regex (would throw) and
+          // cap the pattern length to limit catastrophic-backtracking (ReDoS) risk.
+          try {
+            if (typeof target === 'string' && target.length <= 200) {
+              match = new RegExp(target, cond.caseSensitive ? '' : 'i').test(actual);
+            }
+          } catch {
+            match = false;
+          }
+          break;
       }
       if (!match) return false;
     }

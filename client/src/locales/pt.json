@@ -556,7 +556,8 @@
       "description": "Descrição",
       "amount": "Montante"
     },
-    "conditionCount": "{{count}} condição(ões)"
+    "conditionCount": "{{count}} condição(ões)",
+    "confirmDelete": "Excluir a regra \"{{name}}\"?"
   },
   "reports": {
     "title": "Relatórios",
@@ -637,7 +638,8 @@
         "EUR": "Euro (€)",
         "USD": "Dólar ($)",
         "GBP": "Libra Esterlina (£)",
-        "CHF": "Franco Suíço (CHF)"
+        "CHF": "Franco Suíço (CHF)",
+        "CAD": "Dólar Canadense (CA$)"
       },
       "weekDays": {
         "monday": "Segunda-feira",

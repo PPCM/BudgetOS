@@ -10,6 +10,18 @@ const generateToken = () => {
 };
 
 /**
+ * Constant-time string comparison (avoids leaking the token via timing).
+ * Returns false for non-strings or length mismatch.
+ */
+const safeEqual = (a, b) => {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+};
+
+/**
  * Custom CSRF protection middleware
  * Alternative to the deprecated csurf package
  */
@@ -27,7 +39,7 @@ export const csrfProtection = (req, res, next) => {
   
   const providedToken = tokenFromHeader || tokenFromBody;
   
-  if (!providedToken || !tokenFromSession || providedToken !== tokenFromSession) {
+  if (!providedToken || !tokenFromSession || !safeEqual(providedToken, tokenFromSession)) {
     logger.warn('CSRF token mismatch', {
       ip: req.ip,
       path: req.path,

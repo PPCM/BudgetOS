@@ -192,6 +192,9 @@ export class Account {
     if (account.isActive) return { reactivated: true, alreadyActive: true };
 
     await knex('accounts').where({ id, user_id: userId }).update({ is_active: true });
+    // Recompute the balance now that the account is active again (updateBalance
+    // is a no-op on inactive accounts, so it could not run while deactivated).
+    await Account.updateBalance(id, userId);
     return { reactivated: true, alreadyActive: false };
   }
 

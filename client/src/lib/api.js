@@ -59,8 +59,13 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
-    // Retry with fresh CSRF token on 403 error
-    if (error.response?.status === 403 && !originalRequest._retry) {
+    // Retry with a fresh CSRF token only when the 403 is caused by an invalid
+    // CSRF token. Genuine authorization denials must not be retried.
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.error?.code === 'CSRF_TOKEN_INVALID' &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true
       csrfToken = null
       const newToken = await fetchCsrfToken(true)

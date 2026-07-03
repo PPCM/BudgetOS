@@ -41,10 +41,34 @@ async function insertLinkedTransaction(trx, sourceId, userId, toAccountId, data,
  */
 export class Transaction {
   /**
+   * Validate that referenced category / payee / credit card belong to the user.
+   * Categories may also be system-wide (null user_id). Prevents referencing
+   * another user's objects (cross-tenant info leak).
+   */
+  static async validateReferences(userId, data) {
+    if (data.categoryId) {
+      const cat = await knex('categories')
+        .where('id', data.categoryId)
+        .where(function () { this.where('user_id', userId).orWhereNull('user_id'); })
+        .first();
+      if (!cat) throw new NotFoundError('Category not found', 'CATEGORY_NOT_FOUND');
+    }
+    if (data.payeeId) {
+      const payee = await knex('payees').where({ id: data.payeeId, user_id: userId }).first();
+      if (!payee) throw new NotFoundError('Payee not found', 'PAYEE_NOT_FOUND');
+    }
+    if (data.creditCardId) {
+      const cc = await knex('credit_cards').where({ id: data.creditCardId, user_id: userId }).first();
+      if (!cc) throw new NotFoundError('Credit card not found', 'CREDIT_CARD_NOT_FOUND');
+    }
+  }
+
+  /**
    * Create a new transaction
    */
   static async create(userId, data) {
     const id = generateId();
+    await Transaction.validateReferences(userId, data);
 
     // Handle external source transfer (no source account, only destination)
     if (data.type === 'transfer' && !data.accountId && data.toAccountId) {
@@ -97,6 +121,7 @@ export class Transaction {
         purchase_date: data.purchaseDate || null,
         status: data.status || 'pending',
         type: data.type,
+        is_split: !!data.isSplit,
         is_recurring: !!data.isRecurring,
         recurring_id: data.recurringId || null,
         tags: data.tags ? JSON.stringify(data.tags) : null,
@@ -185,10 +210,11 @@ export class Transaction {
       if (minAmount !== undefined) query = query.andWhereRaw('ABS(t.amount) >= ?', [minAmount]);
       if (maxAmount !== undefined) query = query.andWhereRaw('ABS(t.amount) <= ?', [maxAmount]);
       if (search) {
+        const likeOp = dateHelpers.likeOperator(knex);
         query = query.andWhere(function () {
-          this.where('t.description', 'like', `%${search}%`)
-            .orWhere('t.notes', 'like', `%${search}%`)
-            .orWhere('t.check_number', 'like', `%${search}%`);
+          this.where('t.description', likeOp, `%${search}%`)
+            .orWhere('t.notes', likeOp, `%${search}%`)
+            .orWhere('t.check_number', likeOp, `%${search}%`);
         });
       }
       return query;
@@ -257,6 +283,7 @@ export class Transaction {
    */
   static async update(id, userId, data) {
     const tx = await Transaction.findByIdOrFail(id, userId);
+    await Transaction.validateReferences(userId, data);
     const oldAccountId = tx.accountId;
     const isTransfer = tx.type === 'transfer' || data.type === 'transfer';
 
@@ -310,13 +337,21 @@ export class Transaction {
     // Fields that should be synced to linked transaction
     const syncFields = ['category_id', 'payee_id', 'description', 'notes', 'date', 'status'];
 
-    // Calculate amount with correct sign
+    // Calculate amount with correct sign. Recompute when the amount OR the type
+    // changes, so a type change alone (e.g. expense -> income) fixes the sign.
     let newAmount = null;
-    if (data.amount !== undefined) {
+    const typeChanged = data.type !== undefined && data.type !== tx.type;
+    if (data.amount !== undefined || typeChanged) {
       const type = data.type || tx.type;
-      newAmount = Math.abs(data.amount);
-      if (type === 'expense' || type === 'transfer') {
-        newAmount = -newAmount;
+      const magnitude = data.amount !== undefined ? Math.abs(data.amount) : Math.abs(tx.amount);
+      if (type === 'expense') {
+        newAmount = -magnitude;
+      } else if (type === 'transfer') {
+        // Preserve this leg's direction: the outgoing leg is negative, the
+        // incoming (destination) leg is positive. Editing either must not flip it.
+        newAmount = tx.amount < 0 ? -magnitude : magnitude;
+      } else {
+        newAmount = magnitude; // income
       }
     }
 
@@ -334,9 +369,9 @@ export class Transaction {
       }
     }
 
-    // Handle amount for linked transaction (opposite sign)
+    // Handle amount for linked transaction (opposite sign of the edited leg)
     if (newAmount !== null && linkedTx) {
-      linkedUpdatesObj.amount = Math.abs(newAmount); // Positive for destination
+      linkedUpdatesObj.amount = -newAmount;
     }
 
     await knex.transaction(async (trx) => {
@@ -427,7 +462,7 @@ export class Transaction {
    * Reconcile transactions
    */
   static async reconcile(userId, transactionIds, reconcileDate) {
-    await knex('transactions')
+    const reconciled = await knex('transactions')
       .where('user_id', userId)
       .whereIn('id', transactionIds)
       .update({
@@ -436,7 +471,7 @@ export class Transaction {
         reconciled_at: reconcileDate,
       });
 
-    return { reconciled: transactionIds.length };
+    return { reconciled };
   }
 
   /**

@@ -283,8 +283,18 @@ export function yearMonth(knex, column) {
   }
 }
 
+/**
+ * Returns the case-insensitive LIKE operator for the current dialect.
+ * PostgreSQL's LIKE is case-sensitive, so use ILIKE there; SQLite and MySQL
+ * default collations already make LIKE case-insensitive.
+ */
+export function likeOperator(knex) {
+  return getDialect(knex) === 'pg' ? 'ilike' : 'like';
+}
+
 export default {
   getDialect,
+  likeOperator,
   now,
   currentDate,
   dateAdd,

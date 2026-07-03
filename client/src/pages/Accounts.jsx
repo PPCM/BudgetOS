@@ -219,7 +219,7 @@ export default function Accounts() {
   const createMutation = useMutation({
     mutationFn: accountsApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setModalOpen(false)
     },
     onError: (err) => {
@@ -230,7 +230,7 @@ export default function Accounts() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => accountsApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['accounts'])
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
       setEditingAccount(null)
     },
     onError: (err) => {
@@ -241,10 +241,10 @@ export default function Accounts() {
   const deactivateMutation = useMutation({
     mutationFn: accountsApi.deactivate,
     onSuccess: () => {
-      queryClient.invalidateQueries(['accounts'])
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['dashboard'])
-      queryClient.invalidateQueries(['projections'])
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['projections'] })
     },
     onError: (err) => alert(translateError(err)),
   })
@@ -252,10 +252,10 @@ export default function Accounts() {
   const reactivateMutation = useMutation({
     mutationFn: accountsApi.reactivate,
     onSuccess: () => {
-      queryClient.invalidateQueries(['accounts'])
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['dashboard'])
-      queryClient.invalidateQueries(['projections'])
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['projections'] })
     },
     onError: (err) => alert(translateError(err)),
   })
@@ -263,10 +263,10 @@ export default function Accounts() {
   const deleteMutation = useMutation({
     mutationFn: accountsApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries(['accounts'])
-      queryClient.invalidateQueries(['transactions'])
-      queryClient.invalidateQueries(['dashboard'])
-      queryClient.invalidateQueries(['projections'])
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['projections'] })
       setPermanentDeleteAccount(null)
     },
     onError: (err) => alert(translateError(err)),

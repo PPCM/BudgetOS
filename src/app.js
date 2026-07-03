@@ -56,12 +56,16 @@ const createApp = () => {
   // API routes
   app.use('/api/v1', apiRoutes);
 
+  // Serve uploaded files (payee images) from the persisted uploads volume.
+  // Registered for all environments so images resolve in production too.
+  app.use('/uploads', express.static(config.paths.uploads));
+
   // Serve frontend in production
   const clientPath = path.join(__dirname, '../client/dist');
   if (fs.existsSync(clientPath)) {
     app.use(express.static(clientPath));
     app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api')) return next();
+      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
       res.sendFile(path.join(clientPath, 'index.html'));
     });
   } else if (config.isDev) {

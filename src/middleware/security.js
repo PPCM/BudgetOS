@@ -18,7 +18,10 @@ export const helmetMiddleware = helmet({
       connectSrc: ["'self'"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: config.isDev ? null : [],
+      // Only force HTTPS upgrades when the deployment is actually served over
+      // HTTPS. On a plain-HTTP install this directive would upgrade asset
+      // requests to HTTPS, which fail and leave the user with a blank page.
+      upgradeInsecureRequests: config.session.secure ? [] : null,
     },
   },
   crossOriginEmbedderPolicy: false,

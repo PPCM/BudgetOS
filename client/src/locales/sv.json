@@ -556,7 +556,8 @@
       "description": "Beskrivning",
       "amount": "Belopp"
     },
-    "conditionCount": "{{count}} villkor"
+    "conditionCount": "{{count}} villkor",
+    "confirmDelete": "Ta bort regeln \"{{name}}\"?"
   },
   "reports": {
     "title": "Rapporter",
@@ -637,7 +638,8 @@
         "EUR": "Euro (€)",
         "USD": "Dollar ($)",
         "GBP": "Brittiskt pund (£)",
-        "CHF": "Schweizisk franc (CHF)"
+        "CHF": "Schweizisk franc (CHF)",
+        "CAD": "Kanadensisk dollar (CA$)"
       },
       "weekDays": {
         "monday": "Måndag",

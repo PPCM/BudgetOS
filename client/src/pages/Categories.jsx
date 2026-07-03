@@ -167,7 +167,7 @@ export default function Categories() {
   const createMutation = useMutation({
     mutationFn: categoriesApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries(['categories'])
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
       setModalOpen(false)
       setEditingCategory(null)
     },
@@ -177,7 +177,7 @@ export default function Categories() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => categoriesApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['categories'])
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
       setModalOpen(false)
       setEditingCategory(null)
     },
@@ -186,7 +186,7 @@ export default function Categories() {
 
   const deleteMutation = useMutation({
     mutationFn: categoriesApi.delete,
-    onSuccess: () => queryClient.invalidateQueries(['categories']),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
     onError: (err) => alert(translateError(err)),
   })
 
@@ -249,7 +249,7 @@ export default function Categories() {
           }
         }
         alert(t('categories.importDone', { created, updated }))
-        queryClient.invalidateQueries(['categories'])
+        queryClient.invalidateQueries({ queryKey: ['categories'] })
       } catch (err) {
         alert(t('categories.importError') + ': ' + err.message)
       }

@@ -842,6 +842,9 @@ export default function AdminUsers() {
       {/* Edit user modal */}
       {editingUser && (
         <UserModal
+          // Remount once the authoritative user detail has loaded so the form
+          // re-initializes from the full record instead of the list summary.
+          key={userDetailData ? `${editingUser.id}-detail` : `${editingUser.id}-summary`}
           user={editUserDetail}
           userGroups={editUserGroups}
           onClose={closeEditModal}

@@ -31,7 +31,7 @@ export default function Import() {
   const queryClient = useQueryClient()
 
   // Load accounts
-  const { data: accountsData } = useQuery({
+  const { data: accountsData, error: accountsError } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => accountsApi.getAll().then(r => r.data),
   })
@@ -224,6 +224,11 @@ export default function Import() {
       </div>
 
       {/* Error display */}
+      {accountsError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+          {t('common.error')}: {accountsError.message}
+        </div>
+      )}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
           {error}
@@ -289,7 +294,7 @@ export default function Import() {
                 >
                   <option value=";">{t('import.delimiterSemicolon')}</option>
                   <option value=",">{t('import.delimiterComma')}</option>
-                  <option value="\t">{t('import.delimiterTab')}</option>
+                  <option value={'\t'}>{t('import.delimiterTab')}</option>
                 </select>
               </div>
               <div>

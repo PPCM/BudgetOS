@@ -36,6 +36,24 @@ export function formatCurrency(amount, currency = 'EUR', locale = 'fr') {
 }
 
 /**
+ * Parses a date value, interpreting bare 'YYYY-MM-DD' strings as local dates.
+ * `new Date('2026-01-20')` parses as UTC midnight, which formats to the previous
+ * day in timezones west of UTC. This treats date-only strings as local instead.
+ * Strings with a time component and Date objects are passed through unchanged.
+ * @param {string|Date} date - Date value to parse
+ * @returns {Date}
+ */
+export function parseLocalDate(date) {
+  if (typeof date === 'string') {
+    const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    }
+  }
+  return new Date(date)
+}
+
+/**
  * Formats a date in French locale (dd/MM/yyyy)
  * @param {string|Date} date - Date to format
  * @returns {string} Formatted date string (e.g., "20/01/2026")
@@ -48,7 +66,7 @@ export function formatDate(date, locale = 'fr') {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  }).format(new Date(date))
+  }).format(parseLocalDate(date))
 }
 
 /**
@@ -61,7 +79,7 @@ export function formatDate(date, locale = 'fr') {
  */
 export function formatDateRelative(date) {
   const now = new Date()
-  const d = new Date(date)
+  const d = parseLocalDate(date)
   const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24))
 
   if (diff === 0) return "Aujourd'hui"

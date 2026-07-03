@@ -3,17 +3,18 @@ import sharp from 'sharp';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { ValidationError } from '../utils/errors.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import config from '../config/index.js';
 
 // Configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_IMAGE_DIMENSION = 256; // Max dimension in pixels
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif'];
-const UPLOAD_BASE_DIR = path.resolve(__dirname, '../../client/public/uploads/payees');
+// Store uploads in the persisted uploads volume (served by Express at /uploads),
+// not in client/public — which is only served in dev and would be lost/baked
+// into the image in production.
+const UPLOADS_DIR = config.paths.uploads;
+const UPLOAD_BASE_DIR = path.resolve(UPLOADS_DIR, 'payees');
 
 // Create the base directory if it doesn't exist
 if (!fs.existsSync(UPLOAD_BASE_DIR)) {
@@ -130,11 +131,12 @@ export const deletePayeeImage = async (req, res, next) => {
       throw new ValidationError('Invalid image URL', 'INVALID_IMAGE_URL');
     }
 
-    const publicDir = path.resolve(__dirname, '../../client/public');
-    const filePath = path.resolve(publicDir, imageUrl.slice(1)); // Remove leading /
+    // imageUrl is "/uploads/payees/...": resolve it against the uploads volume.
+    const relativePath = imageUrl.replace(/^\/uploads\//, '');
+    const filePath = path.resolve(UPLOADS_DIR, relativePath);
 
-    // Ensure resolved path stays within the public uploads directory
-    if (!filePath.startsWith(path.resolve(publicDir, 'uploads/payees'))) {
+    // Ensure resolved path stays within the payees uploads directory
+    if (!filePath.startsWith(UPLOAD_BASE_DIR)) {
       throw new ValidationError('Invalid image URL', 'INVALID_IMAGE_URL');
     }
 

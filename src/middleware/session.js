@@ -26,7 +26,7 @@ export const createSessionMiddleware = () => {
     rolling: true,
     cookie: {
       httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true' || (process.env.COOKIE_SECURE !== 'false' && config.isProd),
+      secure: config.session.secure,
       sameSite: 'lax',
       maxAge: config.session.maxAge,
       path: '/',

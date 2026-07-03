@@ -54,12 +54,13 @@ export default function Reports() {
 function MonthlyTrend() {
   const { t } = useTranslation()
   const { formatCurrency } = useFormatters()
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['monthly-trend'],
     queryFn: () => reportsApi.getMonthlyTrend({ months: 12 }).then(r => r.data.data.trend),
   })
 
   if (isLoading) return <LoadingState />
+  if (error) return <ErrorState error={error} />
 
   return (
     <div className="card">
@@ -86,12 +87,13 @@ function MonthlyTrend() {
 function CategoryBreakdown() {
   const { t } = useTranslation()
   const { formatCurrency } = useFormatters()
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['expenses-category-report'],
     queryFn: () => reportsApi.getExpensesByCategory({}).then(r => r.data.data.expenses),
   })
 
   if (isLoading) return <LoadingState />
+  if (error) return <ErrorState error={error} />
 
   const pieData = data?.slice(0, 8).map((e, i) => ({
     name: e.categoryName,
@@ -148,12 +150,13 @@ function CategoryBreakdown() {
 function Forecast() {
   const { t } = useTranslation()
   const { formatCurrency, locale } = useFormatters()
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['forecast'],
     queryFn: () => reportsApi.getForecast({ days: 90 }).then(r => r.data.data.forecast),
   })
 
   if (isLoading) return <LoadingState />
+  if (error) return <ErrorState error={error} />
 
   const chartData = data?.dailyBalances?.filter((_, i) => i % 7 === 0) || []
   const intlLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
@@ -214,6 +217,15 @@ function LoadingState() {
   return (
     <div className="card flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    </div>
+  )
+}
+
+function ErrorState({ error }) {
+  const { t } = useTranslation()
+  return (
+    <div className="card flex items-center justify-center h-64 text-red-600">
+      {t('common.error')}: {error?.message}
     </div>
   )
 }

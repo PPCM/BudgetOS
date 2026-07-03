@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import crypto from 'crypto';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -7,18 +9,84 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const isProd = process.env.NODE_ENV === 'production';
+
+// Well-known placeholder secrets that must never be accepted in production.
+const WEAK_SECRETS = new Set([
+  'dev-secret-change-me',
+  'change-me-in-production',
+  'changeme',
+  'secret',
+  'password',
+  'budgetos',
+]);
+
+const isStrongSecret = (s) => typeof s === 'string' && s.length >= 32 && !WEAK_SECRETS.has(s);
+
+/**
+ * Resolve the session secret.
+ * - A strong SESSION_SECRET (>= 32 chars, not a known placeholder) is always used.
+ * - In development, a stable weak default is acceptable.
+ * - In production without a strong secret: reject an explicitly-set weak value
+ *   (loud misconfiguration), otherwise generate one and persist it to the data
+ *   volume so it survives restarts (a fresh secret each boot would drop sessions).
+ */
+function resolveSessionSecret() {
+  const provided = process.env.SESSION_SECRET;
+
+  if (isStrongSecret(provided)) return provided;
+
+  if (!isProd) {
+    return provided && provided.length ? provided : 'dev-secret-change-me';
+  }
+
+  if (provided) {
+    throw new Error(
+      'SESSION_SECRET is set but too weak. Use a unique random value of >= 32 chars ' +
+      '(generate one with: openssl rand -hex 32), or unset it to auto-generate a persisted secret.'
+    );
+  }
+
+  const dataDir = path.resolve(__dirname, '../../data');
+  const secretFile = path.join(dataDir, '.session-secret');
+  try {
+    if (fs.existsSync(secretFile)) {
+      const existing = fs.readFileSync(secretFile, 'utf-8').trim();
+      if (isStrongSecret(existing)) return existing;
+    }
+    fs.mkdirSync(dataDir, { recursive: true });
+    const generated = crypto.randomBytes(32).toString('hex');
+    fs.writeFileSync(secretFile, generated, { mode: 0o600 });
+    return generated;
+  } catch (err) {
+    throw new Error(
+      `SESSION_SECRET is not set and a secret could not be generated at ${secretFile}: ${err.message}. ` +
+      'Set SESSION_SECRET to a strong random value (openssl rand -hex 32).'
+    );
+  }
+}
+
+// Whether the deployment is served over HTTPS. Drives both the Secure cookie
+// flag and the CSP "upgrade-insecure-requests" directive, so they stay in sync.
+// Explicit COOKIE_SECURE wins; otherwise ON in production, OFF in development.
+// Must be OFF for plain-HTTP installs, else the browser upgrades asset requests
+// to HTTPS and the page fails to load (blank page).
+const httpsEnabled = process.env.COOKIE_SECURE === 'true'
+  || (process.env.COOKIE_SECURE !== 'false' && isProd);
+
 const config = {
   env: process.env.NODE_ENV || 'development',
   isDev: process.env.NODE_ENV !== 'production',
-  isProd: process.env.NODE_ENV === 'production',
-  
+  isProd,
+
   server: {
     port: parseInt(process.env.PORT, 10) || 3000,
     host: process.env.HOST || 'localhost',
   },
-  
+
   session: {
-    secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+    secret: resolveSessionSecret(),
+    secure: httpsEnabled,
     maxAge: parseInt(process.env.SESSION_MAX_AGE, 10) || 86400000, // 24h
     name: 'budgetos.sid',
   },
@@ -97,10 +165,5 @@ const config = {
     logs: path.resolve(__dirname, '../../logs'),
   },
 };
-
-// Validation de la configuration critique
-if (config.isProd && config.session.secret === 'dev-secret-change-me') {
-  throw new Error('SESSION_SECRET must be set in production');
-}
 
 export default config;

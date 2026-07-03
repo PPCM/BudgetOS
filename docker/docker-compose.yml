@@ -3,17 +3,20 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: budgetos:1.0.0
+    image: budgetos:latest
     container_name: budgetos
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - SESSION_SECRET=change-me-in-production
+      # SESSION_SECRET: leave unset to auto-generate a persisted secret in the
+      # data volume, or set your own strong value (openssl rand -hex 32).
+      # - SESSION_SECRET=
       - DB_TYPE=sqlite
       - DB_PATH=./data/budgetos.db
-      # Set COOKIE_SECURE=true when behind an HTTPS reverse proxy
+      # Set COOKIE_SECURE=true when serving over HTTPS (secures the session
+      # cookie and enables HTTPS asset upgrades). Leave unset/false for plain HTTP.
       # - COOKIE_SECURE=true
       # SMTP configuration for password reset emails
       # - SMTP_HOST=smtp.example.com
@@ -35,14 +38,14 @@ services:
   #   build:
   #     context: ..
   #     dockerfile: docker/Dockerfile
-  #   image: budgetos:1.0.0
+  #   image: budgetos:latest
   #   container_name: budgetos
   #   restart: unless-stopped
   #   ports:
   #     - "3000:3000"
   #   environment:
   #     - NODE_ENV=production
-  #     - SESSION_SECRET=change-me-in-production
+  #     # - SESSION_SECRET=   # leave unset to auto-generate, or set your own
   #     - DB_TYPE=mariadb
   #     - MYSQL_HOST=mariadb
   #     - MYSQL_PORT=3306
@@ -80,14 +83,14 @@ services:
   #   build:
   #     context: ..
   #     dockerfile: docker/Dockerfile
-  #   image: budgetos:1.0.0
+  #   image: budgetos:latest
   #   container_name: budgetos
   #   restart: unless-stopped
   #   ports:
   #     - "3000:3000"
   #   environment:
   #     - NODE_ENV=production
-  #     - SESSION_SECRET=change-me-in-production
+  #     # - SESSION_SECRET=   # leave unset to auto-generate, or set your own
   #     - DB_TYPE=postgres
   #     - POSTGRES_HOST=postgres
   #     - POSTGRES_PORT=5432

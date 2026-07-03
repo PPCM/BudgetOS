@@ -16,6 +16,7 @@ data/
 # Uploads
 uploads/*
 !uploads/.gitkeep
+client/public/uploads/
 
 # Logs
 logs/
@@ -73,3 +74,6 @@ CLAUDE.local.md
 *.swp
 *~
 cookies.txt
+
+# Claude Code local configuration
+.claude/

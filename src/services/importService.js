@@ -22,10 +22,10 @@ export class ImportService {
    * @param {string} accountId
    * @param {Object} file - Multer file object
    * @param {string} fileType - csv, excel, qif, qfx, ofx
-   * @param {Object} config - Parsing configuration
+   * @param {Object} parseConfig - Parsing configuration
    * @returns {Object} { importId, transactions, summary, creditCardsDetected }
    */
-  static async analyzeImport(userId, accountId, file, fileType, config = {}) {
+  static async analyzeImport(userId, accountId, file, fileType, parseConfig = {}) {
     // Create import record
     const importId = generateId();
     await knex('imports').insert({
@@ -39,7 +39,7 @@ export class ImportService {
     });
 
     // Parse file
-    const parsedTxs = await ImportService.parseFile(file.path, fileType, config);
+    const parsedTxs = await ImportService.parseFile(file.path, fileType, parseConfig);
 
     // Enrich with bank pattern analysis
     const enrichedTxs = await ImportService.enrichTransactions(userId, accountId, parsedTxs);
@@ -264,7 +264,7 @@ export class ImportService {
 
         if (action.action === 'match' && action.matchedTransactionId) {
           await knex('transactions').where({ id: action.matchedTransactionId, user_id: userId })
-            .update({ is_reconciled: true, reconciled_at: knex.fn.now() });
+            .update({ status: 'reconciled', is_reconciled: true, reconciled_at: knex.fn.now() });
           matched++;
         } else if (action.action === 'create') {
           // Determine category
@@ -293,7 +293,7 @@ export class ImportService {
           // Mark imported transaction as reconciled
           if (newTx) {
             await knex('transactions').where({ id: newTx.id, user_id: userId })
-              .update({ is_reconciled: true, reconciled_at: knex.fn.now() });
+              .update({ status: 'reconciled', is_reconciled: true, reconciled_at: knex.fn.now() });
           }
 
           // Assign to credit card cycle if deferred card

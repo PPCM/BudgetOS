@@ -556,7 +556,8 @@
       "description": "Descrizione",
       "amount": "Importo"
     },
-    "conditionCount": "{{count}} condizione/i"
+    "conditionCount": "{{count}} condizione/i",
+    "confirmDelete": "Eliminare la regola \"{{name}}\"?"
   },
   "reports": {
     "title": "Report",
@@ -637,7 +638,8 @@
         "EUR": "Euro (€)",
         "USD": "Dollaro ($)",
         "GBP": "Sterlina britannica (£)",
-        "CHF": "Franco svizzero (CHF)"
+        "CHF": "Franco svizzero (CHF)",
+        "CAD": "Dollaro canadese (CA$)"
       },
       "weekDays": {
         "monday": "Lunedì",

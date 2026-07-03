@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { categoriesApi } from '../lib/api'
+import api, { categoriesApi } from '../lib/api'
+import { translateError } from '../lib/errorHelper'
 import {
   Plus, Wand2, Trash2, X, CheckCircle,
   ToggleLeft, ToggleRight, GripVertical
 } from 'lucide-react'
-import axios from 'axios'
 import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 
 function RuleModal({ rule, categories, onClose, onSave }) {
   const { t } = useTranslation()
@@ -196,12 +197,13 @@ function RuleModal({ rule, categories, onClose, onSave }) {
 export default function Rules() {
   const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
+  const [deleteCandidate, setDeleteCandidate] = useState(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: ['rules'],
     queryFn: async () => {
-      const { data } = await axios.get('/api/v1/rules', { withCredentials: true })
+      const { data } = await api.get('/rules')
       return data.data.rules
     },
   })
@@ -212,39 +214,24 @@ export default function Rules() {
   })
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.post('/api/v1/rules', data, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
+    mutationFn: (data) => api.post('/rules', data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['rules'])
+      queryClient.invalidateQueries({ queryKey: ['rules'] })
       setModalOpen(false)
     },
+    onError: (err) => alert(translateError(err)),
   })
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, isActive }) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.put(`/api/v1/rules/${id}`, { isActive }, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
-    onSuccess: () => queryClient.invalidateQueries(['rules']),
+    mutationFn: ({ id, isActive }) => api.put(`/rules/${id}`, { isActive }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rules'] }),
+    onError: (err) => alert(translateError(err)),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.delete(`/api/v1/rules/${id}`, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
-    onSuccess: () => queryClient.invalidateQueries(['rules']),
+    mutationFn: (id) => api.delete(`/rules/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rules'] }),
+    onError: (err) => alert(translateError(err)),
   })
 
   if (isLoading) {
@@ -292,7 +279,7 @@ export default function Rules() {
                   )}
                 </button>
                 <button
-                  onClick={() => deleteMutation.mutate(rule.id)}
+                  onClick={() => setDeleteCandidate(rule)}
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                 >
                   <Trash2 className="w-5 h-5" />
@@ -316,6 +303,22 @@ export default function Rules() {
           categories={categories}
           onClose={() => setModalOpen(false)}
           onSave={(data) => createMutation.mutate(data)}
+        />
+      )}
+
+      {deleteCandidate && (
+        <ConfirmModal
+          variant="danger"
+          title={t('common.delete')}
+          message={t('rules.confirmDelete', { name: deleteCandidate.name })}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            deleteMutation.mutate(deleteCandidate.id)
+            setDeleteCandidate(null)
+          }}
+          onClose={() => setDeleteCandidate(null)}
+          isPending={deleteMutation.isPending}
         />
       )}
     </div>

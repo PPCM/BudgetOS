@@ -41,7 +41,10 @@ export class ForecastService {
     for (const pt of planned) {
       const occurrences = ForecastService.generateOccurrences(pt, today, horizon);
       for (const date of occurrences) {
-        const amount = pt.account_id === accountId ? pt.amount : -pt.amount;
+        // Coerce to Number: pg/mysql drivers return decimal columns as strings,
+        // which would turn balance arithmetic into string concatenation (NaN).
+        const ptAmount = Number(pt.amount);
+        const amount = pt.account_id === accountId ? ptAmount : -ptAmount;
         futureTransactions.push({
           date: formatDateISO(date),
           amount,
@@ -56,7 +59,7 @@ export class ForecastService {
     for (const debit of deferredDebits) {
       futureTransactions.push({
         date: debit.debit_date,
-        amount: -debit.total_amount,
+        amount: -Number(debit.total_amount),
         description: `Debit ${debit.card_name}`,
         type: 'deferred_debit',
       });
@@ -117,8 +120,12 @@ export class ForecastService {
     const endDate = planned.end_date ? new Date(planned.end_date) : end;
     const maxDate = new Date(Math.min(end.getTime(), endDate.getTime()));
 
+    // Compare on the calendar date, not the timestamp: `start` carries the
+    // current time-of-day, so an occurrence dated today (midnight) would
+    // otherwise be wrongly excluded.
+    const startStr = formatDateISO(start);
     while (current <= maxDate) {
-      if (current >= start) occurrences.push(new Date(current));
+      if (formatDateISO(current) >= startStr) occurrences.push(new Date(current));
       if (planned.frequency === 'once') return occurrences;
       current = advanceByFrequency(current, planned.frequency);
     }
@@ -152,7 +159,7 @@ export class ForecastService {
       return { date: dayStr, balance: roundAmount(totalBalance) };
     });
 
-    const currentTotal = accounts.reduce((sum, a) => sum + a.current_balance, 0);
+    const currentTotal = accounts.reduce((sum, a) => sum + Number(a.current_balance), 0);
     const balances = globalDaily.map(d => d.balance);
 
     return {
@@ -222,8 +229,9 @@ export class ForecastService {
       const planned = plannedMap[key];
       const deferred = deferredMap[key];
 
-      const income = planned?.income || 0;
-      const expenses = (planned?.expenses || 0) + (deferred?.total || 0);
+      // Coerce to Number: pg/mysql return SUM()/decimal aggregates as strings.
+      const income = Number(planned?.income) || 0;
+      const expenses = (Number(planned?.expenses) || 0) + (Number(deferred?.total) || 0);
       result.push({
         month: key,
         plannedIncome: income,
@@ -266,9 +274,10 @@ export class ForecastService {
       txQuery = txQuery.where('t.is_reconciled', isReconciled === 'true' || isReconciled === true);
     }
     if (search) {
+      const likeOp = dateHelpers.likeOperator(knex);
       txQuery = txQuery.where(function () {
-        this.where('t.description', 'like', `%${search}%`)
-          .orWhere('p.name', 'like', `%${search}%`);
+        this.where('t.description', likeOp, `%${search}%`)
+          .orWhere('p.name', likeOp, `%${search}%`);
       });
     }
 

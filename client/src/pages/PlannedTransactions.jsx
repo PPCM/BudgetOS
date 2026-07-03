@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { getPersistedAccountTab, setPersistedAccountTab } from '../lib/accountTabPersistence'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { accountsApi, categoriesApi, payeesApi } from '../lib/api'
+import api, { accountsApi, categoriesApi, payeesApi } from '../lib/api'
 import { translateError } from '../lib/errorHelper'
+import { formatLocalDate } from '../lib/utils'
 import { useFormatters, parseAmount } from '../hooks/useFormatters'
 import FormattedAmountInput from '../components/FormattedAmountInput'
 import {
@@ -12,7 +13,6 @@ import {
   TrendingUp, TrendingDown, ArrowLeftRight, Play, Users
 } from 'lucide-react'
 import { getIconComponent } from '../lib/iconMap'
-import axios from 'axios'
 import SearchableSelect from '../components/SearchableSelect'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
@@ -46,7 +46,7 @@ function PlannedModal({ planned, accounts, categories, payees, defaultAccountId,
       description: '',
       type: 'expense',
       frequency: 'monthly',
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: formatLocalDate(new Date()),
       endDate: '',
       executeBeforeHoliday: false,
       deleteOnEnd: false,
@@ -378,13 +378,13 @@ export default function PlannedTransactions() {
   }, [setSearchParams])
 
   const invalidatePlannedQueries = () => {
-    queryClient.invalidateQueries(['planned-transactions'])
-    queryClient.invalidateQueries(['upcoming-transactions'])
+    queryClient.invalidateQueries({ queryKey: ['planned-transactions'] })
+    queryClient.invalidateQueries({ queryKey: ['upcoming-transactions'] })
   }
   const invalidateAllQueries = () => {
     invalidatePlannedQueries()
-    queryClient.invalidateQueries(['transactions'])
-    queryClient.invalidateQueries(['accounts'])
+    queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    queryClient.invalidateQueries({ queryKey: ['accounts'] })
   }
 
   // Build frequencies lookup for display in the list
@@ -403,7 +403,7 @@ export default function PlannedTransactions() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['planned-transactions'],
     queryFn: async () => {
-      const { data } = await axios.get('/api/v1/planned-transactions', { withCredentials: true })
+      const { data } = await api.get('/planned-transactions')
       return data
     },
   })
@@ -411,7 +411,7 @@ export default function PlannedTransactions() {
   const { data: upcoming } = useQuery({
     queryKey: ['upcoming-transactions'],
     queryFn: async () => {
-      const { data } = await axios.get('/api/v1/planned-transactions/upcoming?days=30', { withCredentials: true })
+      const { data } = await api.get('/planned-transactions/upcoming?days=30')
       return data.data?.upcoming || []
     },
   })
@@ -498,13 +498,7 @@ export default function PlannedTransactions() {
   }
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.post('/api/v1/planned-transactions', data, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
+    mutationFn: (data) => api.post('/planned-transactions', data),
     onSuccess: (response) => {
       invalidatePlannedQueries()
       setModalOpen(false)
@@ -525,13 +519,8 @@ export default function PlannedTransactions() {
   })
 
   const reconcileMutation = useMutation({
-    mutationFn: async ({ plannedId, deleteExcess }) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.post(`/api/v1/planned-transactions/${plannedId}/reconcile`,
-        { deleteExcess: !!deleteExcess },
-        { withCredentials: true, headers: { 'X-CSRF-Token': csrfRes.data.csrfToken } },
-      )
-    },
+    mutationFn: ({ plannedId, deleteExcess }) =>
+      api.post(`/planned-transactions/${plannedId}/reconcile`, { deleteExcess: !!deleteExcess }),
     onSuccess: () => {
       invalidateAllQueries()
       setBackfillPrompt(null)
@@ -543,13 +532,7 @@ export default function PlannedTransactions() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.put(`/api/v1/planned-transactions/${id}`, data, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
+    mutationFn: ({ id, data }) => api.put(`/planned-transactions/${id}`, data),
     onSuccess: (response) => {
       invalidatePlannedQueries()
       setModalOpen(false)
@@ -572,14 +555,9 @@ export default function PlannedTransactions() {
 
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.delete(`/api/v1/planned-transactions/${id}`, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
+    mutationFn: (id) => api.delete(`/planned-transactions/${id}`),
     onSuccess: () => invalidatePlannedQueries(),
+    onError: (err) => alert(translateError(err)),
   })
 
   const handleEdit = (tx) => {

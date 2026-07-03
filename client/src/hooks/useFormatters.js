@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
+import { parseLocalDate } from '../lib/utils'
 
 /**
  * Format a number using the given decimal separator and digit grouping.
@@ -83,12 +84,12 @@ export function useFormatters() {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-      }).format(new Date(date))
+      }).format(parseLocalDate(date))
     }
 
     const formatDateRelative = (date) => {
       const now = new Date()
-      const d = new Date(date)
+      const d = parseLocalDate(date)
       const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24))
 
       if (diff === 0) return t('dates.today')

@@ -556,7 +556,8 @@
       "description": "Описание",
       "amount": "Сумма"
     },
-    "conditionCount": "{{count}} условий"
+    "conditionCount": "{{count}} условий",
+    "confirmDelete": "Удалить правило \"{{name}}\"?"
   },
   "reports": {
     "title": "Отчёты",
@@ -637,7 +638,8 @@
         "EUR": "Евро (€)",
         "USD": "Доллар ($)",
         "GBP": "Фунт стерлингов (£)",
-        "CHF": "Швейцарский франк (CHF)"
+        "CHF": "Швейцарский франк (CHF)",
+        "CAD": "Канадский доллар (CA$)"
       },
       "weekDays": {
         "monday": "Понедельник",

@@ -9,7 +9,7 @@ import { useToast } from '../components/Toast'
 import PasswordInput from '../components/PasswordInput'
 import FormLanguageSelect from '../components/FormLanguageSelect'
 import ToggleSwitch from '../components/ToggleSwitch'
-import axios from 'axios'
+import api from '../lib/api'
 
 export default function Settings() {
   const { t } = useTranslation()
@@ -76,13 +76,7 @@ function ProfileSettings({ user, checkAuth }) {
   })
 
   const mutation = useMutation({
-    mutationFn: async (data) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.put('/api/v1/auth/profile', data, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
+    mutationFn: (data) => api.put('/auth/profile', data),
     onSuccess: () => {
       toast.success(t('settings.profile.saved'))
       checkAuth()
@@ -137,13 +131,7 @@ function SecuritySettings() {
   })
 
   const mutation = useMutation({
-    mutationFn: async (data) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.put('/api/v1/auth/password', data, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
+    mutationFn: (data) => api.put('/auth/password', data),
     onSuccess: () => {
       toast.success(t('settings.security.saved'))
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' })
@@ -222,13 +210,7 @@ function PreferencesSettings({ user, checkAuth }) {
   })
 
   const profileMutation = useMutation({
-    mutationFn: async (data) => {
-      const csrfRes = await axios.get('/api/v1/csrf-token', { withCredentials: true })
-      return axios.put('/api/v1/auth/profile', data, {
-        withCredentials: true,
-        headers: { 'X-CSRF-Token': csrfRes.data.csrfToken },
-      })
-    },
+    mutationFn: (data) => api.put('/auth/profile', data),
     onSuccess: () => {
       checkAuth()
     },
@@ -277,6 +259,7 @@ function PreferencesSettings({ user, checkAuth }) {
             <option value="USD">{t('settings.preferences.currencies.USD')}</option>
             <option value="GBP">{t('settings.preferences.currencies.GBP')}</option>
             <option value="CHF">{t('settings.preferences.currencies.CHF')}</option>
+            <option value="CAD">{t('settings.preferences.currencies.CAD')}</option>
           </select>
         </div>
         <div>

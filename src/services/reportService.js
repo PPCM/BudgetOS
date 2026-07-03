@@ -153,7 +153,13 @@ export class ReportService {
 
     const [data1, data2] = await Promise.all([getMonthData(month1), getMonthData(month2)]);
 
-    const calcChange = (v1, v2) => v1 && v1 !== 0 ? roundAmount(((v2 - v1) / v1) * 100) : 0;
+    // Coerce to Number: pg/mysql return SUM() as strings (e.g. "0.00"), which
+    // would slip past a truthy check and divide by zero.
+    const calcChange = (v1, v2) => {
+      const a = Number(v1) || 0;
+      const b = Number(v2) || 0;
+      return a !== 0 ? roundAmount(((b - a) / a) * 100) : 0;
+    };
 
     return {
       month1: { month: month1, income: roundAmount(data1?.income || 0), expenses: roundAmount(data1?.expenses || 0) },

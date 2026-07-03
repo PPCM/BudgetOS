@@ -76,7 +76,7 @@ export default function Dashboard() {
   const { t } = useTranslation()
   const { formatCurrency, formatDateRelative } = useFormatters()
 
-  const { data: dashboard, isLoading } = useQuery({
+  const { data: dashboard, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => reportsApi.getDashboard().then(r => r.data.data),
   })
@@ -106,6 +106,14 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12 text-red-600">
+        {t('common.error')}: {error.message}
       </div>
     )
   }

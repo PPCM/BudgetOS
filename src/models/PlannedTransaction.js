@@ -292,6 +292,20 @@ export class PlannedTransaction {
 
   static async createOccurrence(id, userId, date, amount = null) {
     const pt = await PlannedTransaction.findByIdOrFail(id, userId);
+
+    // Idempotency guard: if an occurrence for this planned transaction already
+    // exists on this date (e.g. after a mid-run crash/restart), don't create a
+    // duplicate. Still advance next_occurrence so the scheduler moves forward.
+    const existing = await knex('transactions')
+      .where({ user_id: userId, recurring_id: id, date })
+      .first();
+    if (existing) {
+      await knex('planned_transactions')
+        .where('id', id)
+        .update({ next_occurrence: PlannedTransaction.advanceNextOccurrence(pt) });
+      return null;
+    }
+
     const tx = await Transaction.create(userId, {
       accountId: pt.accountId, categoryId: pt.categoryId, payeeId: pt.payeeId,
       creditCardId: pt.creditCardId, amount: amount || pt.amount, description: pt.description,
@@ -314,9 +328,26 @@ export class PlannedTransaction {
   // scheduler to re-create the same occurrence on every run.
   static advanceNextOccurrence(pt) {
     if (pt.frequency === 'once') return null;
+
+    // Stop once the configured maximum number of occurrences is reached. pt holds
+    // the count BEFORE this occurrence, so after it the total is occurrencesCreated + 1.
+    if (pt.maxOccurrences && (pt.occurrencesCreated || 0) + 1 >= pt.maxOccurrences) {
+      return null;
+    }
+
     const baseDateStr = pt.nextOccurrence || pt.startDate;
     if (!baseDateStr) return null;
     const next = advanceByFrequency(new Date(baseDateStr + 'T00:00:00'), pt.frequency);
+
+    // Re-anchor the day-of-month to the start date for monthly-family frequencies,
+    // so a "31st" schedule doesn't permanently drift to the 28th after February.
+    const monthlyFamily = ['monthly', 'bimonthly', 'quarterly', 'semiannual', 'annual'].includes(pt.frequency);
+    if (monthlyFamily && pt.startDate) {
+      const anchorDay = new Date(pt.startDate + 'T00:00:00').getDate();
+      const daysInMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+      next.setDate(Math.min(anchorDay, daysInMonth));
+    }
+
     if (pt.endDate) {
       const end = new Date(pt.endDate + 'T00:00:00');
       if (next > end) return null;

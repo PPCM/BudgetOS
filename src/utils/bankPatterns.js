@@ -27,6 +27,12 @@ export function extractPurchaseDate(description) {
   const month = match[2];
   let year = match[3];
 
+  // Reject out-of-range day/month (e.g. "CARTE 45/13/25") to avoid emitting an
+  // invalid date string that the DB would reject or store corrupted.
+  const dayNum = parseInt(day, 10);
+  const monthNum = parseInt(month, 10);
+  if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) return null;
+
   // Convert 2-digit year to 4-digit
   if (year.length === 2) {
     const yearNum = parseInt(year, 10);

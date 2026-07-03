@@ -58,6 +58,9 @@ class SchedulerService {
         .where('pt.next_occurrence', '<=', today)
         .where(function () {
           this.whereNull('pt.end_date').orWhereRaw('pt.end_date >= pt.next_occurrence');
+        })
+        .where(function () {
+          this.whereNull('pt.max_occurrences').orWhereRaw('pt.occurrences_created < pt.max_occurrences');
         });
 
       logger.info(`Found ${duePlanned.length} planned transactions due`);

@@ -496,7 +496,7 @@ function CardDetail({ card, onEdit, onDelete }) {
             {card.expirationDate && ` • ${t('creditCards.exp')} ${card.expirationDate}`}
           </p>
           {card.accountName && (
-            <p className="text-xs text-gray-400">{t('creditCards.linkedTo')} {card.accountName}</p>
+            <p className="text-xs text-gray-400">{t('creditCards.linkedTo', { name: card.accountName })}</p>
           )}
         </div>
       </div>

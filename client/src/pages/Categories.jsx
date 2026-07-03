@@ -251,7 +251,7 @@ export default function Categories() {
         alert(t('categories.importDone', { created, updated }))
         queryClient.invalidateQueries({ queryKey: ['categories'] })
       } catch (err) {
-        alert(t('categories.importError') + ': ' + err.message)
+        alert(t('categories.importError', { message: err.message }))
       }
     }
     reader.readAsText(file)

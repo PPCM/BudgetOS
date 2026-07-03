@@ -23,5 +23,5 @@ export function setPersistedAccountTab(accountId) {
     } else {
       localStorage.removeItem(STORAGE_KEY)
     }
-  } catch {}
+  } catch { /* ignore storage errors (private mode, quota) */ }
 }

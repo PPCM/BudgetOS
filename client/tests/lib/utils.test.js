@@ -15,7 +15,9 @@ describe('cn', () => {
   })
 
   it('handles conditional classes', () => {
+    // eslint-disable-next-line no-constant-binary-expression -- deliberately testing conditional (cond && 'class') inputs
     expect(cn('px-2', true && 'bg-blue-500')).toBe('px-2 bg-blue-500')
+    // eslint-disable-next-line no-constant-binary-expression -- deliberately testing conditional (cond && 'class') inputs
     expect(cn('px-2', false && 'bg-blue-500')).toBe('px-2')
   })
 
